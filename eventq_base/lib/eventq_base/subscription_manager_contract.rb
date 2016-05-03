@@ -1,4 +1,4 @@
-class SubscriptionManager
+class SubscriptionManagerContract
 
   def subscribe(event_type, queue)
 

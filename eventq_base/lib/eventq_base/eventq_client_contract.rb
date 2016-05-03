@@ -1,4 +1,4 @@
-class EventQClient
+class EventQClientContract
 
   def raise(event_type, event)
 

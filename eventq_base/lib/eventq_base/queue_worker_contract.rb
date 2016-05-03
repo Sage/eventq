@@ -1,5 +1,5 @@
 # Contract class for queue workers
-class QueueWorker
+class QueueWorkerContract
 
   def start(queue, options = {}, &block)
 
