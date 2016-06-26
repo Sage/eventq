@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe AwsEventQClient do
+RSpec.describe EventQ::Aws::EventQClient do
 
   it 'should raise an event object and be broadcast to a subscriber queue' do
 
@@ -8,9 +8,9 @@ RSpec.describe AwsEventQClient do
     subscriber_queue = Queue.new
     subscriber_queue.name = 'test_queue1'
 
-    client = AwsQueueClient.new
+    client = EventQ::Aws::QueueClient.new
 
-    subscription_manager = AwsSubscriptionManager.new
+    subscription_manager = EventQ::Aws::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
@@ -21,7 +21,7 @@ RSpec.describe AwsEventQClient do
     #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
     sleep(1)
 
-    queue_manager = AwsQueueManager.new
+    queue_manager = EventQ::Aws::QueueManager.new
 
     q = queue_manager.get_queue(subscriber_queue)
 

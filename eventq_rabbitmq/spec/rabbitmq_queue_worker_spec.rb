@@ -1,29 +1,29 @@
 require 'spec_helper'
 
-RSpec.describe RabbitMqQueueWorker do
+RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   it 'should receive an event from the subscriber queue' do
 
     event_type = 'queue.worker.event1'
-    subscriber_queue = Queue.new
+    subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker1'
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
-    subscription_manager = RabbitMqSubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = RabbitMqEventQClient.new
+    client = EventQ::RabbitMq::EventQClient.new
 
     client.raise(event_type, message)
 
     received = false
 
-    subject.start(subscriber_queue, {:sleep => 1}) do |event, type|
+    subject.start(subscriber_queue, {:sleep => 1}) do |event, args|
       expect(event).to eq(message)
-      expect(type).to eq(event_type)
+      expect(args.type).to eq(event_type)
       received = true
       puts "Message Received: #{event}"
     end
@@ -41,17 +41,17 @@ RSpec.describe RabbitMqQueueWorker do
   it 'should receive events in parallel on each thread from the subscriber queue' do
 
     event_type = 'queue.worker.event1'
-    subscriber_queue = Queue.new
+    subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker1'
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
-    subscription_manager = RabbitMqSubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = RabbitMqEventQClient.new
+    client = EventQ::RabbitMq::EventQClient.new
     client.raise(event_type, message)
     client.raise(event_type, message)
     client.raise(event_type, message)
@@ -69,9 +69,9 @@ RSpec.describe RabbitMqQueueWorker do
 
     mutex = Mutex.new
 
-    subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5}) do |event, type|
+    subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5}) do |event, args|
       expect(event).to eq(message)
-      expect(type).to eq(event_type)
+      expect(args.type).to eq(event_type)
 
       mutex.synchronize do
         puts "Message Received: #{event}"
@@ -114,35 +114,35 @@ RSpec.describe RabbitMqQueueWorker do
   it 'should send messages that fail to process to the retry queue and then receive them again after the retry delay' do
 
     event_type = 'queue.worker.event2'
-    subscriber_queue = Queue.new
+    subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker2'
     #set queue retry delay to 0.5 seconds
     subscriber_queue.retry_delay = 500
     subscriber_queue.allow_retry = true
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
-    qm = RabbitMqQueueManager.new
+    qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = RabbitMqSubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = RabbitMqEventQClient.new
+    client = EventQ::RabbitMq::EventQClient.new
     client.raise(event_type, message)
 
     retry_attempt_count = 0
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, type, retry_attempts|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
 
-      if retry_attempts == 0
+      if args.retry_attempts == 0
         raise 'Fail on purpose to send event to retry queue.'
       end
 
-      retry_attempt_count = retry_attempts
+      retry_attempt_count = args.retry_attempts
 
     end
 
@@ -159,25 +159,25 @@ RSpec.describe RabbitMqQueueWorker do
   it 'should execute the #on_retry_exceeded block when a message exceeds its retry limit' do
 
     event_type = 'queue.worker.event3'
-    subscriber_queue = Queue.new
+    subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker3'
     #set queue retry delay to 0.5 seconds
     subscriber_queue.retry_delay = 500
     subscriber_queue.allow_retry = true
     subscriber_queue.max_retry_attempts = 1
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
-    qm = RabbitMqQueueManager.new
+    qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = RabbitMqSubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = RabbitMqEventQClient.new
+    client = EventQ::RabbitMq::EventQClient.new
     client.raise(event_type, message)
 
     retry_attempt_count = 0
@@ -188,9 +188,9 @@ RSpec.describe RabbitMqQueueWorker do
       failed_message = message
     end
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, type, retry_attempts|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
 
-      retry_attempt_count = retry_attempts
+      retry_attempt_count = args.retry_attempts
       raise 'Fail on purpose to send event to retry queue.'
 
     end
@@ -211,22 +211,22 @@ RSpec.describe RabbitMqQueueWorker do
   it 'should not retry an event when it fails for a queue that does not allow retries' do
 
     event_type = 'queue.worker.event4'
-    subscriber_queue = Queue.new
+    subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker4'
     subscriber_queue.allow_retry = false
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
-    qm = RabbitMqQueueManager.new
+    qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = RabbitMqSubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = RabbitMqEventQClient.new
+    client = EventQ::RabbitMq::EventQClient.new
     client.raise(event_type, message)
 
     retry_attempt_count = 0
@@ -237,9 +237,9 @@ RSpec.describe RabbitMqQueueWorker do
       failed_message = message
     end
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, type, retry_attempts|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
 
-      retry_attempt_count = retry_attempts
+      retry_attempt_count = args.retry_attempts
       raise 'Fail on purpose to send event to retry queue.'
 
     end

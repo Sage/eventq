@@ -5,8 +5,6 @@ require 'pry'
 
 require './lib/eventq_aws'
 
-ENV['RACK_ENV'] = 'test'
-
 RSpec.configure do |config|
 
   config.before(:each) do

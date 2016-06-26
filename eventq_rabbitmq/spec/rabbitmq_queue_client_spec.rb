@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-RSpec.describe RabbitMqQueueClient do
+RSpec.describe EventQ::RabbitMq::QueueClient do
 
   it 'should use dead-letter exchange' do
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
 
     ch   = client.get_channel
     x    = ch.fanout("amq.fanout")
@@ -32,16 +32,16 @@ RSpec.describe RabbitMqQueueClient do
 
   it 'should use a delay queue correctly' do
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
     channel = client.get_channel
 
     retry_exchange = channel.fanout('retry.exchange')
     subscriber_exchange = channel.fanout('subscriber.exchange')
 
-    retry_queue_def = Queue.new
+    retry_queue_def = EventQ::Queue.new
     retry_queue_def.name = 'retry.queue'
 
-    queue_manager = RabbitMqQueueManager.new
+    queue_manager = EventQ::RabbitMq::QueueManager.new
 
     retry_queue = channel.queue(retry_queue_def.name, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => 600 }).bind(retry_exchange)
 
@@ -55,7 +55,11 @@ RSpec.describe RabbitMqQueueClient do
 
     expect(payload).to eq(message)
 
-    sleep(2.5)
+    channel.close
+    channel = client.get_channel
+    subscriber_queue = channel.queue('subscriber.queue')
+
+    sleep(1)
 
     delivery_info, properties, payload = subscriber_queue.pop(:manual_ack => true)
     expect(payload).to eq(message)
@@ -65,15 +69,15 @@ RSpec.describe RabbitMqQueueClient do
 
   it 'should expire message from retry queue back into subscriber queue' do
 
-    client = RabbitMqQueueClient.new
+    client = EventQ::RabbitMq::QueueClient.new
     channel = client.get_channel
 
-    q = Queue.new
+    q = EventQ::Queue.new
     q.name = 'retry.test.queue'
     q.allow_retry = true
     q.retry_delay = 500
 
-    qm = RabbitMqQueueManager.new
+    qm = EventQ::RabbitMq::QueueManager.new
 
     queue = qm.get_queue(channel, q)
     retry_queue = qm.get_retry_queue(channel, q)

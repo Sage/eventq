@@ -1,5 +1,7 @@
-class EventRaisedQueue < Queue
-  def initialize
-    @name = 'eventq.eventraised'
+module EventQ
+  class EventRaisedQueue < Queue
+    def initialize
+      @name = 'eventq.eventraised'
+    end
   end
 end

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe AwsQueueWorker do
+RSpec.describe EventQ::Aws::QueueWorker do
 
   it 'should receive an event from the subscriber queue' do
 
@@ -8,14 +8,14 @@ RSpec.describe AwsQueueWorker do
     subscriber_queue = Queue.new
     subscriber_queue.name = 'queue_worker1'
 
-    client = AwsQueueClient.new
+    client = EventQ::Aws::QueueClient.new
 
-    subscription_manager = AwsSubscriptionManager.new
+    subscription_manager = EventQ::Aws::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = AwsEventQClient.new
+    client = EventQ::Aws::EventQClient.new
 
     client.raise(event_type, message)
 
@@ -47,14 +47,14 @@ RSpec.describe AwsQueueWorker do
     subscriber_queue = Queue.new
     subscriber_queue.name = 'queue_worker2'
 
-    client = AwsQueueClient.new
+    client = EventQ::Aws::QueueClient.new
 
-    subscription_manager = AwsSubscriptionManager.new
+    subscription_manager = EventQ::Aws::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = AwsEventQClient.new
+    client = EventQ::Aws::EventQClient.new
     client.raise(event_type, message)
     client.raise(event_type, message)
     client.raise(event_type, message)

@@ -1,5 +1,6 @@
 require 'eventq_base'
 require 'bunny'
+require 'oj'
 require_relative '../lib/eventq_rabbitmq/version'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_client'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_manager'

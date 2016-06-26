@@ -1,11 +1,13 @@
-class SubscriptionManagerContract
+module EventQ
+  class SubscriptionManagerContract
 
-  def subscribe(event_type, queue)
+    def subscribe(event_type, queue)
+
+    end
+
+    def unsubscribe(queue)
+
+    end
 
   end
-
-  def unsubscribe(queue)
-
-  end
-
 end

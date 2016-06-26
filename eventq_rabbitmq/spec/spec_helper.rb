@@ -3,9 +3,7 @@ require 'oj'
 require 'eventq_base'
 require 'pry'
 
-require_relative '../../eventq_rabbitmq/lib/eventq_rabbitmq'
-
-ENV['RACK_ENV'] = 'test'
+require_relative '../lib/eventq_rabbitmq'
 
 RSpec.configure do |config|
 
@@ -34,7 +32,7 @@ RSpec.configure do |config|
 
   config.profile_examples = 10
 
-  config.order = :random
+  config.order = :defined
 
   Kernel.srand config.seed
 end
