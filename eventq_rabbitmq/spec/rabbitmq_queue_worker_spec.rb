@@ -17,7 +17,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     client = EventQ::RabbitMq::EventQClient.new
 
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
 
     received = false
 
@@ -52,16 +52,16 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     message = 'Hello World'
 
     client = EventQ::RabbitMq::EventQClient.new
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
 
     received_messages = []
 
@@ -132,7 +132,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     message = 'Hello World'
 
     client = EventQ::RabbitMq::EventQClient.new
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
 
     retry_attempt_count = 0
 
@@ -178,7 +178,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     message = 'Hello World'
 
     client = EventQ::RabbitMq::EventQClient.new
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
 
     retry_attempt_count = 0
 
@@ -227,7 +227,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     message = 'Hello World'
 
     client = EventQ::RabbitMq::EventQClient.new
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
 
     retry_attempt_count = 0
 

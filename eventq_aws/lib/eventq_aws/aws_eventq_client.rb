@@ -5,7 +5,7 @@ module EventQ
         @client = QueueClient.new
       end
 
-      def raise(event_type, event)
+      def raise_event(event_type, event)
 
         topic_arn = @client.get_topic_arn(event_type)
 

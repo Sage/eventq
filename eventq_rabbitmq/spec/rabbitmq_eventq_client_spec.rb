@@ -13,7 +13,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
     message = 'Hello World'
 
-    subject.raise(event_type, message)
+    subject.raise_event(event_type, message)
 
     client = EventQ::RabbitMq::QueueClient.new
 
@@ -56,7 +56,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
       queue_manager = EventQ::RabbitMq::QueueManager.new
       queue = queue_manager.get_queue(channel, EventQ::RabbitMq::DefaultQueue.new)
 
-      subject.raise(event_type, message)
+      subject.raise_event(event_type, message)
 
       qm = nil
 

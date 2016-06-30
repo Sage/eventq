@@ -17,7 +17,7 @@ RSpec.describe EventQ::Aws::QueueWorker do
 
     client = EventQ::Aws::EventQClient.new
 
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
 
     received = false
 
@@ -55,16 +55,16 @@ RSpec.describe EventQ::Aws::QueueWorker do
     message = 'Hello World'
 
     client = EventQ::Aws::EventQClient.new
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
-    client.raise(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
+    client.raise_event(event_type, message)
 
     received_messages = []
 

@@ -5,16 +5,19 @@ module EventQ
       attr_reader :sns
       attr_reader :sqs
 
-      def initialize
+      def initialize(options = {})
 
-        Aws.config[:credentials] = Aws::Credentials.new(ENV['AWS_KEY'], ENV['AWS_SECRET'])
-        Aws.config[:region] = ENV['AWS_REGION'] || 'us-west-2'
+        if options.has_key?(:aws_key)
+          Aws.config[:credentials] = Aws::Credentials.new(options[:aws_key], options[:aws_secret])
+        end
 
         @sns = Aws::SNS::Client.new
         @sqs = Aws::SQS::Client.new
 
-        @aws_account = ENV['AWS_ACCOUNT_NUMBER']
-        @aws_region = ENV['AWS_REGION'] || 'us-west-2'
+        @aws_account = options[:aws_account_number]
+        @aws_region = options[:aws_region] || 'us-west-2'
+
+        Aws.config[:region] = @aws_region
 
       end
 

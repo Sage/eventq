@@ -15,7 +15,7 @@ RSpec.describe EventQ::Aws::EventQClient do
 
     message = 'Hello World'
 
-    id = subject.raise(event_type, message)
+    id = subject.raise_event(event_type, message)
     puts "Message ID: #{id}"
 
     #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers

@@ -1,7 +1,7 @@
 module EventQ
   class EventQClientContract
 
-    def raise(event_type, event)
+    def raise_event(event_type, event)
 
     end
 

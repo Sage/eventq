@@ -9,7 +9,7 @@ module EventQ
         @subscription_manager = options[:subscription_manager] || SubscriptionManager.new
       end
 
-      def raise(event_type, event)
+      def raise_event(event_type, event)
         channel = @client.get_channel
         ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
