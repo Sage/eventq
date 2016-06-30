@@ -2,17 +2,17 @@ module EventQ
   module RabbitMq
     class QueueClient
 
-      def initialize
+      def initialize(options = {})
 
-        @endpoint = ENV['MQ_ENDPOINT'] || 'localhost'
+        @endpoint = options[:endpoint] || 'localhost'
 
-        @port = Integer(ENV['MQ_PORT'] || 5672)
+        @port = Integer(options[:port] || 5672)
 
-        @user = ENV['MQ_USER'] || 'guest'
+        @user = options[:user] || 'guest'
 
-        @password = ENV['MQ_PASSWORD'] || 'guest'
+        @password = options[:password] || 'guest'
 
-        @ssl = ENV['MQ_SSL'] == 'true' || false
+        @ssl = options[:ssl] == true || false
 
       end
 

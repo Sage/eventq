@@ -1,4 +1,3 @@
-eval $(docker-machine env)
 echo cleanup started
 echo stop all containers
 docker stop $(docker ps -a -q)

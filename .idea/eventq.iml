@@ -5,13 +5,14 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" scope="PROVIDED" name="amq-protocol (v2.0.1, rbenv: 2.3.0) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="aws-sdk-core (v2.3.0, rbenv: 2.3.0) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="aws-sdk-core (v2.3.15, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="bundler (v1.11.2, rbenv: 2.3.0) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="bunny (v2.3.0, rbenv: 2.3.0) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="bunny (v2.4.0, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="coderay (v1.1.1, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="diff-lcs (v1.2.5, rbenv: 2.3.0) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="eventq_base (v0.1.7, rbenv: 2.3.0) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="eventq_rabbitmq (v0.1.4, rbenv: 2.3.0) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="eventq_aws (v0.1.0, rbenv: 2.3.0) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="eventq_base (v1.0.0, rbenv: 2.3.0) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="eventq_rabbitmq (v1.0.0, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="io-console (v0.4.5, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="jmespath (v1.2.4, rbenv: 2.3.0) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="json_pure (v1.8.3, rbenv: 2.3.0) [gem]" level="application" />
