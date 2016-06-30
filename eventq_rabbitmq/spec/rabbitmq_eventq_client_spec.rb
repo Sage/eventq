@@ -3,13 +3,13 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:client) do
-    return EventQ::RabbitMq::QueueClient.new
+    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'localhost' })
   end
 
   let(:subscription_manager) { EventQ::RabbitMq::SubscriptionManager.new({ client: client }) }
 
   subject do
-    return EventQ::RabbitMq::EventQClient.new({client: client})
+    return EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
   end
 
   it 'should raise an event object and be broadcast to a subscriber queue' do
@@ -51,12 +51,10 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
   describe '#raise' do
     let(:message) { 'Hello World' }
 
-    subject { described_class.new(subscription_manager: subscription_manager) }
+    subject { described_class.new(client: client, subscription_manager: subscription_manager) }
 
     it 'adds the event to default queue' do
       event_type = 'test_event2'
-
-      client = EventQ::RabbitMq::QueueClient.new
 
       channel = client.get_channel
       queue_manager = EventQ::RabbitMq::QueueManager.new

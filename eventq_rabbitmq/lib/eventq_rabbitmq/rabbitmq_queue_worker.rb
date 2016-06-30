@@ -19,6 +19,10 @@ module EventQ
 
         raise 'Worker is already running.' if running?
 
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
+
         @is_running = true
         @threads = []
 
@@ -26,7 +30,7 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
-            client = options[:client] || QueueClient.new
+            client = options[:client]
             manager = QueueManager.new
 
             #begin the queue loop for this thread

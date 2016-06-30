@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::QueueClient do
 
   let(:client) do
-    return EventQ::RabbitMq::QueueClient.new
+    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'localhost' })
   end
 
   it 'should use dead-letter exchange' do

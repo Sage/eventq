@@ -3,10 +3,15 @@ module EventQ
     class EventQClient
 
       def initialize(options={})
-        @client = options[:client] || QueueClient.new
+
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
+
+        @client = options[:client]
         @queue_manager = QueueManager.new
         @event_raised_exchange = EventRaisedExchange.new
-        @subscription_manager = options[:subscription_manager] || SubscriptionManager.new
+        @subscription_manager = options[:subscription_manager]
       end
 
       def raise_event(event_type, event)

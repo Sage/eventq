@@ -4,7 +4,11 @@ module EventQ
 
       def initialize(options = {})
 
-        @endpoint = options[:endpoint] || 'localhost'
+        if options[:endpoint] == nil
+          raise ':endpoint must be specified.'
+        end
+
+        @endpoint = options[:endpoint]
 
         @port = Integer(options[:port] || 5672)
 

@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   let(:client) do
-    return EventQ::RabbitMq::QueueClient.new
+    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'localhost' })
   end
 
   it 'should receive an event from the subscriber queue' do
@@ -12,17 +12,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker1'
 
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({ client: client})
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message)
 
     received = false
 
-    subject.start(subscriber_queue, {:sleep => 1}) do |event, args|
+    subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
       received = true
@@ -50,7 +50,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     message = 'Hello World'
 
-    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message)
     eqclient.raise_event(event_type, message)
     eqclient.raise_event(event_type, message)
@@ -68,7 +68,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     mutex = Mutex.new
 
-    subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5}) do |event, args|
+    subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5, client: client}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
 
@@ -128,12 +128,12 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     message = 'Hello World'
 
-    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
 
       if args.retry_attempts == 0
         raise 'Fail on purpose to send event to retry queue.'
@@ -172,7 +172,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     message = 'Hello World'
 
-    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
@@ -183,7 +183,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       failed_message = message
     end
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
       retry_attempt_count = args.retry_attempts
       raise 'Fail on purpose to send event to retry queue.'
@@ -219,7 +219,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     message = 'Hello World'
 
-    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
@@ -230,7 +230,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       failed_message = message
     end
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5 }) do |event, args|
+    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
       retry_attempt_count = args.retry_attempts
       raise 'Fail on purpose to send event to retry queue.'
