@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="28716a4d-e125-4fea-aef6-978abee0127f" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/eventq_base/lib/eventq_base/version.rb" afterPath="$PROJECT_DIR$/eventq_base/lib/eventq_base/version.rb" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/eventq.iml" afterPath="$PROJECT_DIR$/.idea/eventq.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb" afterPath="$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb" />
     </list>
     <ignored path="eventq.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -63,7 +65,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="version.rb" pinned="false" current-in-tab="true">
+      <file leaf-file-name="version.rb" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/eventq_base/lib/eventq_base/version.rb">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="45">
@@ -73,11 +75,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="eventq_client_contract.rb" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/eventq_base/lib/eventq_base/eventq_client_contract.rb">
+      <file leaf-file-name="version.rb" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="19" selection-start-line="3" selection-start-column="19" selection-end-line="3" selection-end-column="19" />
+            <state relative-caret-position="15">
+              <caret line="1" column="16" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
               <folding />
             </state>
           </provider>
@@ -134,7 +136,6 @@
         <option value="$PROJECT_DIR$/eventq_rabbitmq/eventq_rabbitmq.gemspec" />
         <option value="$PROJECT_DIR$/eventq_aws/eventq_aws.gemspec" />
         <option value="$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/rabbitmq_queue_client.rb" />
-        <option value="$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb" />
         <option value="$PROJECT_DIR$/script/cleanup.sh" />
         <option value="$PROJECT_DIR$/script/start.sh" />
         <option value="$PROJECT_DIR$/script/stop.sh" />
@@ -147,6 +148,7 @@
         <option value="$PROJECT_DIR$/eventq_aws/spec/aws_eventq_client_spec.rb" />
         <option value="$PROJECT_DIR$/eventq_aws/spec/aws_queue_worker_spec.rb" />
         <option value="$PROJECT_DIR$/eventq_base/lib/eventq_base/version.rb" />
+        <option value="$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb" />
       </list>
     </option>
   </component>
@@ -298,46 +300,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="eventq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq_base" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq_base" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="eventq_base" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
@@ -502,12 +464,12 @@
       <workItem from="1466881594492" duration="3000" />
       <workItem from="1466882030922" duration="2294000" />
       <workItem from="1466946734732" duration="4309000" />
-      <workItem from="1467293324136" duration="1219000" />
+      <workItem from="1467293324136" duration="1312000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="1224000" />
+    <option name="totallyTimeSpent" value="1317000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="1920" y="23" width="2560" height="1417" extended-state="6" />
@@ -731,14 +693,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="2" column="3" selection-start-line="2" selection-start-column="3" selection-end-line="2" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/eventq_rabbitmq/eventq_rabbitmq.gemspec">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="390">
@@ -927,6 +881,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="45">
           <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eventq_rabbitmq/lib/eventq_rabbitmq/version.rb">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="16" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
           <folding />
         </state>
       </provider>
