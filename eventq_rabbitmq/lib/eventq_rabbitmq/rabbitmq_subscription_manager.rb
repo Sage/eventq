@@ -2,8 +2,8 @@ module EventQ
   module RabbitMq
     class SubscriptionManager
 
-      def initialize
-        @client = QueueClient.new
+      def initialize(options = {})
+        @client = options[:client] || QueueClient.new
         @queue_manager = QueueManager.new
         @event_raised_exchange = EventQ::EventRaisedExchange.new
       end

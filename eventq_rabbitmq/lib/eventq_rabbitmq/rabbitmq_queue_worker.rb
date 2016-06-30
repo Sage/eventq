@@ -26,7 +26,7 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
-            client = QueueClient.new
+            client = options[:client] || QueueClient.new
             manager = QueueManager.new
 
             #begin the queue loop for this thread

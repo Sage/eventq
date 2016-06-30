@@ -2,22 +2,23 @@ require 'spec_helper'
 
 RSpec.describe EventQ::RabbitMq::QueueWorker do
 
+  let(:client) do
+    return EventQ::RabbitMq::QueueClient.new
+  end
+
   it 'should receive an event from the subscriber queue' do
 
     event_type = 'queue.worker.event1'
     subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker1'
 
-    client = EventQ::RabbitMq::QueueClient.new
-
     subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = EventQ::RabbitMq::EventQClient.new
-
-    client.raise_event(event_type, message)
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient.raise_event(event_type, message)
 
     received = false
 
@@ -44,24 +45,22 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'queue.worker1'
 
-    client = EventQ::RabbitMq::QueueClient.new
-
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = EventQ::RabbitMq::EventQClient.new
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
-    client.raise_event(event_type, message)
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message)
 
     received_messages = []
 
@@ -120,19 +119,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.retry_delay = 500
     subscriber_queue.allow_retry = true
 
-    client = EventQ::RabbitMq::QueueClient.new
-
     qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = EventQ::RabbitMq::EventQClient.new
-    client.raise_event(event_type, message)
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
 
@@ -166,19 +163,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.allow_retry = true
     subscriber_queue.max_retry_attempts = 1
 
-    client = EventQ::RabbitMq::QueueClient.new
-
     qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = EventQ::RabbitMq::EventQClient.new
-    client.raise_event(event_type, message)
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
 
@@ -215,19 +210,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.name = 'queue.worker4'
     subscriber_queue.allow_retry = false
 
-    client = EventQ::RabbitMq::QueueClient.new
-
     qm = EventQ::RabbitMq::QueueManager.new
     q = qm.get_queue(client.get_channel, subscriber_queue)
     q.delete
 
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
+    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
-    client = EventQ::RabbitMq::EventQClient.new
-    client.raise_event(event_type, message)
+    eqclient = EventQ::RabbitMq::EventQClient.new({client: client})
+    eqclient.raise_event(event_type, message)
 
     retry_attempt_count = 0
 

@@ -2,20 +2,27 @@ require 'spec_helper'
 
 RSpec.describe EventQ::RabbitMq::EventQClient do
 
+  let(:client) do
+    return EventQ::RabbitMq::QueueClient.new
+  end
+
+  let(:subscription_manager) { EventQ::RabbitMq::SubscriptionManager.new({ client: client }) }
+
+  subject do
+    return EventQ::RabbitMq::EventQClient.new({client: client})
+  end
+
   it 'should raise an event object and be broadcast to a subscriber queue' do
 
     event_type = 'test_event1'
     subscriber_queue = EventQ::Queue.new
     subscriber_queue.name = 'test_queue1'
 
-    subscription_manager = EventQ::RabbitMq::SubscriptionManager.new
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
 
     subject.raise_event(event_type, message)
-
-    client = EventQ::RabbitMq::QueueClient.new
 
     channel = client.get_channel
 
@@ -43,7 +50,6 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
   describe '#raise' do
     let(:message) { 'Hello World' }
-    let(:subscription_manager) { EventQ::RabbitMq::SubscriptionManager.new }
 
     subject { described_class.new(subscription_manager: subscription_manager) }
 

@@ -3,7 +3,7 @@ module EventQ
     class EventQClient
 
       def initialize(options={})
-        @client = QueueClient.new
+        @client = options[:client] || QueueClient.new
         @queue_manager = QueueManager.new
         @event_raised_exchange = EventRaisedExchange.new
         @subscription_manager = options[:subscription_manager] || SubscriptionManager.new

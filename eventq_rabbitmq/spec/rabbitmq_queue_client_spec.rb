@@ -2,9 +2,11 @@ require 'spec_helper'
 
 RSpec.describe EventQ::RabbitMq::QueueClient do
 
-  it 'should use dead-letter exchange' do
+  let(:client) do
+    return EventQ::RabbitMq::QueueClient.new
+  end
 
-    client = EventQ::RabbitMq::QueueClient.new
+  it 'should use dead-letter exchange' do
 
     ch   = client.get_channel
     x    = ch.fanout("amq.fanout")
@@ -32,7 +34,6 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
 
   it 'should use a delay queue correctly' do
 
-    client = EventQ::RabbitMq::QueueClient.new
     channel = client.get_channel
 
     retry_exchange = channel.fanout('retry.exchange')
@@ -69,7 +70,6 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
 
   it 'should expire message from retry queue back into subscriber queue' do
 
-    client = EventQ::RabbitMq::QueueClient.new
     channel = client.get_channel
 
     q = EventQ::Queue.new
