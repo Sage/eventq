@@ -1,10 +1,20 @@
 module EventQ
-  module Aws
-    class AwsSubscriptionManager
+  module Amazon
+    class SubscriptionManager
 
-      def initialize
-        @client = QueueClient.new
-        @manager = QueueManager.new
+      def initialize(options)
+
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
+
+        @client = options[:client]
+
+        if options[:queue_manager] == nil
+          raise ':queue_manager (QueueManager) must be specified.'
+        end
+
+        @manager = options[:queue_manager]
       end
 
       def subscribe(event_type, queue)

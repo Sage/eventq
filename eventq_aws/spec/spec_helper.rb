@@ -1,9 +1,8 @@
-require 'aws-sdk-core'
-require 'oj'
-require 'eventq_base'
 require 'pry'
 
-require './lib/eventq_aws'
+require_relative '../lib/eventq_aws'
+
+Aws.config[:credentials] = Aws::Credentials.new('{key_goes_here}', '{secret_goes_here}')
 
 RSpec.configure do |config|
 

@@ -15,13 +15,13 @@ module EventQ
 
         configure(queue, options)
 
-        puts '[QUEUE_WORKER] Listening for messages.'
-
         raise 'Worker is already running.' if running?
 
         if options[:client] == nil
           raise ':client (QueueClient) must be specified.'
         end
+
+        puts '[QUEUE_WORKER] Listening for messages.'
 
         @is_running = true
         @threads = []
@@ -93,7 +93,7 @@ module EventQ
                 end
 
               rescue Timeout::Error
-                puts 'Timeout occured attempting to pop a message from the queue.'
+                puts 'Timeout occurred attempting to pop a message from the queue.'
               end
 
               channel.close

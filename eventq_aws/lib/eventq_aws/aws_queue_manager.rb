@@ -1,11 +1,16 @@
 module EventQ
-  module Aws
+  module Amazon
     class QueueManager
 
       @@dead_letter_queue = 'dead_letter_archive'
 
-      def initialize
-        @client = QueueClient.new
+      def initialize(options)
+
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
+
+        @client = options[:client]
       end
 
       def get_queue(queue)

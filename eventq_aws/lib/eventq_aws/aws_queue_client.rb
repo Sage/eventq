@@ -1,5 +1,5 @@
 module EventQ
-  module Aws
+  module Amazon
     class QueueClient
 
       attr_reader :sns
@@ -11,20 +11,22 @@ module EventQ
           Aws.config[:credentials] = Aws::Credentials.new(options[:aws_key], options[:aws_secret])
         end
 
-        @sns = Aws::SNS::Client.new
-        @sqs = Aws::SQS::Client.new
+        if !options.has_key?(:aws_account_number)
+          raise ':aws_account_number option must be specified.'
+        end
 
         @aws_account = options[:aws_account_number]
-        @aws_region = options[:aws_region] || 'us-west-2'
+        @aws_region = options[:aws_region] || 'eu-west-1'
 
         Aws.config[:region] = @aws_region
+
+        @sns = Aws::SNS::Client.new
+        @sqs = Aws::SQS::Client.new
 
       end
 
       def get_topic_arn(event_type)
-        #TODO: revisit this to create locally to improve performance
-        response = @sns.create_topic({ name: event_type })
-        return response.topic_arn
+        return "arn:aws:sns:#{@aws_region}:#{@aws_account}:#{event_type}"
       end
 
       def get_queue_arn(queue)

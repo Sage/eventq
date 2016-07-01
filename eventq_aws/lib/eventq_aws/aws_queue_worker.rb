@@ -1,6 +1,6 @@
 module EventQ
-  module Aws
-    class AwsQueueWorker
+  module Amazon
+    class QueueWorker
 
       attr_accessor :is_running
 
@@ -14,9 +14,13 @@ module EventQ
       def start(queue, options = {}, &block)
         configure(queue, options)
 
-        puts '[QUEUE_WORKER] Listening for messages.'
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
 
         raise 'Worker is already running.' if running?
+
+        puts '[QUEUE_WORKER] Listening for messages.'
 
         @is_running = true
         @threads = []
@@ -25,8 +29,8 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
-            client = QueueClient.new
-            manager = QueueManager.new
+            client = options[:client]
+            manager = EventQ::Amazon::QueueManager.new({ client: client })
 
             #begin the queue loop for this thread
             while true do
@@ -69,9 +73,10 @@ module EventQ
 
                   #begin worker block for queue message
                   begin
+
                     block.call(payload.content, message_args)
 
-                    if message_args.abort
+                    if message_args.abort == true
                       abort = true
                       puts '[QUEUE_WORKER] Message aborted.'
                     else

@@ -5,7 +5,7 @@ require 'eventq_aws/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "eventq_aws"
-  spec.version       = EventqAws::VERSION
+  spec.version       = EventQ::Amazon::VERSION
   spec.authors       = ["vaughanbrittonsage"]
   spec.email         = ["vaughanbritton@gmail.com"]
 

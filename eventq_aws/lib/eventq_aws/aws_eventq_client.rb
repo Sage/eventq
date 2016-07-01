@@ -1,8 +1,15 @@
 module EventQ
-  module Aws
+  module Amazon
     class EventQClient
-      def initialize
-        @client = QueueClient.new
+
+      def initialize(options)
+
+        if options[:client] == nil
+          raise ':client (QueueClient) must be specified.'
+        end
+
+        @client = options[:client]
+
       end
 
       def raise_event(event_type, event)

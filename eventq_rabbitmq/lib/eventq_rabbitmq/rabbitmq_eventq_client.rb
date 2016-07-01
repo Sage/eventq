@@ -11,14 +11,11 @@ module EventQ
         @client = options[:client]
         @queue_manager = QueueManager.new
         @event_raised_exchange = EventRaisedExchange.new
-        @subscription_manager = options[:subscription_manager]
       end
 
       def raise_event(event_type, event)
         channel = @client.get_channel
         ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
-
-        @subscription_manager.subscribe(event_type, DefaultQueue.new)
 
         qm = EventQ::QueueMessage.new
         qm.content = event
