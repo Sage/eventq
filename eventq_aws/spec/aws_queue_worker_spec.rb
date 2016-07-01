@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::QueueWorker do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: 997524026223 })
+    EventQ::Amazon::QueueClient.new({ aws_account_number: '{account number goes here}' })
   end
 
   let(:queue_manager) do
