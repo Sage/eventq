@@ -16,9 +16,13 @@ module EventQ
         end
 
         @aws_account = options[:aws_account_number]
-        @aws_region = options[:aws_region] || 'eu-west-1'
 
-        Aws.config[:region] = @aws_region
+        if options.has_key?(:aws_region)
+          @aws_region = options[:aws_region]
+          Aws.config[:region] = @aws_region
+        else
+          @aw_region = Aws.config[:region]
+        end
 
         @sns = Aws::SNS::Client.new
         @sqs = Aws::SQS::Client.new
