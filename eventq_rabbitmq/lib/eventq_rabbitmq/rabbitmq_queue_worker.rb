@@ -13,6 +13,8 @@ module EventQ
 
       def start(queue, options = {}, &block)
 
+        EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Preparing to start listening for messages.'
+
         configure(queue, options)
 
         raise 'Worker is already running.' if running?
@@ -21,7 +23,7 @@ module EventQ
           raise ':client (QueueClient) must be specified.'
         end
 
-        puts '[QUEUE_WORKER] Listening for messages.'
+        EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Listening for messages.'
 
         @is_running = true
         @threads = []
@@ -59,8 +61,7 @@ module EventQ
 
                   message = Oj.load(payload)
 
-                  puts "[QUEUE_WORKER] Message received. Retry Attempts: #{message.retry_attempts}"
-                  puts properties
+                  EventQ.logger.debug "[EVENTQ_RABBITMQ::QUEUE_WORKER] - Message received. Retry Attempts: #{message.retry_attempts}"
 
                   message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
@@ -70,17 +71,16 @@ module EventQ
 
                     if message_args.abort == true
                       abort = true
-                      puts '[QUEUE_WORKER] Message aborted.'
+                      EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Message aborted.'
                     else
                       #accept the message as processed
                       channel.acknowledge(delivery_info.delivery_tag, false)
-                      puts '[QUEUE_WORKER] Message acknowledged.'
+                      EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Message acknowledged.'
                       received = true
                     end
 
                   rescue => e
-                    puts '[QUEUE_WORKER] An unhandled error happened attempting to process a queue message.'
-                    puts "Error: #{e}"
+                    EventQ.logger.error "[EVENTQ_RABBITMQ::QUEUE_WORKER] - An unhandled error happened attempting to process a queue message. Error: #{e}"
 
                     error = true
 
@@ -93,14 +93,14 @@ module EventQ
                 end
 
               rescue Timeout::Error
-                puts 'Timeout occurred attempting to pop a message from the queue.'
+                EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Timeout occurred attempting to pop a message from the queue.'
               end
 
               channel.close
 
               #check if any message was received
               if !received && !error
-                puts "[QUEUE_WORKER] No message received. Sleeping for #{@sleep} seconds"
+                EventQ.logger.debug "[EVENTQ_RABBITMQ::QUEUE_WORKER] - No message received. Sleeping for #{@sleep} seconds"
                 #no message received so sleep before attempting to pop another message from the queue
                 sleep(@sleep)
               end
@@ -121,6 +121,7 @@ module EventQ
       end
 
       def stop
+        EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Stopping.'
         @is_running = false
         @threads.each { |thr| thr.join }
         return true
@@ -141,24 +142,24 @@ module EventQ
         #reject the message to remove from queue
         channel.reject(delivery_info.delivery_tag, false)
 
-        puts '[QUEUE_WORKER] Message rejected.'
+        EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Message rejected.'
 
         #check if the message is allowed to be retried
         if queue.allow_retry
 
-          puts '[QUEUE_WORKER] Checking retry attempts...'
+          EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Checking retry attempts...'
 
           if message.retry_attempts < queue.max_retry_attempts
-            puts'[QUEUE_WORKER] Incrementing retry attempts count.'
+            EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Incrementing retry attempts count.'
             message.retry_attempts += 1
-            puts '[QUEUE_WORKER] Sending message for retry.'
+            EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Sending message for retry.'
             retry_exchange.publish(Oj.dump(message))
-            puts '[QUEUE_WORKER] Published message to retry exchange.'
+            EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Published message to retry exchange.'
           elsif @retry_exceeded_block != nil
-            puts '[QUEUE_WORKER] Executing retry exceeded block.'
+            EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - Executing retry exceeded block.'
             @retry_exceeded_block.call(message)
           else
-            puts '[QUEUE_WORKER] No retry exceeded block specified.'
+            EventQ.logger.debug '[EVENTQ_RABBITMQ::QUEUE_WORKER] - No retry exceeded block specified.'
           end
 
         end
@@ -182,6 +183,8 @@ module EventQ
         if options.key?(:sleep)
           @sleep = options[:sleep]
         end
+
+        EventQ.logger.debug "[EVENTQ_RABBITMQ::QUEUE_WORKER] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}."
 
         return true
 
