@@ -1,4 +1,5 @@
 require_relative 'eventq_base/version'
+require_relative 'eventq_base/eventq_logger'
 require_relative 'eventq_base/queue'
 require_relative 'eventq_base/exchange'
 require_relative 'eventq_base/queue_message'

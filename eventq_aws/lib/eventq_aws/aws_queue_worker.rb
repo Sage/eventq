@@ -12,6 +12,9 @@ module EventQ
       end
 
       def start(queue, options = {}, &block)
+
+        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Preparing to start listening for messages.'
+
         configure(queue, options)
 
         if options[:client] == nil
@@ -20,7 +23,7 @@ module EventQ
 
         raise 'Worker is already running.' if running?
 
-        puts '[QUEUE_WORKER] Listening for messages.'
+        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Listening for messages.'
 
         @is_running = true
         @threads = []
@@ -69,7 +72,7 @@ module EventQ
 
                   message_args = EventQ::MessageArgs.new(payload.type, retry_attempts)
 
-                  puts "[QUEUE_WORKER] Message received. Retry Attempts: #{retry_attempts}"
+                  EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - Message received. Retry Attempts: #{retry_attempts}"
 
                   #begin worker block for queue message
                   begin
@@ -78,36 +81,35 @@ module EventQ
 
                     if message_args.abort == true
                       abort = true
-                      puts '[QUEUE_WORKER] Message aborted.'
+                      EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message aborted.'
                     else
                       #accept the message as processed
                       client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-                      puts '[QUEUE_WORKER] Message acknowledged.'
+                      EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message acknowledged.'
                       received = true
                     end
 
                   rescue => e
-                    puts '[QUEUE_WORKER] An unhandled error happened attempting to process a queue message.'
-                    puts "Error: #{e}"
+                    EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - An unhandled error happened while attempting to process a queue message. Error: #{e}"
 
                     error = true
 
                   end
 
                   if abort || error
-                    puts '[QUEUE_WORKER] Message rejected.'
+                    EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message rejected.'
                     reject_message(queue, client, msg, q, retry_attempts)
                   end
 
                 end
 
-              rescue
-                puts 'An error occured attempting to retrieve a message from the queue.'
+              rescue => e
+                EventQ.logger.error "[EVENTQ_AWS::QUEUE_WORKER] - An error occured attempting to retrieve a message from the queue. Error: #{e}"
               end
 
               #check if any message was received
               if !received && !error
-                puts "[QUEUE_WORKER] No message received. Sleeping for #{@sleep} seconds"
+                EventQ.logger.error "[EVENTQ_AWS::QUEUE_WORKER] - No message received. Sleeping for #{@sleep} seconds"
                 #no message received so sleep before attempting to pop another message from the queue
                 sleep(@sleep)
               end
@@ -127,6 +129,7 @@ module EventQ
       end
 
       def stop
+        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Stopping.'
         @is_running = false
         @threads.each { |thr| thr.join }
         return true
@@ -165,6 +168,8 @@ module EventQ
         if options.key?(:sleep)
           @sleep = options[:sleep]
         end
+
+        EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}."
 
         return true
 
