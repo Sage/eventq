@@ -18,12 +18,6 @@ RSpec.describe EventQ::Amazon::EventQClient do
     EventQ::Amazon::EventQClient.new({ client: queue_client })
   end
 
-  describe '#event_type_safe' do
-    it 'should remove : from the event name' do
-      expect(eventq_client.event_type_safe(EventQ::Amazon::QueueManager.to_s)).to eq('EventQAmazonQueueManager')
-    end
-  end
-
   it 'should raise an event object and be broadcast to a subscriber queue' do
 
     event_type = 'test_queue1_event1'

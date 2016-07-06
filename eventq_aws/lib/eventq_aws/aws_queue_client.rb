@@ -30,11 +30,15 @@ module EventQ
       end
 
       def get_topic_arn(event_type)
-        return "arn:aws:sns:#{@aws_region}:#{@aws_account}:#{event_type}"
+        return "arn:aws:sns:#{@aws_region}:#{@aws_account}:#{aws_safe_name(event_type)}"
       end
 
       def get_queue_arn(queue)
-        return "arn:aws:sqs:#{@aws_region}:#{@aws_account}:#{queue.name}"
+        return "arn:aws:sqs:#{@aws_region}:#{@aws_account}:#{aws_safe_name(queue.name)}"
+      end
+
+      def aws_safe_name(name)
+        name.gsub(':', '')
       end
 
     end
