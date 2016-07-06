@@ -37,6 +37,11 @@ module EventQ
         return "arn:aws:sqs:#{@aws_region}:#{@aws_account}:#{aws_safe_name(queue.name)}"
       end
 
+      def create_topic_arn(event_type)
+        response = @sns.create_topic({ name: aws_safe_name(event_type) })
+        return response.topic_arn
+      end
+
       def aws_safe_name(name)
         name.gsub(':', '')
       end
