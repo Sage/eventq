@@ -14,7 +14,7 @@ module EventQ
 
       def raise_event(event_type, event)
 
-        topic_arn = @client.get_topic_arn(event_type)
+        topic_arn = @client.get_topic_arn(event_type_safe(event_type))
 
         qm = EventQ::QueueMessage.new
         qm.content = event
@@ -30,6 +30,10 @@ module EventQ
 
         return response.message_id
 
+      end
+
+      def event_type_safe(event_type)
+        event_type.gsub(':', '')
       end
 
     end
