@@ -57,14 +57,14 @@ module EventQ
                                                           queue_url: q,
                                                           max_number_of_messages: 1,
                                                           wait_time_seconds: 1,
-                                                          message_attribute_names: ['ApproximateReceiveCount']
+                                                          attribute_names: ['ApproximateReceiveCount']
                                                       })
 
                 #check that a message was received
                 if response.messages.length > 0
 
                   msg = response.messages[0]
-                  retry_attempts = msg.message_attributes['ApproximateReceiveCount'].to_i
+                  retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i
 
                   #deserialize the message payload
                   message = Oj.load(msg.body)
