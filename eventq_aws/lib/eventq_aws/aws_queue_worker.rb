@@ -57,14 +57,14 @@ module EventQ
                                                           queue_url: q,
                                                           max_number_of_messages: 1,
                                                           wait_time_seconds: 1,
-                                                          message_attribute_names: ['ApproximateReceiveCount']
+                                                          attribute_names: ['ApproximateReceiveCount']
                                                       })
 
                 #check that a message was received
                 if response.messages.length > 0
 
                   msg = response.messages[0]
-                  retry_attempts = msg.message_attributes['ApproximateReceiveCount'].to_i
+                  retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i - 1
 
                   #deserialize the message payload
                   message = Oj.load(msg.body)
@@ -147,7 +147,6 @@ module EventQ
 
       def reject_message(queue, client, msg, q, retry_attempts)
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
-
           #remove the message from the queue so that it does not get retried again
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
         end

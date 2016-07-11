@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::QueueWorker do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: '{account number goes here}' })
+    EventQ::Amazon::QueueClient.new({ aws_account_number: '{account_number_goes_here}', aws_region: 'eu-west-1' })
   end
 
   let(:queue_manager) do
@@ -48,6 +48,50 @@ RSpec.describe EventQ::Amazon::QueueWorker do
 
     expect(received).to eq(true)
 
+    expect(subject.is_running).to eq(false)
+
+  end
+
+  it 'should receive an event from the subscriber queue and retry it.' do
+
+    event_type = 'queue_worker_event1'
+    subscriber_queue = EventQ::Queue.new
+    subscriber_queue.name = SecureRandom.uuid.to_s
+    subscriber_queue.retry_delay = 1000
+    subscriber_queue.allow_retry = true
+
+    subscription_manager.subscribe(event_type, subscriber_queue)
+
+    message = 'Hello World'
+
+    eventq_client.raise_event(event_type, message)
+
+    received = false
+    received_count = 0
+    received_attribute = 0;
+
+    #wait 1 second to allow the message to be sent and broadcast to the queue
+    sleep(1)
+
+    subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+      expect(event).to eq(message)
+      expect(args).to be_a(EventQ::MessageArgs)
+      received = true
+      received_count += 1
+      received_attribute = args.retry_attempts
+      puts "Message Received: #{event}"
+      if received_count != 2
+        args.abort = true
+      end
+    end
+
+    sleep(10)
+
+    subject.stop
+
+    expect(received).to eq(true)
+    expect(received_count).to eq(2)
+    expect(received_attribute).to eq(1)
     expect(subject.is_running).to eq(false)
 
   end
