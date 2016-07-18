@@ -42,6 +42,14 @@ module EventQ
         return response.topic_arn
       end
 
+      def get_queue_url(queue)
+        response= @sqs.get_queue_url({
+                                            queue_name: aws_safe_name(queue.name),
+                                            queue_owner_aws_account_id: @aws_account,
+                                        })
+        return response.queue_url
+      end
+
       def aws_safe_name(name)
         name.gsub(':', '')
       end

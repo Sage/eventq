@@ -149,6 +149,12 @@ module EventQ
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
           #remove the message from the queue so that it does not get retried again
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+
+          if retry_attempts >= queue.max_retry_attempts && @retry_exceeded_block != nil
+             EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Executing retry exceeded block.'
+             @retry_exceeded_block.call(message)
+          end
+
         end
       end
 

@@ -15,6 +15,15 @@ module EventQ
 
       def get_queue(queue)
 
+        if queue_exists?(queue)
+          update_queue(queue)
+        else
+          create_queue(queue)
+        end
+
+      end
+
+      def create_queue(queue)
         response = @client.sqs.create_queue({
                                                 queue_name: queue.name,
                                                 attributes: {
@@ -23,7 +32,6 @@ module EventQ
                                             })
 
         return response.queue_url
-
       end
 
       def drop_queue(queue)
@@ -41,6 +49,21 @@ module EventQ
         @client.sns.delete_topic({ topic_arn: topic_arn})
 
         return true
+      end
+
+      def queue_exists?(queue)
+        return @client.sqs.list_queues({ queue_name_prefix: queue.name }).queue_urls.length > 0
+      end
+
+      def update_queue(queue)
+        url = @client.get_queue_url(queue)
+        @client.sqs.set_queue_attributes({
+                                             queue_url: url, # required
+                                              attributes: {
+                                                'VisibilityTimeout' => (queue.retry_delay / 1000).to_s
+                                              }
+                                          })
+        return url
       end
 
     end
