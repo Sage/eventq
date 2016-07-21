@@ -4,6 +4,8 @@ module EventQ
     attr_accessor :allow_retry
     attr_accessor :retry_delay
     attr_accessor :max_retry_attempts
+    attr_accessor :allow_retry_back_off
+    attr_accessor :max_retry_delay
 
     def initialize
       @allow_retry = false
@@ -11,6 +13,8 @@ module EventQ
       @retry_delay = 30000
       #default max retry attempts is 5
       @max_retry_attempts = 5
+      #default retry back off settings
+      @allow_retry_back_off = false
     end
   end
 end
