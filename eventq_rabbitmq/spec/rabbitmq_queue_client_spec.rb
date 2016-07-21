@@ -88,10 +88,7 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
 
     retry_exchange.publish(message)
 
-    delivery_info, properties, payload = retry_queue.pop(:manual_ack => true)
-    expect(payload).to eq(message)
-
-    sleep(2.5)
+    sleep(2)
 
     delivery_info, properties, payload = queue.pop(:manual_ack => true)
     expect(payload).to eq(message)

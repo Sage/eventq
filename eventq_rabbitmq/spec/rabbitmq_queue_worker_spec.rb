@@ -153,6 +153,63 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   end
 
+  context 'queue.allow_retry_back_off = true' do
+    it 'should send messages that fail to process to the retry queue and then receive them again after the retry delay' do
+
+      event_type = 'queue.worker.event5'
+      subscriber_queue = EventQ::Queue.new
+      subscriber_queue.name = 'queue.worker5'
+      #set queue retry delay to 0.5 seconds
+      subscriber_queue.retry_delay = 500
+      subscriber_queue.allow_retry = true
+      subscriber_queue.allow_retry_back_off = true
+      #set to max retry delay to 5 seconds
+      subscriber_queue.max_retry_delay = 5000
+
+      qm = EventQ::RabbitMq::QueueManager.new
+      q = qm.get_queue(client.get_channel, subscriber_queue)
+      q.delete
+
+      subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      message = 'Hello World'
+
+      eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+      eqclient.raise_event(event_type, message)
+
+      retry_attempt_count = 0
+
+      subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+
+        retry_attempt_count = args.retry_attempts
+        raise 'Fail on purpose to send event to retry queue.'
+
+      end
+
+      sleep(0.6)
+
+      expect(retry_attempt_count).to eq(1)
+
+      sleep(1.1)
+
+      expect(retry_attempt_count).to eq(2)
+
+      sleep(1.6)
+
+      expect(retry_attempt_count).to eq(3)
+
+      sleep(2.1)
+
+      expect(retry_attempt_count).to eq(4)
+
+      subject.stop
+
+      expect(subject.is_running).to eq(false)
+
+    end
+  end
+
   it 'should execute the #on_retry_exceeded block when a message exceeds its retry limit' do
 
     event_type = 'queue.worker.event3'

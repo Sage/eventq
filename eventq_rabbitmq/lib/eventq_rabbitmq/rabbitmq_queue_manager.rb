@@ -34,7 +34,21 @@ module EventQ
 
       def get_retry_queue(channel, queue)
         subscriber_exchange = get_subscriber_exchange(channel, queue)
-        return channel.queue("#{queue.name}.r", :durable => true, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => queue.retry_delay })
+
+        if queue.allow_retry_back_off == true
+
+          EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.max_retry_delay}")
+
+          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => queue.max_retry_delay })
+
+        else
+
+          EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.retry_delay}")
+
+          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => queue.retry_delay })
+
+        end
+
       end
 
       def get_exchange(channel, exchange)
