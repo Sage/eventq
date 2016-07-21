@@ -33,7 +33,7 @@ module EventQ
           thr = Thread.new do
 
             client = options[:client]
-            manager = QueueManager.new
+            manager = EventQ::RabbitMq::QueueManager.new
 
             #begin the queue loop for this thread
             while true do

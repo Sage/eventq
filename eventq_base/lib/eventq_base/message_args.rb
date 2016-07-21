@@ -7,6 +7,7 @@ module EventQ
     def initialize(type, retry_attempts)
       @type = type
       @retry_attempts = retry_attempts
+      @abort = false
     end
   end
 end
