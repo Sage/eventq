@@ -28,7 +28,7 @@ module EventQ
                                            subject: event_type
                                        })
 
-        EventQ.logger.debug "[EVENTQ_AWS] - Raised event. Message: #{message} | Type: #{event_type}."
+        EventQ.log(:debug, "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}.")
 
         return response.message_id
 

@@ -151,6 +151,58 @@ RSpec.describe EventQ::Amazon::QueueWorker do
 
   end
 
+  context 'queue.allow_retry_back_off = true' do
+    it 'should receive an event from the subscriber queue and retry it.' do
+
+      event_type = 'queue_worker_event1'
+      subscriber_queue = EventQ::Queue.new
+      subscriber_queue.name = SecureRandom.uuid.to_s
+      subscriber_queue.retry_delay = 1000
+      subscriber_queue.allow_retry = true
+      subscriber_queue.allow_retry_back_off = true
+      subscriber_queue.max_retry_delay = 5000
+
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      message = 'Hello World'
+
+      eventq_client.raise_event(event_type, message)
+
+      retry_attempt_count = 0
+
+      #wait 1 second to allow the message to be sent and broadcast to the queue
+      sleep(1)
+
+      subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+        expect(event).to eq(message)
+        expect(args).to be_a(EventQ::MessageArgs)
+        retry_attempt_count = args.retry_attempts + 1
+        raise 'Fail on purpose to send event to retry queue.'
+      end
+
+      sleep(1.1)
+
+      expect(retry_attempt_count).to eq(1)
+
+      sleep(2.1)
+
+      expect(retry_attempt_count).to eq(2)
+
+      sleep(3.1)
+
+      expect(retry_attempt_count).to eq(3)
+
+      sleep(4.1)
+
+      expect(retry_attempt_count).to eq(4)
+
+      subject.stop
+
+      expect(subject.is_running).to eq(false)
+
+    end
+  end
+
   def add_to_received_list(received_messages)
 
     thread_name = Thread.current.object_id

@@ -13,7 +13,7 @@ module EventQ
 
       def start(queue, options = {}, &block)
 
-        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Preparing to start listening for messages.'
+        EventQ.log(:info, "[#{self.class}] - Preparing to start listening for messages.")
 
         configure(queue, options)
 
@@ -23,7 +23,7 @@ module EventQ
 
         raise 'Worker is already running.' if running?
 
-        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Listening for messages.'
+        EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
         @is_running = true
         @threads = []
@@ -72,7 +72,7 @@ module EventQ
 
                   message_args = EventQ::MessageArgs.new(payload.type, retry_attempts)
 
-                  EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - Message received. Retry Attempts: #{retry_attempts}"
+                  EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
 
                   #begin worker block for queue message
                   begin
@@ -81,35 +81,35 @@ module EventQ
 
                     if message_args.abort == true
                       abort = true
-                      EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message aborted.'
+                      EventQ.log(:debug, "[#{self.class}] - Message aborted.")
                     else
                       #accept the message as processed
                       client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-                      EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message acknowledged.'
+                      EventQ.log(:debug, "[#{self.class}] - Message acknowledged.")
                       received = true
                     end
 
                   rescue => e
-                    EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - An unhandled error happened while attempting to process a queue message. Error: #{e}"
+                    EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e}")
 
                     error = true
 
                   end
 
                   if abort || error
-                    EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Message rejected.'
+                    EventQ.log(:debug, "[#{self.class}] - Message rejected.")
                     reject_message(queue, client, msg, q, retry_attempts)
                   end
 
                 end
 
               rescue => e
-                EventQ.logger.error "[EVENTQ_AWS::QUEUE_WORKER] - An error occured attempting to retrieve a message from the queue. Error: #{e}"
+                EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e}")
               end
 
               #check if any message was received
               if !received && !error
-                EventQ.logger.error "[EVENTQ_AWS::QUEUE_WORKER] - No message received. Sleeping for #{@sleep} seconds"
+                EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
                 #no message received so sleep before attempting to pop another message from the queue
                 sleep(@sleep)
               end
@@ -129,7 +129,7 @@ module EventQ
       end
 
       def stop
-        EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Stopping.'
+        EventQ.log(:info, "[#{self.class}] - Stopping.")
         @is_running = false
         @threads.each { |thr| thr.join }
         return true
@@ -146,16 +146,52 @@ module EventQ
       private
 
       def reject_message(queue, client, msg, q, retry_attempts)
+
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
           #remove the message from the queue so that it does not get retried again
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
 
-          if retry_attempts >= queue.max_retry_attempts && @retry_exceeded_block != nil
-             EventQ.logger.debug '[EVENTQ_AWS::QUEUE_WORKER] - Executing retry exceeded block.'
-             @retry_exceeded_block.call(message)
+          if retry_attempts >= queue.max_retry_attempts
+
+            EventQ.log(:debug, "[#{self.class}] - Message retry attempt limit exceeded.")
+
+            if @retry_exceeded_block != nil
+              EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")
+              @retry_exceeded_block.call(message)
+            end
+
           end
 
+        elsif queue.allow_retry
+
+          retry_attempts += 1
+
+          if queue.allow_retry_back_off == true
+            EventQ.log(:debug, "[#{self.class}] - Calculating message back off retry delay. Attempts: #{retry_attempts} * Delay: #{queue.retry_delay}")
+            visibility_timeout = (queue.retry_delay * retry_attempts) / 1000
+            if visibility_timeout > (queue.max_retry_delay / 1000)
+              EventQ.log(:debug, "[#{self.class}] - Max message back off retry delay reached.")
+              visibility_timeout = queue.max_retry_delay / 1000
+            end
+          else
+            EventQ.log(:debug, "[#{self.class}] - Setting fixed retry delay for message.")
+            visibility_timeout = queue.retry_delay / 1000
+          end
+
+          if visibility_timeout > 43200
+            EventQ.log(:debug, "[#{self.class}] - AWS max visibility timeout of 12 hours has been exceeded. Setting message retry delay to 12 hours.")
+            visibility_timeout = 43200
+          end
+
+          EventQ.log(:debug, "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}")
+          client.sqs.change_message_visibility({
+                                               queue_url: q, # required
+                                               receipt_handle: msg.receipt_handle, # required
+                                               visibility_timeout: visibility_timeout.to_s, # required
+                                           })
+
         end
+
       end
 
       def configure(queue, options = {})
@@ -174,7 +210,7 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        EventQ.logger.debug "[EVENTQ_AWS::QUEUE_WORKER] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}."
+        EventQ.log(:info, "[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 

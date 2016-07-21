@@ -27,7 +27,7 @@ module EventQ
         response = @client.sqs.create_queue({
                                                 queue_name: queue.name,
                                                 attributes: {
-                                                    'VisibilityTimeout' => (queue.retry_delay / 1000).to_s
+                                                    'VisibilityTimeout' => 300.to_s #5 minutes
                                                 }
                                             })
 
@@ -60,7 +60,7 @@ module EventQ
         @client.sqs.set_queue_attributes({
                                              queue_url: url, # required
                                               attributes: {
-                                                'VisibilityTimeout' => (queue.retry_delay / 1000).to_s
+                                                'VisibilityTimeout' => 300.to_s
                                               }
                                           })
         return url

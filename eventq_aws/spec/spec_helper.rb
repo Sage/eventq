@@ -2,8 +2,8 @@ require 'pry'
 
 require_relative '../lib/eventq_aws'
 
-Aws.config[:credentials] = Aws::Credentials.new('{key_goes_here}', '{secret_goes_here}')
-Aws.config[:region] = '{region goes here}'
+Aws.config[:credentials] = Aws::Credentials.new('{id}', '{key}')
+Aws.config[:region] = 'eu-west-1'
 
 RSpec.configure do |config|
 
