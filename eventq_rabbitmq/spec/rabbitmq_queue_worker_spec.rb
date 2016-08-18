@@ -305,4 +305,40 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   end
 
+  describe '#deserialize_message' do
+    context 'when payload is for a known type' do
+      let(:a) do
+        A.new.tap do |a|
+          a.text = 'ABC'
+        end
+      end
+      let(:payload) { Oj.dump(a) }
+      it 'should deserialize the message into an object of the known type' do
+        message = subject.deserialize_message(payload)
+        expect(message).to be_a(A)
+        expect(message.text).to eq('ABC')
+      end
+    end
+    context 'when payload is for an unknown type' do
+      let(:a) do
+        A.new.tap do |a|
+          a.text = 'ABC'
+        end
+      end
+      let(:payload) do
+        string = Oj.dump(a)
+        string.sub('"^o":"A"', '"^o":"B"')
+      end
+      it 'should deserialize the message into a Hash' do
+        message = subject.deserialize_message(payload)
+        expect(message).to be_a(Hash)
+        expect(message[:text]).to eq('ABC')
+      end
+    end
+  end
+
+end
+
+class A
+  attr_accessor :text
 end

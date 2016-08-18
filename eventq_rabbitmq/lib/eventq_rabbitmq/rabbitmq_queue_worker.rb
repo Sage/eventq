@@ -9,6 +9,7 @@ module EventQ
         @is_running = false
 
         @retry_exceeded_block = nil
+        @hash_helper = HashKit::Helper.new
       end
 
       def start(queue, options = {}, &block)
@@ -59,7 +60,7 @@ module EventQ
                 #check that message was received
                 if payload != nil
 
-                  message = Oj.load(payload)
+                  message = deserialize_message(payload)
 
                   EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
 
@@ -134,6 +135,14 @@ module EventQ
 
       def running?
         return @is_running
+      end
+
+      def deserialize_message(payload)
+        begin
+          return Oj.load(payload)
+        rescue Oj::ParseError
+          return @hash_helper.symbolize(Oj.load(payload, mode: :compat))
+        end
       end
 
       private
