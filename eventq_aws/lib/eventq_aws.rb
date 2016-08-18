@@ -1,5 +1,6 @@
 require 'aws-sdk-core'
 require 'oj'
+require 'hash_kit'
 require 'eventq_base'
 
 require 'eventq_aws/version'
