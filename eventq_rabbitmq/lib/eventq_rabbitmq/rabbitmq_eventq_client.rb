@@ -25,6 +25,7 @@ module EventQ
 
         ex.publish(message, :routing_key => event_type)
         channel.close
+        channel.connection.close
 
         EventQ.logger.debug "[EVENTQ_RABBITMQ] - Raised event. Message: #{message} | Type: #{event_type}."
 

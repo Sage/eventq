@@ -98,6 +98,7 @@ module EventQ
               end
 
               channel.close
+              channel.connection.close
 
               #check if any message was received
               if !received && !error
