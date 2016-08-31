@@ -36,6 +36,8 @@ module EventQ
             client = options[:client]
             manager = EventQ::RabbitMq::QueueManager.new
 
+            connection = client.get_connection
+
             #begin the queue loop for this thread
             while true do
 
@@ -44,7 +46,7 @@ module EventQ
                 break
               end
 
-              channel = client.get_channel
+              channel = connection.create_channel
 
               #get the queue
               q = manager.get_queue(channel, queue)
@@ -98,7 +100,6 @@ module EventQ
               end
 
               channel.close
-              channel.connection.close
 
               #check if any message was received
               if !received && !error
@@ -108,6 +109,8 @@ module EventQ
               end
 
             end
+
+            connection.close
 
           end
           @threads.push(thr)
