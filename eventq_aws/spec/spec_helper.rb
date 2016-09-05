@@ -1,5 +1,6 @@
 require 'pry'
-
+require 'oj'
+require 'json'
 require_relative '../lib/eventq_aws'
 
 Aws.config[:credentials] = Aws::Credentials.new('{id}', '{key}')

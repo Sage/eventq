@@ -24,7 +24,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "pry"
 
-  spec.add_dependency 'oj', '2.15.0'
   spec.add_dependency 'aws-sdk-core'
   spec.add_dependency 'eventq_base'
   spec.add_dependency 'hash_kit'

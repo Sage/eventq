@@ -11,6 +11,7 @@ module EventQ
         @retry_exceeded_block = nil
 
         @hash_helper = HashKit::Helper.new
+        @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
       end
 
       def start(queue, options = {}, &block)
@@ -69,7 +70,7 @@ module EventQ
                   retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i - 1
 
                   #deserialize the message payload
-                  payload = Oj.load(msg.body)
+                  payload = JSON.load(msg.body)
                   message = deserialize_message(payload["Message"])
 
                   message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
@@ -146,11 +147,8 @@ module EventQ
       end
 
       def deserialize_message(payload)
-        begin
-          return Oj.load(payload)
-        rescue Oj::ParseError
-          return @hash_helper.symbolize(Oj.load(payload, mode: :compat))
-        end
+        provider = @serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
+        return provider.deserialize(payload)
       end
 
       private
