@@ -15,6 +15,11 @@ module EventQ
 
       def start(queue, options = {}, &block)
 
+        Signal.trap('TERM') {
+          stop
+          exit
+        }
+
         EventQ.log(:info, "[#{self.class}] - Preparing to start listening for messages.")
 
         configure(queue, options)
@@ -27,7 +32,26 @@ module EventQ
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
-        @is_running = true
+        @forks = []
+        if @fork_count > 1
+          @fork_count.times do
+            pid = fork do
+              Signal.trap('TERM') { exit }
+              @is_running = true
+              start_process(options, queue, block)
+            end
+            @forks.push(pid)
+          end
+        else
+          @is_running = true
+          start_process(options, queue, block)
+        end
+
+
+      end
+
+      def start_process(options, queue, block)
+
         @threads = []
 
         #loop through each thread count
@@ -129,7 +153,12 @@ module EventQ
       def stop
         EventQ.log(:info, "[#{self.class}] - Stopping.")
         @is_running = false
-        @threads.each { |thr| thr.join }
+        if @forks.count > 1
+          @forks.each { |pid| Process.kill('TERM', pid) }
+        else
+          @threads.each { |thr| thr.join }
+        end
+
         return true
       end
 
@@ -204,7 +233,7 @@ module EventQ
         @queue = queue
 
         #default thread count
-        @thread_count = 5
+        @thread_count = 4
         if options.key?(:thread_count)
           @thread_count = options[:thread_count]
         end
@@ -215,7 +244,12 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        EventQ.log(:info, "[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        @fork_count = 1
+        if options.key?(:fork_count)
+          @fork_count = options[:fork_count]
+        end
+
+        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 
