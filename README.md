@@ -160,9 +160,9 @@ The **[QueueMessage]** is used internally to represent an event within the vario
  - **retry_attempts** [Int] This is the number of times this event message has been retried.
  - **created** [DateTime] this is when the event was initial raised.
  
- ### Configuration
+### Configuration
  
- The `EventQ::Configuration` class allows global configuration options to be specified.
+The `EventQ::Configuration` class allows global configuration options to be specified.
  
 #### serialization_provider
 
