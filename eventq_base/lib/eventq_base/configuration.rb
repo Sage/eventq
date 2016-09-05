@@ -1,10 +1,15 @@
 module EventQ
   class Configuration
 
-    attr_accessor :serialization_provider
+    def self.serialization_provider=(value)
+      @serialization_provider = value
+    end
 
-    def initialize
-      serialization_provider = EventQ::SerializationProviders::OJ
+    def self.serialization_provider
+      if @serialization_provider == nil
+        @serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+      end
+      return @serialization_provider
     end
 
   end

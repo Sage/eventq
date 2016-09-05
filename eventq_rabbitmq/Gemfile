@@ -2,3 +2,6 @@ source 'https://rubygems.org'
 
 # Specify your gem's dependencies in eventq_rabbitmq.gemspec
 gemspec
+
+gem 'oj'
+gem 'json'
