@@ -113,6 +113,9 @@ The start method is used to specify a block to process received events and start
  - **options** [Hash] [Optional] This is an options hash to configure the queue worker.
 
 > **Options:**
+>
+> - **:fork_count** [Int] [Optional] [Default=1] This is the number of process forks that the queue worker will use to process events in parallel (Additional forks should be added to take advantage of multi core CPU's).
+>
 > - **:thread_count** [Int] [Optional] [Default=5] This is the number of threads that the queue worker should use to process events in parallel.
 >
 > - **:sleep** [Number] [Optional] [Default=15] This is the number of seconds a thread should sleep before attempting to request another event from the subscription queue when no event has been received.
@@ -156,6 +159,27 @@ The **[QueueMessage]** is used internally to represent an event within the vario
  - **content** [Object] This is the event content.
  - **retry_attempts** [Int] This is the number of times this event message has been retried.
  - **created** [DateTime] this is when the event was initial raised.
+ 
+ ### Configuration
+ 
+ The `EventQ::Configuration` class allows global configuration options to be specified.
+ 
+#### serialization_provider
+
+This is used to specify the serialization provider that should be used for event serialization & deserialization.
+
+> **Options:**
+>
+> - **OJ_PROVIDER** [Default] This is a serialization provider that uses the 'oj' gem to handle serialization & deserialization.
+> - **JSON_PROVIDER** This is a serialization provider that uses the 'json' gem to handle serialization & deserialization.
+
+    #set the serialization provider configuration to the OJ_PROVIDER
+    EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+..
+
+    #set the serialization provider configuration to the JSON_PROVIDER
+    EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
+    
 
 ## Development
 
