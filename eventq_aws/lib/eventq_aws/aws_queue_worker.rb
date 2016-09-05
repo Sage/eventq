@@ -6,6 +6,7 @@ module EventQ
 
       def initialize
         @threads = []
+        @forks = []
         @is_running = false
 
         @retry_exceeded_block = nil
@@ -27,6 +28,36 @@ module EventQ
         raise 'Worker is already running.' if running?
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
+
+        @forks = []
+
+        if @fork_count > 1
+          @fork_count.times do
+            pid = fork do
+              start_process(options, queue, block)
+            end
+            @forks.push(pid)
+          end
+
+          if options.key?(:wait) && options[:wait] == true
+            @forks.each { |pid| Process.wait(pid) }
+          end
+
+        else
+          start_process(options, queue, block)
+        end
+
+        return true
+      end
+
+      def start_process(options, queue, block)
+
+        %w'INT TERM'.each do |sig|
+          Signal.trap(sig) {
+            stop
+            exit
+          }
+        end
 
         @is_running = true
         @threads = []
@@ -128,7 +159,6 @@ module EventQ
           @threads.each { |thr| thr.join }
         end
 
-        return true
       end
 
       def stop
@@ -218,7 +248,12 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        EventQ.log(:info, "[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        @fork_count = 1
+        if options.key?(:fork_count)
+          @fork_count = options[:fork_count]
+        end
+
+        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 

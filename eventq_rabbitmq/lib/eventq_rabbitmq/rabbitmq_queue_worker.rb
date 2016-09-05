@@ -6,6 +6,7 @@ module EventQ
 
       def initialize
         @threads = []
+        @forks = []
         @is_running = false
 
         @retry_exceeded_block = nil
@@ -14,11 +15,6 @@ module EventQ
       end
 
       def start(queue, options = {}, &block)
-
-        Signal.trap('TERM') {
-          stop
-          exit
-        }
 
         EventQ.log(:info, "[#{self.class}] - Preparing to start listening for messages.")
 
@@ -33,24 +29,35 @@ module EventQ
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
         @forks = []
+
         if @fork_count > 1
           @fork_count.times do
             pid = fork do
-              Signal.trap('TERM') { exit }
-              @is_running = true
               start_process(options, queue, block)
             end
             @forks.push(pid)
           end
+
+          if options.key?(:wait) && options[:wait] == true
+            @forks.each { |pid| Process.wait(pid) }
+          end
+
         else
-          @is_running = true
           start_process(options, queue, block)
         end
-
 
       end
 
       def start_process(options, queue, block)
+
+        @is_running = true
+
+        %w'INT TERM'.each do |sig|
+          Signal.trap(sig) {
+            stop
+            exit
+          }
+        end
 
         @threads = []
 
@@ -151,13 +158,9 @@ module EventQ
       end
 
       def stop
-        EventQ.log(:info, "[#{self.class}] - Stopping.")
+        puts "[#{self.class}] - Stopping..."
         @is_running = false
-        if @forks.count > 1
-          @forks.each { |pid| Process.kill('TERM', pid) }
-        else
-          @threads.each { |thr| thr.join }
-        end
+        @threads.each { |thr| thr.join }
 
         return true
       end
@@ -249,7 +252,7 @@ module EventQ
           @fork_count = options[:fork_count]
         end
 
-        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 
