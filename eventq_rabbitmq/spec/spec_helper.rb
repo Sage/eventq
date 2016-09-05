@@ -1,8 +1,6 @@
 require 'bunny'
 require 'oj'
 require 'json'
-require 'class_kit'
-require 'hash_kit'
 require 'eventq_base'
 require 'pry'
 

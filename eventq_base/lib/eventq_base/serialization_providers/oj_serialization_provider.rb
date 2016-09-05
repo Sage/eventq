@@ -11,9 +11,8 @@ module EventQ
       end
 
       def deserialize(json)
-        Oj.load(json)
         begin
-          return Oj.load(payload)
+          return Oj.load(json)
         rescue Oj::ParseError
           return @json_serializer.deserialize(json)
         end

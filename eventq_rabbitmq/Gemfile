@@ -5,3 +5,4 @@ gemspec
 
 gem 'oj'
 gem 'json'
+gem 'json_kit'
