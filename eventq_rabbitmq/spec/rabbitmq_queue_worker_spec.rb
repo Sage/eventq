@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   let(:client) do
-    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'localhost' })
+    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
   end
 
   it 'should receive an event from the subscriber queue' do
