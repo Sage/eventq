@@ -3,9 +3,6 @@ require 'oj'
 require 'json'
 require_relative '../lib/eventq_aws'
 
-Aws.config[:credentials] = Aws::Credentials.new('{id}', '{key}')
-Aws.config[:region] = 'eu-west-1'
-
 RSpec.configure do |config|
 
   config.before(:each) do

@@ -1,3 +1,3 @@
 module EventqBase
-  VERSION = "1.6.14"
+  VERSION = "1.6.19"
 end

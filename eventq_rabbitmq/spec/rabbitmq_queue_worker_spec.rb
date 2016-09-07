@@ -77,10 +77,11 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         message_count += 1
         add_to_received_list(received_messages)
         puts 'message processed.'
+        sleep 0.2
       end
     end
 
-    sleep(3)
+    sleep(4)
 
     expect(message_count).to eq(10)
     expect(received_messages.length).to eq(5)

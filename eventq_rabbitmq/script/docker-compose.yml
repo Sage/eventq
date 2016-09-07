@@ -3,7 +3,7 @@ rabbitmq:
   container_name: rabbitmq
 
 testrunner:
-  image: codeguru/sinatra:1.4.7-ruby-2.3.1-alpine-3.4
+  image: eventq/rabbitmq
   container_name: gem_test_runner
   command: bash -c "./scripts/container_loop.sh"
   links:

@@ -10,6 +10,8 @@ module EventQ
 
         @client = options[:client]
 
+        @serialization_manager = EventQ::SerializationProviders::Manager.new
+
       end
 
       def raise_event(event_type, event)
@@ -20,7 +22,9 @@ module EventQ
         qm.content = event
         qm.type = event_type
 
-        message = Oj.dump(qm)
+        serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
+
+        message = serialization_provider.serialize(qm)
 
         response = @client.sns.publish({
                                            topic_arn: topic_arn,

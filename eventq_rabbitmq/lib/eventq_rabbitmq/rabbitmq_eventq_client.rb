@@ -11,6 +11,7 @@ module EventQ
         @client = options[:client]
         @queue_manager = QueueManager.new
         @event_raised_exchange = EventRaisedExchange.new
+        @serialization_manager = EventQ::SerializationProviders::Manager.new
       end
 
       def raise_event(event_type, event)
@@ -21,7 +22,9 @@ module EventQ
         qm.content = event
         qm.type = event_type
 
-        message = Oj.dump(qm)
+        serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
+
+        message = serialization_provider.serialize(qm)
 
         ex.publish(message, :routing_key => event_type)
         channel.close

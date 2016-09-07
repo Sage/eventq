@@ -9,7 +9,7 @@ module EventQ
 
       def serialize(object)
         hash = @hash_helper.to_hash(object)
-        return Json.dump(hash)
+        return JSON.dump(hash)
       end
 
       def deserialize(json)
