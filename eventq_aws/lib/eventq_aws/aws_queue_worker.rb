@@ -115,11 +115,11 @@ module EventQ
 
                     if message_args.abort == true
                       abort = true
-                      EventQ.log(:debug, "[#{self.class}] - Message aborted.")
+                      EventQ.log(:info, "[#{self.class}] - Message aborted.")
                     else
                       #accept the message as processed
                       client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-                      EventQ.log(:debug, "[#{self.class}] - Message acknowledged.")
+                      EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
                       received = true
                     end
 
@@ -131,7 +131,7 @@ module EventQ
                   end
 
                   if abort || error
-                    EventQ.log(:debug, "[#{self.class}] - Message rejected.")
+                    EventQ.log(:info, "[#{self.class}] - Message rejected.")
                     reject_message(queue, client, msg, q, retry_attempts)
                   end
 
@@ -140,6 +140,8 @@ module EventQ
               rescue => e
                 EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e}")
               end
+
+              GC.start
 
               #check if any message was received
               if !received && !error
@@ -191,7 +193,7 @@ module EventQ
 
           if retry_attempts >= queue.max_retry_attempts
 
-            EventQ.log(:debug, "[#{self.class}] - Message retry attempt limit exceeded.")
+            EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded.")
 
             if @retry_exceeded_block != nil
               EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")

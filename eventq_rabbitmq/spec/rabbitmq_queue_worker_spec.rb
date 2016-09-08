@@ -188,19 +188,19 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
       end
 
-      sleep(0.6)
+      sleep(0.8)
 
       expect(retry_attempt_count).to eq(1)
 
-      sleep(1.1)
+      sleep(1.3)
 
       expect(retry_attempt_count).to eq(2)
 
-      sleep(1.6)
+      sleep(1.8)
 
       expect(retry_attempt_count).to eq(3)
 
-      sleep(2.1)
+      sleep(2.3)
 
       expect(retry_attempt_count).to eq(4)
 

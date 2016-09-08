@@ -106,11 +106,11 @@ module EventQ
 
                     if message_args.abort == true
                       abort = true
-                      EventQ.log(:debug, "[#{self.class}] - Message aborted.")
+                      EventQ.log(:info, "[#{self.class}] - Message aborted.")
                     else
                       #accept the message as processed
                       channel.acknowledge(delivery_info.delivery_tag, false)
-                      EventQ.log(:debug, "[#{self.class}] - Message acknowledged.")
+                      EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
                       received = true
                     end
 
@@ -128,10 +128,12 @@ module EventQ
                 end
 
               rescue Timeout::Error
-                EventQ.log(:debug, "[#{self.class}] - Timeout occurred attempting to pop a message from the queue.")
+                EventQ.log(:error, "[#{self.class}] - Timeout occurred attempting to pop a message from the queue.")
               end
 
               channel.close
+
+              GC.start
 
               #check if any message was received
               if !received && !error
@@ -185,7 +187,7 @@ module EventQ
         #reject the message to remove from queue
         channel.reject(delivery_info.delivery_tag, false)
 
-        EventQ.log(:debug, "[#{self.class}] - Message rejected.")
+        EventQ.log(:info, "[#{self.class}] - Message rejected.")
 
         #check if the message is allowed to be retried
         if queue.allow_retry
@@ -214,7 +216,7 @@ module EventQ
 
           else
 
-            EventQ.log(:debug, "[#{self.class}] - Message retry attempts exceeded.")
+            EventQ.log(:info, "[#{self.class}] - Message retry attempts exceeded.")
 
             if @retry_exceeded_block != nil
               EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")
