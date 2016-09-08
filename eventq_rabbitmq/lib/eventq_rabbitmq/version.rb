@@ -1,3 +1,3 @@
 module EventqRabbitmq
-  VERSION = "1.6.20"
+  VERSION = "1.7.0"
 end

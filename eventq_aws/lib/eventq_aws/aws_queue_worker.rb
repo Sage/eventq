@@ -2,6 +2,8 @@ module EventQ
   module Amazon
     class QueueWorker
 
+      PROFILE_MEMORY = 'PROFILE_MEMORY'.freeze
+
       attr_accessor :is_running
 
       def initialize
@@ -77,77 +79,17 @@ module EventQ
                 break
               end
 
-              #get the queue
-              q = manager.get_queue(queue)
+              if ENV[PROFILE_MEMORY] != nil
+                require 'memory_profiler'
 
-              received = false
-              error = false
-              abort = false
-
-              begin
-
-                #request a message from the queue
-                response = client.sqs.receive_message({
-                                                          queue_url: q,
-                                                          max_number_of_messages: 1,
-                                                          wait_time_seconds: 1,
-                                                          attribute_names: ['ApproximateReceiveCount']
-                                                      })
-
-                #check that a message was received
-                if response.messages.length > 0
-
-                  msg = response.messages[0]
-                  retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i - 1
-
-                  #deserialize the message payload
-                  payload = JSON.load(msg.body)
-                  message = deserialize_message(payload["Message"])
-
-                  message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
-
-                  EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
-
-                  #begin worker block for queue message
-                  begin
-
-                    block.call(message.content, message_args)
-
-                    if message_args.abort == true
-                      abort = true
-                      EventQ.log(:info, "[#{self.class}] - Message aborted.")
-                    else
-                      #accept the message as processed
-                      client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-                      EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-                      received = true
-                    end
-
-                  rescue => e
-                    EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e}")
-
-                    error = true
-
-                  end
-
-                  if abort || error
-                    EventQ.log(:info, "[#{self.class}] - Message rejected.")
-                    reject_message(queue, client, msg, q, retry_attempts)
-                  end
-
+                report = MemoryProfiler.report do
+                  thread_process_iteration(client, manager, queue, block)
                 end
 
-              rescue => e
-                EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e}")
-              end
+                EventQ.log(:debug, report.pretty_print.to_s)
 
-              GC.start
-
-              #check if any message was received
-              if !received && !error
-                EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
-                #no message received so sleep before attempting to pop another message from the queue
-                sleep(@sleep)
+              else
+                thread_process_iteration(client, manager, queue, block)
               end
 
             end
@@ -161,6 +103,81 @@ module EventQ
           @threads.each { |thr| thr.join }
         end
 
+      end
+
+      def thread_process_iteration(client, manager, queue, block)
+        #get the queue
+        q = manager.get_queue(queue)
+
+        received = false
+        error = false
+        abort = false
+
+        begin
+
+          #request a message from the queue
+          response = client.sqs.receive_message({
+                                                    queue_url: q,
+                                                    max_number_of_messages: 1,
+                                                    wait_time_seconds: 1,
+                                                    attribute_names: ['ApproximateReceiveCount']
+                                                })
+
+          #check that a message was received
+          if response.messages.length > 0
+
+            msg = response.messages[0]
+            retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i - 1
+
+            #deserialize the message payload
+            payload = JSON.load(msg.body)
+            message = deserialize_message(payload["Message"])
+
+            message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
+
+            EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+
+            #begin worker block for queue message
+            begin
+
+              block.call(message.content, message_args)
+
+              if message_args.abort == true
+                abort = true
+                EventQ.log(:info, "[#{self.class}] - Message aborted.")
+              else
+                #accept the message as processed
+                client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+                EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+                received = true
+              end
+
+            rescue => e
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e}")
+
+              error = true
+
+            end
+
+            if abort || error
+              EventQ.log(:info, "[#{self.class}] - Message rejected.")
+              reject_message(queue, client, msg, q, retry_attempts)
+            end
+
+          end
+
+        rescue => e
+          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e}")
+        end
+
+        GC.start
+
+        #check if any message was received
+        if !received && !error
+          EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
+          #no message received so sleep before attempting to pop another message from the queue
+          sleep(@sleep)
+        end
       end
 
       def stop

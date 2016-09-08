@@ -2,6 +2,8 @@ module EventQ
   module RabbitMq
     class QueueWorker
 
+      PROFILE_MEMORY = 'PROFILE_MEMORY'.freeze
+
       attr_accessor :is_running
 
       def initialize
@@ -78,68 +80,17 @@ module EventQ
                 break
               end
 
-              channel = connection.create_channel
+              if ENV[PROFILE_MEMORY] != nil
+                require 'memory_profiler'
 
-              #get the queue
-              q = manager.get_queue(channel, queue)
-              retry_exchange = manager.get_retry_exchange(channel, queue)
-
-              received = false
-              error = false
-              abort = false
-
-              begin
-                delivery_info, properties, payload = q.pop(:manual_ack => true, :block => true)
-
-                #check that message was received
-                if payload != nil
-
-                  message = deserialize_message(payload)
-
-                  EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
-
-                  message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
-
-                  #begin worker block for queue message
-                  begin
-                    block.call(message.content, message_args)
-
-                    if message_args.abort == true
-                      abort = true
-                      EventQ.log(:info, "[#{self.class}] - Message aborted.")
-                    else
-                      #accept the message as processed
-                      channel.acknowledge(delivery_info.delivery_tag, false)
-                      EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-                      received = true
-                    end
-
-                  rescue => e
-                    EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e}")
-
-                    error = true
-
-                  end
-
-                  if error || abort
-                    reject_message(channel, message, delivery_info, retry_exchange, queue)
-                  end
-
+                report = MemoryProfiler.report do
+                  thread_process_iteration(connection, manager, queue, block)
                 end
 
-              rescue Timeout::Error
-                EventQ.log(:error, "[#{self.class}] - Timeout occurred attempting to pop a message from the queue.")
-              end
+                EventQ.log(:debug, report.pretty_print.to_s)
 
-              channel.close
-
-              GC.start
-
-              #check if any message was received
-              if !received && !error
-                EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
-                #no message received so sleep before attempting to pop another message from the queue
-                sleep(@sleep)
+              else
+                thread_process_iteration(connection, manager, queue, block)
               end
 
             end
@@ -157,6 +108,72 @@ module EventQ
 
         return true
 
+      end
+
+      def thread_process_iteration(connection, manager, queue, block)
+        channel = connection.create_channel
+
+        #get the queue
+        q = manager.get_queue(channel, queue)
+        retry_exchange = manager.get_retry_exchange(channel, queue)
+
+        received = false
+        error = false
+        abort = false
+
+        begin
+          delivery_info, properties, payload = q.pop(:manual_ack => true, :block => true)
+
+          #check that message was received
+          if payload != nil
+
+            message = deserialize_message(payload)
+
+            EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
+
+            message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
+
+            #begin worker block for queue message
+            begin
+              block.call(message.content, message_args)
+
+              if message_args.abort == true
+                abort = true
+                EventQ.log(:info, "[#{self.class}] - Message aborted.")
+              else
+                #accept the message as processed
+                channel.acknowledge(delivery_info.delivery_tag, false)
+                EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+                received = true
+              end
+
+            rescue => e
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e}")
+
+              error = true
+
+            end
+
+            if error || abort
+              reject_message(channel, message, delivery_info, retry_exchange, queue)
+            end
+
+          end
+
+        rescue Timeout::Error
+          EventQ.log(:error, "[#{self.class}] - Timeout occurred attempting to pop a message from the queue.")
+        end
+
+        channel.close
+
+        GC.start
+
+        #check if any message was received
+        if !received && !error
+          EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
+          #no message received so sleep before attempting to pop another message from the queue
+          sleep(@sleep)
+        end
       end
 
       def stop
