@@ -80,7 +80,7 @@ module EventQ
                 break
               end
 
-              if ENV[PROFILE_MEMORY] != nil
+              if ENV[PROFILE_MEMORY] == 'TRUE'
                 require 'memory_profiler'
 
                 report = MemoryProfiler.report do
