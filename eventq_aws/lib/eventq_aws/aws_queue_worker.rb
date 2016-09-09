@@ -22,10 +22,10 @@ module EventQ
         configure(queue, options)
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise "[#{self.class}] - :client (QueueClient) must be specified."
         end
 
-        raise 'Worker is already running.' if running?
+        raise "[#{self.class}] - Worker is already running." if running?
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
@@ -140,7 +140,7 @@ module EventQ
               end
 
             rescue => e
-              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e}")
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e.backtrace}")
 
               error = true
 
@@ -154,7 +154,7 @@ module EventQ
           end
 
         rescue => e
-          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e}")
+          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e.backtrace}")
         end
 
         GC.start

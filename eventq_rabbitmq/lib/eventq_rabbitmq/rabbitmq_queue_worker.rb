@@ -20,10 +20,10 @@ module EventQ
 
         configure(queue, options)
 
-        raise 'Worker is already running.' if running?
+        raise "[#{self.class}] - Worker is already running." if running?
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise "[#{self.class}] - :client (QueueClient) must be specified."
         end
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
@@ -135,7 +135,7 @@ module EventQ
               end
 
             rescue => e
-              EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e}")
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e.backtrace}")
 
               error = true
 
@@ -147,8 +147,8 @@ module EventQ
 
           end
 
-        rescue Timeout::Error
-          EventQ.log(:error, "[#{self.class}] - Timeout occurred attempting to pop a message from the queue.")
+        rescue => e
+          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e.backtrace}")
         end
 
         channel.close
