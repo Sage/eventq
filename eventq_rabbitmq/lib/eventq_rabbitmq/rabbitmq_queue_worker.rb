@@ -2,8 +2,6 @@ module EventQ
   module RabbitMq
     class QueueWorker
 
-      PROFILE_MEMORY = 'PROFILE_MEMORY'.freeze
-
       attr_accessor :is_running
 
       def initialize
@@ -80,18 +78,7 @@ module EventQ
                 break
               end
 
-              if ENV[PROFILE_MEMORY] == 'TRUE'
-                require 'memory_profiler'
-
-                report = MemoryProfiler.report do
-                  thread_process_iteration(connection, manager, queue, block)
-                end
-
-                EventQ.log(:debug, report.pretty_print.to_s)
-
-              else
-                thread_process_iteration(connection, manager, queue, block)
-              end
+              thread_process_iteration(connection, manager, queue, block)
 
             end
 
