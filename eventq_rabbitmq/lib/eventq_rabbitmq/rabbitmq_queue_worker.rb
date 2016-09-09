@@ -135,7 +135,7 @@ module EventQ
               end
 
             rescue => e
-              EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e.backtrace}")
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
 
               error = true
 
@@ -148,7 +148,7 @@ module EventQ
           end
 
         rescue => e
-          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e.backtrace}")
+          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e} | Backtrace: #{e.backtrace}")
         end
 
         channel.close

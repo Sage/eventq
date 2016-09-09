@@ -140,7 +140,7 @@ module EventQ
               end
 
             rescue => e
-              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e.backtrace}")
+              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
 
               error = true
 
