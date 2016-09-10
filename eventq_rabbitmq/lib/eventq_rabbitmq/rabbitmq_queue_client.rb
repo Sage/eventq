@@ -2,19 +2,21 @@ module EventQ
   module RabbitMq
     class QueueClient
 
+      GUEST = 'guest'.freeze
+
       def initialize(options = {})
 
         if options[:endpoint] == nil
-          raise ':endpoint must be specified.'
+          raise ':endpoint must be specified.'.freeze
         end
 
         @endpoint = options[:endpoint]
 
         @port = Integer(options[:port] || 5672)
 
-        @user = options[:user] || 'guest'
+        @user = options[:user] || GUEST
 
-        @password = options[:password] || 'guest'
+        @password = options[:password] || GUEST
 
         @ssl = options[:ssl] == true || false
 

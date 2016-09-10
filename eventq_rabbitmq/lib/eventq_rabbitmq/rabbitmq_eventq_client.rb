@@ -5,7 +5,7 @@ module EventQ
       def initialize(options={})
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise ':client (QueueClient) must be specified.'.freeze
         end
 
         @client = options[:client]
@@ -30,7 +30,7 @@ module EventQ
         channel.close
         channel.connection.close
 
-        EventQ.logger.debug "[EVENTQ_RABBITMQ] - Raised event. Message: #{message} | Type: #{event_type}."
+        EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}."
 
         return true
       end

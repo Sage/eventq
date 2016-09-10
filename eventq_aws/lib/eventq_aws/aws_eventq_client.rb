@@ -5,7 +5,7 @@ module EventQ
       def initialize(options)
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise ':client (QueueClient) must be specified.'.freeze
         end
 
         @client = options[:client]

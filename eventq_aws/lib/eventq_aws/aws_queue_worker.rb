@@ -2,6 +2,9 @@ module EventQ
   module Amazon
     class QueueWorker
 
+      APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'.freeze
+      MESSAGE = 'Message'.freeze
+
       attr_accessor :is_running
 
       def initialize
@@ -107,18 +110,18 @@ module EventQ
                                                     queue_url: q,
                                                     max_number_of_messages: 1,
                                                     wait_time_seconds: 1,
-                                                    attribute_names: ['ApproximateReceiveCount']
+                                                    attribute_names: [APPROXIMATE_RECEIVE_COUNT]
                                                 })
 
           #check that a message was received
           if response.messages.length > 0
 
             msg = response.messages[0]
-            retry_attempts = msg.attributes['ApproximateReceiveCount'].to_i - 1
+            retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
 
             #deserialize the message payload
             payload = JSON.load(msg.body)
-            message = deserialize_message(payload["Message"])
+            message = deserialize_message(payload[MESSAGE])
 
             message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
 

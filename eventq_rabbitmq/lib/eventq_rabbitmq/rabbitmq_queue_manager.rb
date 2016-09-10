@@ -2,6 +2,9 @@ module EventQ
   module RabbitMq
     class QueueManager
 
+      X_DEAD_LETTER_EXCHANGE = 'x-dead-letter-exchange'.freeze
+      X_MESSAGE_TTL = 'x-message-ttl'.freeze
+
       def initialize
         @event_raised_exchange = EventQ::EventRaisedExchange.new
       end
@@ -39,13 +42,13 @@ module EventQ
 
           EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.max_retry_delay}")
 
-          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => queue.max_retry_delay })
+          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.max_retry_delay })
 
         else
 
           EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.retry_delay}")
 
-          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { "x-dead-letter-exchange" => subscriber_exchange.name, "x-message-ttl" => queue.retry_delay })
+          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.retry_delay })
 
         end
 

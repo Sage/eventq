@@ -2,12 +2,12 @@ module EventQ
   module Amazon
     class QueueManager
 
-      @@dead_letter_queue = 'dead_letter_archive'
+      VISIBILITY_TIMEOUT = 'VisibilityTimeout'.freeze
 
       def initialize(options)
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise ':client (QueueClient) must be specified.'.freeze
         end
 
         @client = options[:client]
@@ -27,7 +27,7 @@ module EventQ
         response = @client.sqs.create_queue({
                                                 queue_name: queue.name,
                                                 attributes: {
-                                                    'VisibilityTimeout' => 300.to_s #5 minutes
+                                                    VISIBILITY_TIMEOUT => 300.to_s #5 minutes
                                                 }
                                             })
 
@@ -60,7 +60,7 @@ module EventQ
         @client.sqs.set_queue_attributes({
                                              queue_url: url, # required
                                               attributes: {
-                                                'VisibilityTimeout' => 300.to_s
+                                                  VISIBILITY_TIMEOUT => 300.to_s # 5 minutes
                                               }
                                           })
         return url

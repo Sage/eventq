@@ -12,7 +12,7 @@ module EventQ
         end
 
         if !options.has_key?(:aws_account_number)
-          raise ':aws_account_number option must be specified.'
+          raise ':aws_account_number option must be specified.'.freeze
         end
 
         @aws_account = options[:aws_account_number]
@@ -51,7 +51,7 @@ module EventQ
       end
 
       def aws_safe_name(name)
-        name.gsub(':', '')
+        return name.gsub(':', '')
       end
 
     end

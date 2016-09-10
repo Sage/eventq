@@ -5,13 +5,13 @@ module EventQ
       def initialize(options)
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'
+          raise "[#{self.class}] - :client (QueueClient) must be specified."
         end
 
         @client = options[:client]
 
         if options[:queue_manager] == nil
-          raise ':queue_manager (QueueManager) must be specified.'
+          raise "[#{self.class}] - :queue_manager (QueueManager) must be specified."
         end
 
         @manager = options[:queue_manager]
@@ -27,7 +27,7 @@ module EventQ
         @client.sqs.set_queue_attributes({
                                              queue_url: q,
                                              attributes:{
-                                                 'Policy' => '{
+                                                 'Policy'.freeze => '{
   "Version": "2012-10-17",
   "Id": "SNStoSQS",
   "Statement": [
@@ -50,7 +50,7 @@ module EventQ
 
         @client.sns.subscribe({
                                   topic_arn: topic_arn,
-                                  protocol: 'sqs',
+                                  protocol: 'sqs'.freeze,
                                   endpoint: queue_arn
                               })
 
@@ -60,7 +60,7 @@ module EventQ
 
       def unsubscribe(queue)
 
-        raise 'Not implemented. Please unsubscribe the queue from the topic inside the AWS Management Console.'
+        raise "[#{self.class}] - Not implemented. Please unsubscribe the queue from the topic inside the AWS Management Console."
 
       end
 
