@@ -68,8 +68,6 @@ module EventQ
             client = options[:client]
             manager = EventQ::RabbitMq::QueueManager.new
 
-            connection = client.get_connection
-
             #begin the queue loop for this thread
             while true do
 
@@ -78,11 +76,13 @@ module EventQ
                 break
               end
 
-              thread_process_iteration(connection, manager, queue, block)
+              begin
+                thread_process_iteration(client, manager, queue, block)
+              rescue => e
+                raise "An unhandled error occurred attempting to communicate with rabbitmq. Error: #{e} | Backtrace: #{e.backtrace}"
+              end
 
             end
-
-            connection.close
 
           end
           @threads.push(thr)
@@ -97,7 +97,9 @@ module EventQ
 
       end
 
-      def thread_process_iteration(connection, manager, queue, block)
+      def thread_process_iteration(client, manager, queue, block)
+
+        connection = client.get_connection
         channel = connection.create_channel
 
         #get the queue
@@ -152,6 +154,7 @@ module EventQ
         end
 
         channel.close
+        connection.close
 
         GC.start
 
