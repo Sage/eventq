@@ -373,6 +373,77 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     end
   end
 
+  describe 'when under load' do
+    context '#thread_process_iteration' do
+      it 'should not timeout' do
+
+        event_type = 'queue.worker.event5'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = 'queue.worker5'
+        #set queue retry delay to 0.5 seconds
+        subscriber_queue.retry_delay = 500
+        subscriber_queue.allow_retry = true
+        subscriber_queue.allow_retry_back_off = true
+        #set to max retry delay to 5 seconds
+        subscriber_queue.max_retry_delay = 5000
+
+        qm = EventQ::RabbitMq::QueueManager.new
+        q = qm.get_queue(client.get_channel, subscriber_queue)
+        q.delete
+
+        subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+        eqclient.raise_event(event_type, message)
+
+        subject.configure(subscriber_queue, { sleep: 0 })
+
+        1000.times.each do
+          subject.thread_process_iteration(client, qm, subscriber_queue, lambda { |content, args | puts content })
+        end
+      end
+    end
+    context '#start' do
+      it 'should not timeout' do
+
+        event_type = 'queue.worker.event5'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = 'queue.worker5'
+        #set queue retry delay to 0.5 seconds
+        subscriber_queue.retry_delay = 500
+        subscriber_queue.allow_retry = true
+        subscriber_queue.allow_retry_back_off = true
+        #set to max retry delay to 5 seconds
+        subscriber_queue.max_retry_delay = 5000
+
+        qm = EventQ::RabbitMq::QueueManager.new
+        q = qm.get_queue(client.get_channel, subscriber_queue)
+        q.delete
+
+        subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+        eqclient.raise_event(event_type, message)
+
+        subject.configure(subscriber_queue, { sleep: 0 })
+
+        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0 }) do |content, args|
+          puts content
+          sleep(1)
+        end
+
+        sleep(45)
+
+      end
+    end
+  end
+
 end
 
 class A

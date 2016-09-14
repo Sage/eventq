@@ -22,14 +22,30 @@ module EventQ
 
       end
 
+      def connection_options
+        {
+            :host => @endpoint,
+            :port => @port,
+            :user => @user,
+            :pass => @password,
+            :ssl => @ssl,
+            :read_timeout => 2,
+            :heartbeat => 2,
+            :continuation_timeout => 5000,
+            :automatically_recover => true,
+            :network_recovery_interval => 1,
+            :recover_from_connection_close => true
+        }
+      end
+
       def get_channel
-        conn = Bunny.new(:host => @endpoint, :port => @port, :user => @user, :pass => @password, :ssl => @ssl)
+        conn = Bunny.new(connection_options)
         conn.start
         return conn.create_channel
       end
 
       def get_connection
-        conn = Bunny.new(:host => @endpoint, :port => @port, :user => @user, :pass => @password, :ssl => @ssl)
+        conn = Bunny.new(connection_options)
         conn.start
         return conn
       end

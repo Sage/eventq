@@ -79,7 +79,7 @@ module EventQ
               begin
                 thread_process_iteration(client, manager, queue, block)
               rescue => e
-                raise "An unhandled error occurred attempting to communicate with rabbitmq. Error: #{e} | Backtrace: #{e.backtrace}"
+                EventQ.logger.error "An unhandled error occurred attempting to communicate with rabbitmq. Error: #{e} | Backtrace: #{e.backtrace}"
               end
 
             end
@@ -187,8 +187,6 @@ module EventQ
         provider = @serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
         return provider.deserialize(payload)
       end
-
-      private
 
       def reject_message(channel, message, delivery_info, retry_exchange, queue)
         #reject the message to remove from queue
