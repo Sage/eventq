@@ -24,7 +24,8 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
     subject.raise_event(event_type, message)
 
-    channel = client.get_channel
+    connection = client.get_connection
+    channel = connection.create_channel
 
     queue_manager = EventQ::RabbitMq::QueueManager.new
 
@@ -45,6 +46,9 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
     expect(qm).to_not be_nil
     expect(qm.content).to eq(message)
+
+    channel.close
+    connection.close
 
   end
 

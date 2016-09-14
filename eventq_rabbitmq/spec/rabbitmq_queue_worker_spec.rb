@@ -121,7 +121,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.allow_retry = true
 
     qm = EventQ::RabbitMq::QueueManager.new
-    q = qm.get_queue(client.get_channel, subscriber_queue)
+    connection = client.get_connection
+    channel = connection.create_channel
+    q = qm.get_queue(channel, subscriber_queue)
     q.delete
 
     subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -152,6 +154,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
     expect(subject.is_running).to eq(false)
 
+    channel.close
+    connection.close
+
   end
 
   context 'queue.allow_retry_back_off = true' do
@@ -168,7 +173,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       subscriber_queue.max_retry_delay = 5000
 
       qm = EventQ::RabbitMq::QueueManager.new
-      q = qm.get_queue(client.get_channel, subscriber_queue)
+      connection = client.get_connection
+      channel = connection.create_channel
+      q = qm.get_queue(channel, subscriber_queue)
       q.delete
 
       subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -208,6 +215,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
       expect(subject.is_running).to eq(false)
 
+      channel.close
+      connection.close
+
     end
   end
 
@@ -222,7 +232,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.max_retry_attempts = 1
 
     qm = EventQ::RabbitMq::QueueManager.new
-    q = qm.get_queue(client.get_channel, subscriber_queue)
+    connection = client.get_connection
+    channel = connection.create_channel
+    q = qm.get_queue(channel, subscriber_queue)
     q.delete
 
     subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -269,7 +281,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscriber_queue.allow_retry = false
 
     qm = EventQ::RabbitMq::QueueManager.new
-    q = qm.get_queue(client.get_channel, subscriber_queue)
+    connection = client.get_connection
+    channel = connection.create_channel
+    q = qm.get_queue(channel, subscriber_queue)
     q.delete
 
     subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -303,6 +317,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subject.stop
 
     expect(subject.is_running).to eq(false)
+
+    channel.close
+    connection.close
 
   end
 
@@ -388,7 +405,8 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         subscriber_queue.max_retry_delay = 5000
 
         qm = EventQ::RabbitMq::QueueManager.new
-        q = qm.get_queue(client.get_channel, subscriber_queue)
+        connection = client.get_connection
+        q = qm.get_queue(connection.create_channel, subscriber_queue)
         q.delete
 
         subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -402,7 +420,14 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         subject.configure(subscriber_queue, { sleep: 0 })
 
         1000.times.each do
-          subject.thread_process_iteration(client, qm, subscriber_queue, lambda { |content, args | puts content })
+          connection = client.get_connection
+          channel = connection.create_channel
+          subject.thread_process_iteration(channel, qm, subscriber_queue, lambda { |content, args | puts content })
+          #binding.pry
+          if channel.status != :closed
+            channel.close
+          end
+          connection.close
         end
       end
     end
@@ -420,7 +445,8 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         subscriber_queue.max_retry_delay = 5000
 
         qm = EventQ::RabbitMq::QueueManager.new
-        q = qm.get_queue(client.get_channel, subscriber_queue)
+        connection = client.get_connection
+        q = qm.get_queue(connection.create_channel, subscriber_queue)
         q.delete
 
         subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
@@ -433,7 +459,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
         subject.configure(subscriber_queue, { sleep: 0 })
 
-        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0 }) do |content, args|
+        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, durable: false }) do |content, args|
           puts content
           sleep(1)
         end

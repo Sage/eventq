@@ -59,14 +59,21 @@ module EventQ
           }
         end
 
+        if !options.key?(:durable)
+          options[:durable] = true
+        end
+
+        client = options[:client]
+        manager = EventQ::RabbitMq::QueueManager.new
+        manager.durable = options[:durable]
+
+        connection = client.get_connection
+
         @threads = []
 
         #loop through each thread count
         @thread_count.times do
           thr = Thread.new do
-
-            client = options[:client]
-            manager = EventQ::RabbitMq::QueueManager.new
 
             #begin the queue loop for this thread
             while true do
@@ -77,9 +84,17 @@ module EventQ
               end
 
               begin
-                thread_process_iteration(client, manager, queue, block)
+
+                channel = connection.create_channel
+
+                thread_process_iteration(channel, manager, queue, block)
+
               rescue => e
-                EventQ.logger.error "An unhandled error occurred attempting to communicate with rabbitmq. Error: #{e} | Backtrace: #{e.backtrace}"
+                EventQ.logger.error "An unhandled error occurred attempting to communicate with RabbitMQ. Error: #{e} | Backtrace: #{e.backtrace}"
+              end
+
+              if channel != nil && channel.status != :closed
+                channel.close
               end
 
             end
@@ -91,16 +106,14 @@ module EventQ
 
         if options.key?(:wait) && options[:wait] == true
           @threads.each { |thr| thr.join }
+          connection.close
         end
 
         return true
 
       end
 
-      def thread_process_iteration(client, manager, queue, block)
-
-        connection = client.get_connection
-        channel = connection.create_channel
+      def thread_process_iteration(channel, manager, queue, block)
 
         #get the queue
         q = manager.get_queue(channel, queue)
@@ -138,9 +151,7 @@ module EventQ
 
             rescue => e
               EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-
               error = true
-
             end
 
             if error || abort
@@ -154,7 +165,6 @@ module EventQ
         end
 
         channel.close
-        connection.close
 
         GC.start
 

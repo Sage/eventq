@@ -5,14 +5,17 @@ module EventQ
       X_DEAD_LETTER_EXCHANGE = 'x-dead-letter-exchange'.freeze
       X_MESSAGE_TTL = 'x-message-ttl'.freeze
 
+      attr_accessor :durable
+
       def initialize
         @event_raised_exchange = EventQ::EventRaisedExchange.new
+        @durable = true
       end
 
       def get_queue(channel, queue)
 
         #get/create the queue
-        q = channel.queue(queue.name, :durable => true)
+        q = channel.queue(queue.name, :durable => @durable)
 
         if queue.allow_retry
           retry_exchange = get_retry_exchange(channel, queue)
@@ -42,20 +45,20 @@ module EventQ
 
           EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.max_retry_delay}")
 
-          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.max_retry_delay })
+          return channel.queue("#{queue.name}.r", :durable => @durable, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.max_retry_delay })
 
         else
 
           EventQ.log(:debug, "[#{self.class}] - Requesting retry queue. x-dead-letter-exchange: #{subscriber_exchange.name} | x-message-ttl: #{queue.retry_delay}")
 
-          return channel.queue("#{queue.name}.r", :durable => true, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.retry_delay })
+          return channel.queue("#{queue.name}.r", :durable => @durable, :arguments => { X_DEAD_LETTER_EXCHANGE => subscriber_exchange.name, X_MESSAGE_TTL => queue.retry_delay })
 
         end
 
       end
 
       def get_exchange(channel, exchange)
-        return channel.direct(exchange.name, :durable => true)
+        return channel.direct(exchange.name, :durable => @durable)
       end
 
     end

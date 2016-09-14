@@ -8,7 +8,9 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
 
   it 'should use dead-letter exchange' do
 
-    ch   = client.get_channel
+    connection = client.get_connection
+    ch = connection.create_channel
+
     x    = ch.fanout("amq.fanout")
     dlx  = ch.fanout("bunny.examples.dlx.exchange")
     q    = ch.queue("subscriber", :durable => true, :arguments => {"x-dead-letter-exchange" => dlx.name}).bind(x, :routing_key => 'post')
@@ -30,11 +32,15 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
 
     dlx.delete
     puts "Disconnecting..."
+
+    ch.close
+    connection.close
   end
 
   it 'should use a delay queue correctly' do
 
-    channel = client.get_channel
+    connection = client.get_connection
+    channel = connection.create_channel
 
     retry_exchange = channel.fanout('retry.exchange')
     subscriber_exchange = channel.fanout('subscriber.exchange')
@@ -57,7 +63,8 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     expect(payload).to eq(message)
 
     channel.close
-    channel = client.get_channel
+
+    channel = connection.create_channel
     subscriber_queue = channel.queue('subscriber.queue')
 
     sleep(1)
@@ -66,11 +73,15 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     expect(payload).to eq(message)
     channel.acknowledge(delivery_info.delivery_tag, false)
 
+    channel.close
+    connection.close
+
   end
 
   it 'should expire message from retry queue back into subscriber queue' do
 
-    channel = client.get_channel
+    connection = client.get_connection
+    channel = connection.create_channel
 
     q = EventQ::Queue.new
     q.name = 'retry.test.queue'
@@ -93,6 +104,9 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     delivery_info, properties, payload = queue.pop(:manual_ack => true)
     expect(payload).to eq(message)
     channel.acknowledge(delivery_info.delivery_tag, false)
+
+    channel.close
+    connection.close
 
   end
 

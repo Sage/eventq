@@ -15,7 +15,10 @@ module EventQ
       end
 
       def raise_event(event_type, event)
-        channel = @client.get_channel
+
+        connection = @client.get_connection
+        channel = connection.create_channel
+
         ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
         qm = EventQ::QueueMessage.new
@@ -28,7 +31,7 @@ module EventQ
 
         ex.publish(message, :routing_key => event_type)
         channel.close
-        channel.connection.close
+        connection.close
 
         EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}."
 
