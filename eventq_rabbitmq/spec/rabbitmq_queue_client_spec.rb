@@ -6,16 +6,17 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
   end
 
+  let(:connection) { client.get_connection }
+
+  let(:channel) { connection.create_channel }
+
   it 'should use dead-letter exchange' do
 
-    connection = client.get_connection
-    ch = connection.create_channel
-
-    x    = ch.fanout("amq.fanout")
-    dlx  = ch.fanout("bunny.examples.dlx.exchange")
-    q    = ch.queue("subscriber", :durable => true, :arguments => {"x-dead-letter-exchange" => dlx.name}).bind(x, :routing_key => 'post')
+    x    = channel.fanout("amq.fanout")
+    dlx  = channel.fanout("bunny.examples.dlx.exchange")
+    q    = channel.queue("subscriber", :durable => true, :arguments => {"x-dead-letter-exchange" => dlx.name}).bind(x, :routing_key => 'post')
 # dead letter queue
-    dlq  = ch.queue("subscriber_retry", :exclusive => true).bind(dlx)
+    dlq  = channel.queue("subscriber_retry", :exclusive => true).bind(dlx)
 
     x.publish("", :routing_key => 'post')
     sleep 0.2
@@ -25,22 +26,16 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     expect(dlq.message_count).to eq(0)
 
     puts "Rejecting a message"
-    ch.nack(delivery_info.delivery_tag, false)
+    channel.nack(delivery_info.delivery_tag, false)
     sleep 0.2
     puts "#{dlq.message_count} messages dead lettered so far"
     expect(dlq.message_count).to eq(1)
 
     dlx.delete
     puts "Disconnecting..."
-
-    ch.close
-    connection.close
   end
 
   it 'should use a delay queue correctly' do
-
-    connection = client.get_connection
-    channel = connection.create_channel
 
     retry_exchange = channel.fanout('retry.exchange')
     subscriber_exchange = channel.fanout('subscriber.exchange')
@@ -73,15 +68,9 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     expect(payload).to eq(message)
     channel.acknowledge(delivery_info.delivery_tag, false)
 
-    channel.close
-    connection.close
-
   end
 
   it 'should expire message from retry queue back into subscriber queue' do
-
-    connection = client.get_connection
-    channel = connection.create_channel
 
     q = EventQ::Queue.new
     q.name = 'retry.test.queue'
@@ -105,9 +94,11 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     expect(payload).to eq(message)
     channel.acknowledge(delivery_info.delivery_tag, false)
 
+  end
+
+  after do
     channel.close
     connection.close
-
   end
 
 end

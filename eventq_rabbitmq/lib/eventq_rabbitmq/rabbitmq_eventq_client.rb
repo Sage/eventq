@@ -17,6 +17,8 @@ module EventQ
       def raise_event(event_type, event)
 
         connection = @client.get_connection
+
+        begin
         channel = connection.create_channel
 
         ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
@@ -30,6 +32,13 @@ module EventQ
         message = serialization_provider.serialize(qm)
 
         ex.publish(message, :routing_key => event_type)
+        rescue => e
+
+          channel.close
+          connection.close
+          raise e
+        end
+
         channel.close
         connection.close
 

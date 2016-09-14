@@ -12,6 +12,10 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     return EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
   end
 
+  let(:connection) { client.get_connection }
+
+  let(:channel) { connection.create_channel }
+
   it 'should raise an event object and be broadcast to a subscriber queue' do
 
     event_type = 'test_event1'
@@ -23,9 +27,6 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     message = 'Hello World'
 
     subject.raise_event(event_type, message)
-
-    connection = client.get_connection
-    channel = connection.create_channel
 
     queue_manager = EventQ::RabbitMq::QueueManager.new
 
@@ -47,9 +48,11 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     expect(qm).to_not be_nil
     expect(qm.content).to eq(message)
 
+  end
+
+  after do
     channel.close
     connection.close
-
   end
 
 end

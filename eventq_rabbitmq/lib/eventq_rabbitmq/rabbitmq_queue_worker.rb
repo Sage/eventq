@@ -67,7 +67,7 @@ module EventQ
         manager = EventQ::RabbitMq::QueueManager.new
         manager.durable = options[:durable]
 
-        connection = client.get_connection
+        @connection = client.get_connection
 
         @threads = []
 
@@ -85,7 +85,7 @@ module EventQ
 
               begin
 
-                channel = connection.create_channel
+                channel = @connection.create_channel
 
                 thread_process_iteration(channel, manager, queue, block)
 
@@ -106,7 +106,7 @@ module EventQ
 
         if options.key?(:wait) && options[:wait] == true
           @threads.each { |thr| thr.join }
-          connection.close
+          @connection.close
         end
 
         return true
@@ -180,7 +180,7 @@ module EventQ
         puts "[#{self.class}] - Stopping..."
         @is_running = false
         @threads.each { |thr| thr.join }
-
+        @connection.close
         return true
       end
 

@@ -15,6 +15,7 @@ module EventQ
 
         connection = @client.get_connection
         channel = connection.create_channel
+
         queue = @queue_manager.get_queue(channel, queue)
         exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
@@ -28,12 +29,16 @@ module EventQ
 
       def unsubscribe(queue)
 
-        channel = @client.get_channel
+        connection = @client.get_connection
+        channel = connection.create_channel
 
         queue = @queue_manager.get_queue(channel, queue)
         exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
         queue.unbind(exchange)
+
+        channel.close
+        connection.close
 
         return true
       end
