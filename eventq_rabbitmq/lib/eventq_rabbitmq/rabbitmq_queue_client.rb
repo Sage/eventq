@@ -29,9 +29,9 @@ module EventQ
             :user => @user,
             :pass => @password,
             :ssl => @ssl,
-            :read_timeout => 2,
-            :heartbeat => 10,
-            :continuation_timeout => 1000,
+            :read_timeout => 4,
+            :heartbeat => 20,
+            :continuation_timeout => 5000,
             :automatically_recover => true,
             :network_recovery_interval => 1,
             :recover_from_connection_close => true

@@ -67,8 +67,6 @@ module EventQ
         manager = EventQ::RabbitMq::QueueManager.new
         manager.durable = options[:durable]
 
-        @connection = client.get_connection
-
         @threads = []
 
         #loop through each thread count
@@ -83,11 +81,14 @@ module EventQ
                 break
               end
 
+              has_processed = false
+
               begin
 
-                channel = @connection.create_channel
+                connection = client.get_connection
+                channel = connection.create_channel
 
-                thread_process_iteration(channel, manager, queue, block)
+                has_processed = thread_process_iteration(channel, manager, queue, block)
 
               rescue => e
                 EventQ.logger.error "An unhandled error occurred attempting to communicate with RabbitMQ. Error: #{e} | Backtrace: #{e.backtrace}"
@@ -95,6 +96,15 @@ module EventQ
 
               if channel != nil && channel.status != :closed
                 channel.close
+              end
+
+              if connection != nil
+                connection.close
+              end
+
+              if !has_processed
+                EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
+                sleep(@sleep)
               end
 
             end
@@ -164,23 +174,21 @@ module EventQ
           EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e} | Backtrace: #{e.backtrace}")
         end
 
-        channel.close
-
         GC.start
 
         #check if any message was received
         if !received && !error
-          EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
-          #no message received so sleep before attempting to pop another message from the queue
-          sleep(@sleep)
+          EventQ.log(:debug, "[#{self.class}] - No message received.")
+          return false
         end
+
+        return true
       end
 
       def stop
         puts "[#{self.class}] - Stopping..."
         @is_running = false
         @threads.each { |thr| thr.join }
-        @connection.close
         return true
       end
 
