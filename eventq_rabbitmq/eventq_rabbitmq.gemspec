@@ -25,6 +25,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry"
 
   spec.add_dependency 'bunny'
-  spec.add_dependency 'eventq_base'
+  spec.add_dependency 'eventq_base', '~> 1.7.0'
   spec.add_dependency 'hash_kit'
 end

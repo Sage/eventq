@@ -1,6 +1,7 @@
 module EventQ
   module RabbitMq
     class QueueWorker
+      include EventQ::WorkerId
 
       attr_accessor :is_running
 
@@ -134,6 +135,7 @@ module EventQ
 
           #check that message was received
           if payload != nil
+            tag_processing_thread
 
             message = deserialize_message(payload)
 
