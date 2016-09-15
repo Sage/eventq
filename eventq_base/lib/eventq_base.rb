@@ -16,4 +16,5 @@ require_relative 'eventq_base/subscription_manager_contract'
 require_relative 'eventq_base/eventq_client_contract'
 require_relative 'eventq_base/configuration'
 require_relative 'eventq_base/serialization_providers'
+require_relative 'eventq_base/worker_id'
 
