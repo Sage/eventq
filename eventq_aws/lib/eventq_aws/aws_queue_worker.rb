@@ -102,7 +102,6 @@ module EventQ
 
         received = false
         error = false
-        abort = false
 
         begin
 
@@ -116,44 +115,14 @@ module EventQ
 
           #check that a message was received
           if response.messages.length > 0
-            tag_processing_thread
-
-            msg = response.messages[0]
-            retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
-
-            #deserialize the message payload
-            payload = JSON.load(msg.body)
-            message = deserialize_message(payload[MESSAGE])
-
-            message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
-
-            EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
-
-            #begin worker block for queue message
             begin
-
-              block.call(message.content, message_args)
-
-              if message_args.abort == true
-                abort = true
-                EventQ.log(:info, "[#{self.class}] - Message aborted.")
-              else
-                #accept the message as processed
-                client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-                EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-                received = true
+              tag_processing_thread
+              process_message(response, client, queue, q, block) do |received, error|
+                received = received
+                error = error
               end
-
-            rescue => e
-              EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-
-              error = true
-
-            end
-
-            if abort || error
-              EventQ.log(:info, "[#{self.class}] - Message rejected.")
-              reject_message(queue, client, msg, q, retry_attempts)
+            ensure
+              untag_processing_thread
             end
 
           end
@@ -193,6 +162,49 @@ module EventQ
       end
 
       private
+
+      def process_message(response, client, queue, q, block)
+        abort = false
+        msg = response.messages[0]
+        retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
+
+        #deserialize the message payload
+        payload = JSON.load(msg.body)
+        message = deserialize_message(payload[MESSAGE])
+
+        message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
+
+        EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+
+        #begin worker block for queue message
+        begin
+
+          block.call(message.content, message_args)
+
+          if message_args.abort == true
+            abort = true
+            EventQ.log(:info, "[#{self.class}] - Message aborted.")
+          else
+            #accept the message as processed
+            client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+            EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+            received = true
+          end
+
+        rescue => e
+          EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
+
+          error = true
+
+        end
+
+        if abort || error
+          EventQ.log(:info, "[#{self.class}] - Message rejected.")
+          reject_message(queue, client, msg, q, retry_attempts)
+        end
+
+        yield [received, error]
+      end
 
       def reject_message(queue, client, msg, q, retry_attempts)
 
