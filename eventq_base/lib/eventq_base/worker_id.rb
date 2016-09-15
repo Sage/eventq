@@ -13,7 +13,7 @@ module EventQ
     private
 
     def key_name
-      'worker_id'
+      'worker_id'.freeze
     end
 
   end
