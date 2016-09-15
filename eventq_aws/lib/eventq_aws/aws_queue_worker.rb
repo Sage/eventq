@@ -1,6 +1,7 @@
 module EventQ
   module Amazon
     class QueueWorker
+      include EventQ::WorkerId
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'.freeze
       MESSAGE = 'Message'.freeze
@@ -115,6 +116,7 @@ module EventQ
 
           #check that a message was received
           if response.messages.length > 0
+            tag_processing_thread
 
             msg = response.messages[0]
             retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
