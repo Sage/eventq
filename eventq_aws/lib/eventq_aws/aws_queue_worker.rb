@@ -81,7 +81,14 @@ module EventQ
                 break
               end
 
-              thread_process_iteration(client, manager, queue, block)
+              has_processed = thread_process_iteration(client, manager, queue, block)
+
+              GC.start
+
+              if !has_processed
+                EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
+                sleep(@sleep)
+              end
 
             end
 
@@ -109,7 +116,7 @@ module EventQ
           response = client.sqs.receive_message({
                                                     queue_url: q,
                                                     max_number_of_messages: 1,
-                                                    wait_time_seconds: 1,
+                                                    wait_time_seconds: 10,
                                                     attribute_names: [APPROXIMATE_RECEIVE_COUNT]
                                                 })
 
@@ -131,14 +138,13 @@ module EventQ
           EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e.backtrace}")
         end
 
-        GC.start
-
         #check if any message was received
-        if !received && !error
-          EventQ.log(:debug, "[#{self.class}] - No message received. Sleeping for #{@sleep} seconds")
-          #no message received so sleep before attempting to pop another message from the queue
-          sleep(@sleep)
+        if !received
+          EventQ.log(:debug, "[#{self.class}] - No message received.")
+          return false
         end
+
+        return true
       end
 
       def stop
@@ -266,7 +272,7 @@ module EventQ
         end
 
         #default sleep time in seconds
-        @sleep = 15
+        @sleep = 5
         if options.key?(:sleep)
           @sleep = options[:sleep]
         end

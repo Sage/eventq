@@ -99,6 +99,8 @@ module EventQ
                 channel.close
               end
 
+              GC.start
+
               if !has_processed
                 EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
                 sleep(@sleep)
@@ -150,10 +152,8 @@ module EventQ
           EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e} | Backtrace: #{e.backtrace}")
         end
 
-        GC.start
-
         #check if any message was received
-        if !received && !error
+        if !received
           EventQ.log(:debug, "[#{self.class}] - No message received.")
           return false
         end

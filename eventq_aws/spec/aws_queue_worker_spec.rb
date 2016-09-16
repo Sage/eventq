@@ -132,7 +132,6 @@ RSpec.describe EventQ::Amazon::QueueWorker do
         message_count += 1
         add_to_received_list(received_messages)
         puts 'message processed.'
-        sleep 0.2
       end
     end
 
@@ -208,10 +207,10 @@ RSpec.describe EventQ::Amazon::QueueWorker do
 
     thread_name = Thread.current.object_id
     puts "[THREAD] #{thread_name}"
-    thread = received_messages.select { |i| i[:thread] == thread_name }
+    thread = received_messages.detect { |i| i[:thread] == thread_name }
 
-    if thread.length > 0
-      thread[0][:events] += 1
+    if thread != nil
+      thread[:events] += 1
     else
       received_messages.push({ :events => 1, :thread => thread_name })
     end
