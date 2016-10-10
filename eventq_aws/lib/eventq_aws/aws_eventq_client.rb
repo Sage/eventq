@@ -18,7 +18,7 @@ module EventQ
 
         topic_arn = @client.get_topic_arn(event_type)
 
-        qm = EventQ::QueueMessage.new
+        qm = new_message
         qm.content = event
         qm.type = event_type
 
@@ -36,6 +36,10 @@ module EventQ
 
         return response.message_id
 
+      end
+
+      def new_message
+        EventQ::QueueMessage.new
       end
 
     end

@@ -180,6 +180,24 @@ This is used to specify the serialization provider that should be used for event
     #set the serialization provider configuration to the JSON_PROVIDER
     EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
     
+### NonceManager
+
+The NonceManager is used to prevent duplicate messages from being processed. Each event message that is raised is given a unique identifier, most message queue providers guarantee at least once delivery which may result in the message being delivered more than once. If your use case needs to enforce once only processing then 
+the NonceManager can be configured to prevent duplicate messages from being processed. (It is a distributed store that currently uses redis locks to ensure accuracy between scaled out workers)
+
+#### #configure
+
+This method is called to configure the NonceManager, and must be called before starting the queue worker to be active.
+
+**Params:**
+
+ - **server** [String] [Required] This is redis server url.
+ - **timeout** [Integer] [Optional] [Default=10000 (10 seconds)] This is the time in milliseconds that should be used for the initial nonce lock (this value should be low so as to not affect failure retries but long enough to cover the processing of the received message).
+ - **lifespan** [Integer] [Optional] [Default=3600000 (60 minutes)] This is the length of time the nonce should be kept for after processing of a message has completed.
+
+**Example**
+
+    EventQ::NonceManager.configure(server: 'redis://127.0.0.1:6379')
 
 ## Development
 

@@ -293,6 +293,7 @@ module EventQ
         message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
+          channel.acknowledge(delivery_info.delivery_tag, false)
           return false
         end
 

@@ -22,7 +22,7 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
     event_type = 'test_queue1_event1'
     subscriber_queue = EventQ::Queue.new
-    subscriber_queue.name = 'test_queue1'
+    subscriber_queue.name = SecureRandom.uuid
 
     subscription_manager.subscribe(event_type, subscriber_queue)
 

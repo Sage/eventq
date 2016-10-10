@@ -17,6 +17,11 @@ module EventQ
 
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
+
+        @last_gc_flush = Time.now
+        @gc_flush_interval = 10
+
+        @queue_poll_wait = 10
       end
 
       def start(queue, options = {}, &block)
@@ -83,7 +88,7 @@ module EventQ
 
               has_processed = thread_process_iteration(client, manager, queue, block)
 
-              GC.start
+              gc_flush
 
               if !has_processed && @sleep > 0
                 EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
@@ -103,6 +108,17 @@ module EventQ
 
       end
 
+      def gc_flush
+        if Time.now - last_gc_flush > @gc_flush_interval
+          GC.start
+          @last_gc_flush = Time.now
+        end
+      end
+
+      def last_gc_flush
+        @last_gc_flush
+      end
+
       def thread_process_iteration(client, manager, queue, block)
         #get the queue
         q = manager.get_queue(queue)
@@ -116,7 +132,7 @@ module EventQ
           response = client.sqs.receive_message({
                                                     queue_url: q,
                                                     max_number_of_messages: 1,
-                                                    wait_time_seconds: 10,
+                                                    wait_time_seconds: @queue_poll_wait,
                                                     attribute_names: [APPROXIMATE_RECEIVE_COUNT]
                                                 })
 
@@ -182,6 +198,10 @@ module EventQ
 
         EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
 
+        if(!EventQ::NonceManager.is_allowed?(message.id))
+          return false
+        end
+
         #begin worker block for queue message
         begin
 
@@ -205,8 +225,11 @@ module EventQ
         end
 
         if abort || error
+          EventQ::NonceManager.failed(message.id)
           EventQ.log(:info, "[#{self.class}] - Message rejected.")
           reject_message(queue, client, msg, q, retry_attempts)
+        else
+          EventQ::NonceManager.complete(message.id)
         end
 
         yield [received, error]
@@ -282,7 +305,15 @@ module EventQ
           @fork_count = options[:fork_count]
         end
 
-        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        if options.key?(:gc_flush_interval)
+          @gc_flush_interval = options[:gc_flush_interval]
+        end
+
+        if options.key?(:queue_poll_wait)
+          @queue_poll_wait = options[:queue_poll_wait]
+        end
+
+        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep} | GC Flush Interval: #{@gc_flush_interval} | Queue Poll Wait: #{@queue_poll_wait}.")
 
         return true
 

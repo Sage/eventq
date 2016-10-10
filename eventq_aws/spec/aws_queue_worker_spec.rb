@@ -284,6 +284,51 @@ RSpec.describe EventQ::Amazon::QueueWorker do
     end
   end
 
+  context 'NonceManager' do
+    context 'when a message has already been processed' do
+      before do
+        EventQ::NonceManager.configure(server: 'redis://192.168.99.100:6379')
+      end
+      let(:queue_message) { EventQ::QueueMessage.new }
+
+      it 'should NOT process the message again' do
+
+        event_type = 'queue_worker_event_noncemanager'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = SecureRandom.uuid.to_s
+
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        allow(eventq_client).to receive(:new_message).and_return(queue_message)
+
+        eventq_client.raise_event(event_type, message)
+        eventq_client.raise_event(event_type, message)
+
+        received_count = 0
+
+        #wait 1 second to allow the message to be sent and broadcast to the queue
+        sleep(1)
+
+        subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+          received_count += 1
+        end
+
+        sleep(2.5)
+
+        subject.stop
+
+        expect(received_count).to eq 1
+
+      end
+
+      after do
+        EventQ::NonceManager.reset
+      end
+    end
+  end
+
 end
 
 class A
