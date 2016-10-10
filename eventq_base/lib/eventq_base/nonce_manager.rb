@@ -26,7 +26,7 @@ module EventQ
 
       lock = Redlock::Client.new([ @server_url ]).lock(nonce, @timeout)
       if lock == false
-        EventQ.log(:info, "Message has already been processed: #{nonce}")
+        EventQ.log(:info, "[#{self.class}] - Message has already been processed: #{nonce}")
         return false
       end
 

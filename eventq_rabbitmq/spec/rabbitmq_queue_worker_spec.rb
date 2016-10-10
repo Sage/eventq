@@ -459,6 +459,74 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     end
   end
 
+  describe '#gc_flush' do
+    context 'when the last gc_flush was made more than the gc_flush_interval length ago' do
+      it 'should execute a GC flush' do
+        allow(subject).to receive(:last_gc_flush).and_return(Time.now - 15)
+        expect(GC).to receive(:start).once
+        subject.gc_flush
+      end
+    end
+    context 'when the last gc_flush was made NOT more than the gc_flush_interval length ago' do
+      it 'should NOT execute a GC flush' do
+        allow(subject).to receive(:last_gc_flush).and_return(Time.now - 5)
+        expect(GC).not_to receive(:start)
+        subject.gc_flush
+      end
+    end
+  end
+
+  context 'NonceManager' do
+    context 'when a duplicate message is received' do
+      let(:queue_message) { EventQ::QueueMessage.new }
+
+      before do
+        EventQ::NonceManager.configure(server: 'redis://redis:6379')
+      end
+
+      it 'should NOT process the message more than once' do
+        event_type = 'queue.worker.nonce_check'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = 'queue.worker.noncecheck'
+        #set queue retry delay to 0.5 seconds
+        subscriber_queue.retry_delay = 500
+        subscriber_queue.allow_retry = true
+
+        qm = EventQ::RabbitMq::QueueManager.new
+        q = qm.get_queue(channel, subscriber_queue)
+        q.delete
+
+        subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+
+        allow(eqclient).to receive(:new_message).and_return(queue_message)
+
+        eqclient.raise_event(event_type, message)
+        eqclient.raise_event(event_type, message)
+
+        subject.configure(subscriber_queue, { sleep: 0 })
+
+        received_count = 0
+
+        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+          received_count += 1
+        end
+
+        sleep(2)
+
+        expect(received_count).to eq 1
+      end
+
+      after do
+        EventQ::NonceManager.reset
+      end
+    end
+  end
+
 end
 
 class A

@@ -23,7 +23,7 @@ module EventQ
 
         ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
-        qm = EventQ::QueueMessage.new
+        qm = new_message
         qm.content = event
         qm.type = event_type
 
@@ -45,6 +45,10 @@ module EventQ
         EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}."
 
         return true
+      end
+
+      def new_message
+        EventQ::QueueMessage.new
       end
 
     end

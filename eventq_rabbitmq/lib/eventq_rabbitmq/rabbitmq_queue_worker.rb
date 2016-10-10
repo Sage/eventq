@@ -13,6 +13,8 @@ module EventQ
         @retry_exceeded_block = nil
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
+        @last_gc_flush = Time.now
+        @gc_flush_interval = 10
       end
 
       def start(queue, options = {}, &block)
@@ -99,7 +101,7 @@ module EventQ
                 channel.close
               end
 
-              GC.start
+              gc_flush
 
               if !has_processed
                 EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
@@ -120,6 +122,17 @@ module EventQ
 
         return true
 
+      end
+
+      def gc_flush
+        if Time.now - last_gc_flush > @gc_flush_interval
+          GC.start
+          @last_gc_flush = Time.now
+        end
+      end
+
+      def last_gc_flush
+        @last_gc_flush
       end
 
       def thread_process_iteration(channel, manager, queue, block)
@@ -256,6 +269,11 @@ module EventQ
           @fork_count = options[:fork_count]
         end
 
+        @gc_flush_interval = 10
+        if options.key?(:gc_flush_interval)
+          @gc_flush_interval = options[:gc_flush_interval]
+        end
+
         EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
@@ -274,31 +292,34 @@ module EventQ
 
         message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
-        EventQ::NonceManager.process(message.id) do
+        if(!EventQ::NonceManager.is_allowed?(message.id))
+          return false
+        end
 
-          #begin worker block for queue message
-          begin
-            block.call(message.content, message_args)
+        #begin worker block for queue message
+        begin
+          block.call(message.content, message_args)
 
-            if message_args.abort == true
-              abort = true
-              EventQ.log(:info, "[#{self.class}] - Message aborted.")
-            else
-              #accept the message as processed
-              channel.acknowledge(delivery_info.delivery_tag, false)
-              EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-              received = true
-            end
-
-          rescue => e
-            EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-            error = true
+          if message_args.abort == true
+            abort = true
+            EventQ.log(:info, "[#{self.class}] - Message aborted.")
+          else
+            #accept the message as processed
+            channel.acknowledge(delivery_info.delivery_tag, false)
+            EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+            received = true
           end
 
+        rescue => e
+          EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
+          error = true
         end
 
         if error || abort
+          EventQ::NonceManager.failed(message.id)
           reject_message(channel, message, delivery_info, retry_exchange, queue)
+        else
+          EventQ::NonceManager.complete(message.id)
         end
 
         yield [received, error]
