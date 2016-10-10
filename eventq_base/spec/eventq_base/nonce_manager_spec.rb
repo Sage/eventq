@@ -29,47 +29,96 @@ RSpec.describe EventQ::NonceManager do
 
   end
 
-  describe '#process' do
+  describe '#is_allowed?' do
     let(:nonce) { SecureRandom.uuid }
 
-    context 'when the NonceManager has NOT been configured' do
-      before do
-        described_class.reset
-      end
-      it 'should execute the process block' do
-        expect(described_class).to receive(:process_without_nonce)
-        described_class.process(nonce) do
-          puts 'Processed'
-        end
-      end
-    end
-    context 'when the NonceManager has been configured' do
+    context 'when NonceManager has been configured' do
       before do
         described_class.configure(server: 'redis://redis:6379')
       end
-
-      context 'and the nonce has NOT been processed before' do
-        it 'should execute the process block' do
-          expect(described_class).to receive(:process_with_nonce)
-          described_class.process(nonce) do
-            puts 'Processed'
-          end
+      context 'when a nonce has NOT been used' do
+        it 'should return true' do
+          expect(described_class.is_allowed?(nonce)).to be true
         end
       end
-      context 'and the nonce has been processed before' do
-        it 'should raise a NonceError' do
-          described_class.process(nonce) do
-            puts 'Processed'
-          end
-
-          expect { described_class.process(nonce) }.to raise_error(EventQ::NonceError)
+      context 'when a nonce has already been used' do
+        it 'should return false' do
+          described_class.is_allowed?(nonce)
+          expect(described_class.is_allowed?(nonce)).to be false
         end
       end
-
       after do
         described_class.reset
       end
     end
 
+    context 'when NonceManager has NOT been configured' do
+      before do
+        described_class.reset
+      end
+      context 'when a nonce has NOT been used' do
+        it 'should return true' do
+          expect(described_class.is_allowed?(nonce)).to be true
+        end
+      end
+      context 'when a nonce has already been used' do
+        it 'should return false' do
+          described_class.is_allowed?(nonce)
+          expect(described_class.is_allowed?(nonce)).to be true
+        end
+      end
+    end
+
   end
+
+  describe '#complete' do
+    let(:nonce) { SecureRandom.uuid }
+    context 'when NonceManager has been configured' do
+      before do
+        described_class.configure(server: 'redis://redis:6379')
+        described_class.is_allowed?(nonce)
+      end
+      it 'should extend the expiry of the nonce key' do
+        expect(described_class.complete(nonce)).to eq true
+      end
+      after do
+        described_class.reset
+      end
+    end
+
+    context 'when NonceManager has NOT been configured' do
+      before do
+        described_class.reset
+      end
+      it 'should return true' do
+        expect(described_class.complete(nonce)).to eq true
+      end
+    end
+  end
+
+  describe '#failed' do
+    let(:nonce) { SecureRandom.uuid }
+    context 'when NonceManager has been configured' do
+      before do
+        described_class.configure(server: 'redis://redis:6379')
+        described_class.is_allowed?(nonce)
+      end
+      it 'should extend the expiry of the nonce key' do
+        expect(described_class.failed(nonce)).to eq true
+      end
+      after do
+        described_class.reset
+      end
+    end
+
+    context 'when NonceManager has NOT been configured' do
+      before do
+        described_class.reset
+      end
+      it 'should return true' do
+        expect(described_class.failed(nonce)).to eq true
+      end
+    end
+  end
+
 end

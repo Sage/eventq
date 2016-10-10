@@ -384,7 +384,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   describe 'when under load' do
     context '#thread_process_iteration' do
-      it 'should not timeout' do
+      xit 'should not timeout' do
 
         event_type = 'queue.worker.event5'
         subscriber_queue = EventQ::Queue.new
@@ -423,7 +423,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       end
     end
     context '#start' do
-      it 'should not timeout' do
+      xit 'should not timeout' do
 
         event_type = 'queue.worker.event5'
         subscriber_queue = EventQ::Queue.new

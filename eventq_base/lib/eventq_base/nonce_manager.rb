@@ -19,38 +19,32 @@ module EventQ
       @lifespan
     end
 
-    def self.process(nonce, &block)
+    def self.is_allowed?(nonce)
+      if @server_url == nil
+        return true
+      end
 
-      if @server_url != nil
-
-        process_with_nonce(nonce, block)
-
-      else
-
-        process_without_nonce(block)
-
+      lock = Redlock::Client.new([ @server_url ]).lock(nonce, @timeout)
+      if lock == false
+        EventQ.log(:info, "Message has already been processed: #{nonce}")
+        return false
       end
 
       return true
-
     end
 
-    def self.process_with_nonce(nonce, block)
-      @server = Redlock::Client.new([ @server_url ])
-      @redis = Redis.new(url: @server_url)
-
-      lock = @server.lock(nonce, @timeout)
-      if lock == false
-        raise NonceError.new("Message has already been processed: #{nonce}")
+    def self.complete(nonce)
+      if @server_url != nil
+        Redis.new(url: @server_url).expire(nonce, @lifespan)
       end
-
-      block.call
-
-      @redis.expire(nonce, @lifespan)
+      return true
     end
 
-    def self.process_without_nonce(block)
-      block.call
+    def self.failed(nonce)
+      if @server_url != nil
+        Redis.new(url: @server_url).del(nonce)
+      end
+      return true
     end
 
     def self.reset

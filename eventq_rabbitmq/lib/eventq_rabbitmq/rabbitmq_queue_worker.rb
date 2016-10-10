@@ -266,29 +266,35 @@ module EventQ
 
       def process_message(payload, queue, channel, retry_exchange, delivery_info, block)
         abort = false
+        error = false
+        received = false
         message = deserialize_message(payload)
 
         EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
 
         message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
-        #begin worker block for queue message
-        begin
-          block.call(message.content, message_args)
+        EventQ::NonceManager.process(message.id) do
 
-          if message_args.abort == true
-            abort = true
-            EventQ.log(:info, "[#{self.class}] - Message aborted.")
-          else
-            #accept the message as processed
-            channel.acknowledge(delivery_info.delivery_tag, false)
-            EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-            received = true
+          #begin worker block for queue message
+          begin
+            block.call(message.content, message_args)
+
+            if message_args.abort == true
+              abort = true
+              EventQ.log(:info, "[#{self.class}] - Message aborted.")
+            else
+              #accept the message as processed
+              channel.acknowledge(delivery_info.delivery_tag, false)
+              EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+              received = true
+            end
+
+          rescue => e
+            EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
+            error = true
           end
 
-        rescue => e
-          EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-          error = true
         end
 
         if error || abort
