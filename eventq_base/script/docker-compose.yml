@@ -1,0 +1,15 @@
+testrunner:
+  image: eventq/base
+  container_name: gem_test_runner
+  command: bash -c "./scripts/container_loop.sh"
+  links:
+    - redis
+  volumes:
+    - ./container_loop.sh:/scripts/container_loop.sh
+    - ../:/gem_src
+
+redis:
+  image: redis:alpine
+  container_name: eventq_redis
+  ports:
+    - "6379:6379"

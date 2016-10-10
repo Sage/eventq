@@ -85,7 +85,7 @@ module EventQ
 
               GC.start
 
-              if !has_processed
+              if !has_processed && @sleep > 0
                 EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
                 sleep(@sleep)
               end

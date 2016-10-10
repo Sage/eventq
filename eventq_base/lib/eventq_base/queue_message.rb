@@ -2,6 +2,7 @@ module EventQ
   class QueueMessage
     extend ClassKit
 
+    attr_accessor_type :id, type: String
     attr_accessor_type :retry_attempts, type: Integer
     attr_accessor_type :type, type: String
     attr_accessor_type :content
@@ -10,6 +11,7 @@ module EventQ
     def initialize
       @retry_attempts = 0
       @created = Time.now.to_i
+      @id = SecureRandom.uuid
     end
 
   end
