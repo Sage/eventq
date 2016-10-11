@@ -199,6 +199,7 @@ module EventQ
         EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
+          client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
           return false
         end
 
@@ -233,6 +234,8 @@ module EventQ
         end
 
         yield [received, error]
+
+        return true
       end
 
       def reject_message(queue, client, msg, q, retry_attempts)
