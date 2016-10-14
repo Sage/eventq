@@ -86,13 +86,16 @@ module EventQ
                 break
               end
 
-              has_processed = thread_process_iteration(client, manager, queue, block)
+              has_message_received = thread_process_iteration(client, manager, queue, block)
 
               gc_flush
 
-              if !has_processed && @sleep > 0
-                EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
-                sleep(@sleep)
+              if !has_message_received
+                EventQ.log(:debug, "[#{self.class}] - No message received.")
+                if @sleep > 0
+                  EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
+                  sleep(@sleep)
+                end
               end
 
             end
@@ -124,7 +127,6 @@ module EventQ
         q = manager.get_queue(queue)
 
         received = false
-        error = false
 
         begin
 
@@ -138,12 +140,10 @@ module EventQ
 
           #check that a message was received
           if response.messages.length > 0
+            received = true
             begin
               tag_processing_thread
-              process_message(response, client, queue, q, block) do |received, error|
-                received = received
-                error = error
-              end
+              process_message(response, client, queue, q, block)
             ensure
               untag_processing_thread
             end
@@ -154,13 +154,7 @@ module EventQ
           EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e.backtrace}")
         end
 
-        #check if any message was received
-        if !received
-          EventQ.log(:debug, "[#{self.class}] - No message received.")
-          return false
-        end
-
-        return true
+        return received
       end
 
       def stop
@@ -186,7 +180,6 @@ module EventQ
       private
 
       def process_message(response, client, queue, q, block)
-        abort = false
         msg = response.messages[0]
         retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
 
@@ -209,13 +202,11 @@ module EventQ
           block.call(message.content, message_args)
 
           if message_args.abort == true
-            abort = true
             EventQ.log(:info, "[#{self.class}] - Message aborted.")
           else
             #accept the message as processed
             client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
             EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-            received = true
           end
 
         rescue => e
@@ -225,15 +216,13 @@ module EventQ
 
         end
 
-        if abort || error
+        if message_args.abort || error
           EventQ::NonceManager.failed(message.id)
           EventQ.log(:info, "[#{self.class}] - Message rejected.")
           reject_message(queue, client, msg, q, retry_attempts)
         else
           EventQ::NonceManager.complete(message.id)
         end
-
-        yield [received, error]
 
         return true
       end

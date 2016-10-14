@@ -180,19 +180,19 @@ RSpec.describe EventQ::Amazon::QueueWorker do
         raise 'Fail on purpose to send event to retry queue.'
       end
 
-      sleep(1.1)
+      sleep(1)
 
       expect(retry_attempt_count).to eq(1)
 
-      sleep(2.1)
+      sleep(2)
 
       expect(retry_attempt_count).to eq(2)
 
-      sleep(3.1)
+      sleep(3)
 
       expect(retry_attempt_count).to eq(3)
 
-      sleep(4.1)
+      sleep(4)
 
       expect(retry_attempt_count).to eq(4)
 
