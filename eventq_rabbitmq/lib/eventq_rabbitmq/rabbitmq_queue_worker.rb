@@ -85,13 +85,13 @@ module EventQ
                 break
               end
 
-              has_processed = false
+              has_received_message = false
 
               begin
 
                 channel = @connection.create_channel
 
-                has_processed = thread_process_iteration(channel, manager, queue, block)
+                has_received_message = thread_process_iteration(channel, manager, queue, block)
 
               rescue => e
                 EventQ.logger.error "An unhandled error occurred attempting to communicate with RabbitMQ. Error: #{e} | Backtrace: #{e.backtrace}"
@@ -103,7 +103,8 @@ module EventQ
 
               gc_flush
 
-              if !has_processed
+              if !has_received_message
+                EventQ.log(:debug, "[#{self.class}] - No message received.")
                 EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
                 sleep(@sleep)
               end
@@ -142,19 +143,16 @@ module EventQ
         retry_exchange = manager.get_retry_exchange(channel, queue)
 
         received = false
-        error = false
 
         begin
           delivery_info, properties, payload = q.pop(:manual_ack => true, :block => true)
 
           #check that message was received
           if payload != nil
+            received = true
             begin
               tag_processing_thread
-              process_message(payload, queue, channel, retry_exchange, delivery_info, block) do |received, error|
-                received = received
-                error = error
-              end
+              process_message(payload, queue, channel, retry_exchange, delivery_info, block)
             ensure
               untag_processing_thread
             end
@@ -165,13 +163,7 @@ module EventQ
           EventQ.log(:error, "[#{self.class}] - An error occurred attempting to pop a message from the queue. Error: #{e} | Backtrace: #{e.backtrace}")
         end
 
-        #check if any message was received
-        if !received
-          EventQ.log(:debug, "[#{self.class}] - No message received.")
-          return false
-        end
-
-        return true
+        return received
       end
 
       def stop
@@ -285,7 +277,6 @@ module EventQ
       def process_message(payload, queue, channel, retry_exchange, delivery_info, block)
         abort = false
         error = false
-        received = false
         message = deserialize_message(payload)
 
         EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
@@ -308,7 +299,6 @@ module EventQ
             #accept the message as processed
             channel.acknowledge(delivery_info.delivery_tag, false)
             EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
-            received = true
           end
 
         rescue => e
@@ -322,8 +312,6 @@ module EventQ
         else
           EventQ::NonceManager.complete(message.id)
         end
-
-        yield [received, error]
       end
     end
   end
