@@ -3,6 +3,12 @@ require 'oj'
 require 'json'
 require_relative '../lib/eventq_aws'
 
+module EventQ
+  def self.AWS_ACCOUNT_NUMBER
+    ENV.fetch('AWS_ACCOUNT_NUMBER')
+  end
+end
+
 RSpec.configure do |config|
 
   config.before(:each) do

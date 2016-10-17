@@ -19,7 +19,8 @@ module EventQ
 
       def subscribe(event_type, queue)
 
-        topic_arn = @client.create_topic_arn(event_type)
+        _event_type = EventQ.create_event_type(event_type)
+        topic_arn = @client.create_topic_arn(_event_type)
 
         q = @manager.get_queue(queue)
         queue_arn = @client.get_queue_arn(queue)

@@ -198,6 +198,18 @@ This method is called to configure the NonceManager, and must be called before s
 **Example**
 
     EventQ::NonceManager.configure(server: 'redis://127.0.0.1:6379')
+    
+    
+### EventQ
+
+#### #namespace
+
+This attribute is used to specify a namespace for all events and queues to be created within.
+
+**Example**
+
+    EventQ.namespace = 'development'
+
 
 ## Development
 

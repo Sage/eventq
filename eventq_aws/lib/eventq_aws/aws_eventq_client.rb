@@ -16,11 +16,13 @@ module EventQ
 
       def raise_event(event_type, event)
 
-        topic_arn = @client.get_topic_arn(event_type)
+        _event_type = EventQ.create_event_type(event_type)
+
+        topic_arn = @client.get_topic_arn(_event_type)
 
         qm = new_message
         qm.content = event
-        qm.type = event_type
+        qm.type = _event_type
 
         serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
 
