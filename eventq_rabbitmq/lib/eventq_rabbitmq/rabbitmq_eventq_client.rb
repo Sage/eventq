@@ -18,6 +18,8 @@ module EventQ
 
         connection = @client.get_connection
 
+        _event_type = EventQ.create_event_type(event_type)
+
         begin
         channel = connection.create_channel
 
@@ -25,13 +27,13 @@ module EventQ
 
         qm = new_message
         qm.content = event
-        qm.type = event_type
+        qm.type = _event_type
 
         serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
 
         message = serialization_provider.serialize(qm)
 
-        ex.publish(message, :routing_key => event_type)
+        ex.publish(message, :routing_key => _event_type)
         rescue => e
 
           channel.close

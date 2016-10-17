@@ -13,13 +13,15 @@ module EventQ
 
       def subscribe(event_type, queue)
 
+        _event_type = EventQ.create_event_type(event_type)
+
         connection = @client.get_connection
         channel = connection.create_channel
 
         queue = @queue_manager.get_queue(channel, queue)
         exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
-        queue.bind(exchange, :routing_key => event_type)
+        queue.bind(exchange, :routing_key => _event_type)
 
         channel.close
         connection.close

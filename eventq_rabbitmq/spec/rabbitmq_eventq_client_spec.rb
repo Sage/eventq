@@ -16,38 +16,85 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:channel) { connection.create_channel }
 
-  it 'should raise an event object and be broadcast to a subscriber queue' do
+  context 'when EventQ.namespace is NOT specified' do
+    it 'should raise an event object and be broadcast to a subscriber queue' do
 
-    event_type = 'test_event1'
-    subscriber_queue = EventQ::Queue.new
-    subscriber_queue.name = SecureRandom.uuid
+      event_type = 'test_event1'
+      subscriber_queue = EventQ::Queue.new
+      subscriber_queue.name = SecureRandom.uuid
 
-    subscription_manager.subscribe(event_type, subscriber_queue)
+      subscription_manager.subscribe(event_type, subscriber_queue)
 
-    message = 'Hello World'
+      message = 'Hello World'
 
-    subject.raise_event(event_type, message)
+      subject.raise_event(event_type, message)
 
-    queue_manager = EventQ::RabbitMq::QueueManager.new
+      queue_manager = EventQ::RabbitMq::QueueManager.new
 
-    queue = queue_manager.get_queue(channel, subscriber_queue)
+      queue = queue_manager.get_queue(channel, subscriber_queue)
 
-    qm = nil
+      qm = nil
 
-    puts '[QUEUE] waiting for message...'
+      puts '[QUEUE] waiting for message...'
 
-    begin
-      delivery_info, properties, payload = queue.pop
-      qm = Oj.load(payload)
-      puts "[QUEUE] - received message: #{message}"
-    rescue TimeOut::Error
-      puts 'Failed due to connection timeout.'
+      begin
+        delivery_info, properties, payload = queue.pop
+        qm = Oj.load(payload)
+        puts "[QUEUE] - received message: #{message}"
+      rescue TimeOut::Error
+        puts 'Failed due to connection timeout.'
+      end
+
+
+      expect(qm).to_not be_nil
+      expect(qm.content).to eq(message)
+
+    end
+  end
+
+  context 'when EventQ.namespace is specified' do
+
+    before do
+      EventQ.namespace = 'test'
     end
 
+    it 'should raise an event object and be broadcast to a subscriber queue' do
 
-    expect(qm).to_not be_nil
-    expect(qm.content).to eq(message)
+      event_type = 'test_event1'
+      subscriber_queue = EventQ::Queue.new
+      subscriber_queue.name = SecureRandom.uuid
 
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      message = 'Hello World'
+
+      subject.raise_event(event_type, message)
+
+      queue_manager = EventQ::RabbitMq::QueueManager.new
+
+      queue = queue_manager.get_queue(channel, subscriber_queue)
+
+      qm = nil
+
+      puts '[QUEUE] waiting for message...'
+
+      begin
+        delivery_info, properties, payload = queue.pop
+        qm = Oj.load(payload)
+        puts "[QUEUE] - received message: #{message}"
+      rescue TimeOut::Error
+        puts 'Failed due to connection timeout.'
+      end
+
+
+      expect(qm).to_not be_nil
+      expect(qm.content).to eq(message)
+
+    end
+
+    after do
+      EventQ.namespace = nil
+    end
   end
 
   after do
