@@ -30,21 +30,25 @@ module EventQ
       end
 
       def get_topic_arn(event_type)
-        return "arn:aws:sns:#{@aws_region}:#{@aws_account}:#{aws_safe_name(event_type)}"
+        _event_type = EventQ.create_event_type(event_type)
+        return "arn:aws:sns:#{@aws_region}:#{@aws_account}:#{aws_safe_name(_event_type)}"
       end
 
       def get_queue_arn(queue)
-        return "arn:aws:sqs:#{@aws_region}:#{@aws_account}:#{aws_safe_name(queue.name)}"
+        _queue_name = EventQ.create_queue_name(queue.name)
+        return "arn:aws:sqs:#{@aws_region}:#{@aws_account}:#{aws_safe_name(_queue_name)}"
       end
 
       def create_topic_arn(event_type)
-        response = @sns.create_topic({ name: aws_safe_name(event_type) })
+        _event_type = EventQ.create_event_type(event_type)
+        response = @sns.create_topic({ name: aws_safe_name(_event_type) })
         return response.topic_arn
       end
 
       def get_queue_url(queue)
+        _queue_name = EventQ.create_queue_name(queue.name)
         response= @sqs.get_queue_url({
-                                            queue_name: aws_safe_name(queue.name),
+                                            queue_name: aws_safe_name(_queue_name),
                                             queue_owner_aws_account_id: @aws_account,
                                         })
         return response.queue_url

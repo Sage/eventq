@@ -24,8 +24,9 @@ module EventQ
       end
 
       def create_queue(queue)
+        _queue_name = EventQ.create_queue_name(queue.name)
         response = @client.sqs.create_queue({
-                                                queue_name: queue.name,
+                                                queue_name: _queue_name,
                                                 attributes: {
                                                     VISIBILITY_TIMEOUT => 300.to_s #5 minutes
                                                 }
@@ -52,7 +53,8 @@ module EventQ
       end
 
       def queue_exists?(queue)
-        return @client.sqs.list_queues({ queue_name_prefix: queue.name }).queue_urls.length > 0
+        _queue_name = EventQ.create_queue_name(queue.name)
+        return @client.sqs.list_queues({ queue_name_prefix: _queue_name }).queue_urls.length > 0
       end
 
       def update_queue(queue)

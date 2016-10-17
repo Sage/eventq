@@ -21,5 +21,11 @@ module EventQ
     end
     return "#{EventQ.namespace}-#{event_type}"
   end
+  def self.create_queue_name(queue_name)
+    if EventQ.namespace == nil
+      return queue_name
+    end
+    return "#{EventQ.namespace}-#{queue_name}"
+  end
 end
 
