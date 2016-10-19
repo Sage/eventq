@@ -190,6 +190,11 @@ module EventQ
         return provider.deserialize(payload)
       end
 
+      def serialize_message(msg)
+        provider = @serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
+        return provider.serialize(msg)
+      end
+
       def reject_message(channel, message, delivery_info, retry_exchange, queue)
         #reject the message to remove from queue
         channel.reject(delivery_info.delivery_tag, false)
@@ -223,7 +228,7 @@ module EventQ
 
           else
 
-            EventQ.log(:info, "[#{self.class}] - Message retry attempts exceeded.")
+            EventQ.log(:info, "[#{self.class}] - Message retry attempts exceeded. Message: #{serialize_message(message)}")
 
             if @retry_exceeded_block != nil
               EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")

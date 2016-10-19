@@ -3,6 +3,7 @@ module EventQ
     class QueueManager
 
       VISIBILITY_TIMEOUT = 'VisibilityTimeout'.freeze
+      MESSAGE_RETENTION_PERIOD = 'MessageRetentionPeriod'.freeze
 
       def initialize(options)
 
@@ -28,7 +29,8 @@ module EventQ
         response = @client.sqs.create_queue({
                                                 queue_name: _queue_name,
                                                 attributes: {
-                                                    VISIBILITY_TIMEOUT => 300.to_s #5 minutes
+                                                    VISIBILITY_TIMEOUT => 300.to_s,#5 minutes
+                                                    MESSAGE_RETENTION_PERIOD => 1209600.to_s, #max 14 days
                                                 }
                                             })
 
