@@ -223,7 +223,7 @@ module EventQ
             end
 
             EventQ.log(:debug, "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}")
-            retry_exchange.publish(Oj.dump(message), :expiration => message_ttl)
+            retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
             EventQ.log(:debug, "[#{self.class}] - Published message to retry exchange.")
 
           else

@@ -14,8 +14,10 @@ module EventQ
 
       def get_queue(channel, queue)
 
+        _queue_name = EventQ.create_queue_name(queue.name)
+
         #get/create the queue
-        q = channel.queue(queue.name, :durable => @durable)
+        q = channel.queue(_queue_name, :durable => @durable)
 
         if queue.allow_retry
           retry_exchange = get_retry_exchange(channel, queue)
