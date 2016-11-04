@@ -105,8 +105,10 @@ module EventQ
 
               if !has_received_message
                 EventQ.log(:debug, "[#{self.class}] - No message received.")
-                EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
-                sleep(@sleep)
+                if @sleep > 0
+                  EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
+                  sleep(@sleep)
+                end
               end
 
             end
@@ -196,48 +198,44 @@ module EventQ
       end
 
       def reject_message(channel, message, delivery_info, retry_exchange, queue)
+
+        EventQ.log(:info, "[#{self.class}] - Message rejected removing from queue.")
         #reject the message to remove from queue
         channel.reject(delivery_info.delivery_tag, false)
 
-        EventQ.log(:info, "[#{self.class}] - Message rejected.")
+        #check if the message retry limit has been exceeded
+        if message.retry_attempts >= queue.max_retry_attempts
+
+          EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded. Msg: #{serialize_message(message)}")
+
+          if @retry_exceeded_block != nil
+            EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")
+            @retry_exceeded_block.call(message)
+          else
+            EventQ.log(:debug, "[#{self.class}] - No retry exceeded block specified.")
+          end
 
         #check if the message is allowed to be retried
-        if queue.allow_retry
+        elsif queue.allow_retry
 
-          EventQ.log(:debug, "[#{self.class}] - Checking retry attempts...")
+          EventQ.log(:debug, "[#{self.class}] - Incrementing retry attempts count.")
+          message.retry_attempts += 1
 
-          if message.retry_attempts < queue.max_retry_attempts
-            EventQ.log(:debug, "[#{self.class}] - Incrementing retry attempts count.")
-            message.retry_attempts += 1
-
-            if queue.allow_retry_back_off == true
-              EventQ.log(:debug, "[#{self.class}] - Calculating message back off retry delay. Attempts: #{message.retry_attempts} * Retry Delay: #{queue.retry_delay}")
-              message_ttl = message.retry_attempts * queue.retry_delay
-              if (message.retry_attempts * queue.retry_delay) > queue.max_retry_delay
-                EventQ.log(:debug, "[#{self.class}] - Max message back off retry delay reached.")
-                message_ttl = queue.max_retry_delay
-              end
-            else
-              EventQ.log(:debug, "[#{self.class}] - Setting fixed retry delay for message.")
-              message_ttl = queue.retry_delay
+          if queue.allow_retry_back_off == true
+            EventQ.log(:debug, "[#{self.class}] - Calculating message back off retry delay. Attempts: #{message.retry_attempts} * Retry Delay: #{queue.retry_delay}")
+            message_ttl = message.retry_attempts * queue.retry_delay
+            if (message.retry_attempts * queue.retry_delay) > queue.max_retry_delay
+              EventQ.log(:debug, "[#{self.class}] - Max message back off retry delay reached.")
+              message_ttl = queue.max_retry_delay
             end
-
-            EventQ.log(:debug, "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}")
-            retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
-            EventQ.log(:debug, "[#{self.class}] - Published message to retry exchange.")
-
           else
-
-            EventQ.log(:info, "[#{self.class}] - Message retry attempts exceeded. Message: #{serialize_message(message)}")
-
-            if @retry_exceeded_block != nil
-              EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")
-              @retry_exceeded_block.call(message)
-            else
-              EventQ.log(:debug, "[#{self.class}] - No retry exceeded block specified.")
-            end
-
+            EventQ.log(:debug, "[#{self.class}] - Setting fixed retry delay for message.")
+            message_ttl = queue.retry_delay
           end
+
+          EventQ.log(:debug, "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}")
+          retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
+          EventQ.log(:debug, "[#{self.class}] - Published message to retry exchange.")
 
         end
 
@@ -284,11 +282,12 @@ module EventQ
         error = false
         message = deserialize_message(payload)
 
-        EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
+        EventQ.log(:info, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
 
         message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
+          EventQ.log(:info, "[#{self.class}] - Duplicate Message received. Dropping message.")
           channel.acknowledge(delivery_info.delivery_tag, false)
           return false
         end
