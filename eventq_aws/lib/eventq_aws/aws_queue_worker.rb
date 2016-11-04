@@ -194,9 +194,10 @@ module EventQ
 
         message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
 
-        EventQ.log(:debug, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+        EventQ.log(:info, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
+          EventQ.log(:info, "[#{self.class}] - Duplicate Message received. Dropping message.")
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
           return false
         end
@@ -223,7 +224,6 @@ module EventQ
 
         if message_args.abort || error
           EventQ::NonceManager.failed(message.id)
-          EventQ.log(:info, "[#{self.class}] - Message rejected.")
           reject_message(queue, client, msg, q, retry_attempts)
         else
           EventQ::NonceManager.complete(message.id)
@@ -235,15 +235,18 @@ module EventQ
       def reject_message(queue, client, msg, q, retry_attempts)
 
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
+
+          EventQ.log(:info, "[#{self.class}] - Message rejected removing from queue. Msg: #{serialize_message(msg)}")
+
           #remove the message from the queue so that it does not get retried again
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
 
           if retry_attempts >= queue.max_retry_attempts
 
-            EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded. Msg: #{serialize_message(msg)}")
+            EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded.")
 
             if @retry_exceeded_block != nil
-              EventQ.log(:debug, "[#{self.class}] - Executing retry exceeded block.")
+              EventQ.log(:info, "[#{self.class}] - Executing retry exceeded block.")
               @retry_exceeded_block.call(message)
             end
 
@@ -252,6 +255,8 @@ module EventQ
         elsif queue.allow_retry
 
           retry_attempts += 1
+
+          EventQ.log(:info, "[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
 
           if queue.allow_retry_back_off == true
             EventQ.log(:debug, "[#{self.class}] - Calculating message back off retry delay. Attempts: #{retry_attempts} * Delay: #{queue.retry_delay}")

@@ -55,7 +55,7 @@ module EventQ
       end
 
       def aws_safe_name(name)
-        return name.gsub(':', '')
+        return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
       end
 
     end
