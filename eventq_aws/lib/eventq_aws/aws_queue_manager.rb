@@ -12,6 +12,17 @@ module EventQ
         end
 
         @client = options[:client]
+
+        @visibility_timeout = 300 #5 minutes
+        if options.key?(:visibility_timeout)
+          @visibility_timeout = options[:visibility_timeout]
+        end
+
+        @message_retention_period = 1209600 #14 days (max aws value)
+        if options.key?(:message_retention_period)
+          @message_retention_period = options[:message_retention_period]
+        end
+
       end
 
       def get_queue(queue)
@@ -29,8 +40,8 @@ module EventQ
         response = @client.sqs.create_queue({
                                                 queue_name: _queue_name,
                                                 attributes: {
-                                                    VISIBILITY_TIMEOUT => 300.to_s,#5 minutes
-                                                    MESSAGE_RETENTION_PERIOD => 1209600.to_s, #max 14 days
+                                                    VISIBILITY_TIMEOUT => @visibility_timeout.to_s,
+                                                    MESSAGE_RETENTION_PERIOD => @message_retention_period.to_s
                                                 }
                                             })
 
@@ -64,7 +75,8 @@ module EventQ
         @client.sqs.set_queue_attributes({
                                              queue_url: url, # required
                                               attributes: {
-                                                  VISIBILITY_TIMEOUT => 300.to_s # 5 minutes
+                                                  VISIBILITY_TIMEOUT => @visibility_timeout.to_s,
+                                                  MESSAGE_RETENTION_PERIOD => @message_retention_period.to_s
                                               }
                                           })
         return url
