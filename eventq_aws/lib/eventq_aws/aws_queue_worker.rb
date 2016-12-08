@@ -14,6 +14,8 @@ module EventQ
         @is_running = false
 
         @retry_exceeded_block = nil
+        @on_retry_block = nil
+        @on_error_block = nil
 
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
@@ -151,7 +153,16 @@ module EventQ
           end
 
         rescue => e
-          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to retrieve a message from the queue. Error: #{e.backtrace}")
+          EventQ.log(:error, "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
+
+          if @on_error_block
+            EventQ.log(:debug, "[#{self.class}] - Executing on error block.")
+            begin
+              @on_error_block.call(e, message)
+            rescue => e2
+              EventQ.log(:error, "[#{self.class}] - An error occurred executing the on error block. Error: #{e2}")
+            end
+          end
         end
 
         return received
@@ -166,6 +177,16 @@ module EventQ
 
       def on_retry_exceeded(&block)
         @retry_exceeded_block = block
+      end
+
+      def on_retry(&block)
+        @on_retry_block = block
+        return nil
+      end
+
+      def on_error(&block)
+        @on_error_block = block
+        return nil
       end
 
       def running?
@@ -224,7 +245,7 @@ module EventQ
 
         if message_args.abort || error
           EventQ::NonceManager.failed(message.id)
-          reject_message(queue, client, msg, q, retry_attempts)
+          reject_message(queue, client, msg, q, retry_attempts, message, message_args.abort)
         else
           EventQ::NonceManager.complete(message.id)
         end
@@ -232,11 +253,11 @@ module EventQ
         return true
       end
 
-      def reject_message(queue, client, msg, q, retry_attempts)
+      def reject_message(queue, client, msg, q, retry_attempts, message, abort)
 
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
 
-          EventQ.log(:info, "[#{self.class}] - Message rejected removing from queue. Msg: #{serialize_message(msg)}")
+          EventQ.log(:info, "[#{self.class}] - Message rejected removing from queue. Message: #{serialize_message(message)}")
 
           #remove the message from the queue so that it does not get retried again
           client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
@@ -247,7 +268,11 @@ module EventQ
 
             if @retry_exceeded_block != nil
               EventQ.log(:info, "[#{self.class}] - Executing retry exceeded block.")
-              @retry_exceeded_block.call(message)
+              begin
+                @retry_exceeded_block.call(message)
+              rescue => e
+                EventQ.log(:error, "[#{self.class}] - An error occurred executing the on retry block. Error: #{e}")
+              end
             end
 
           end
@@ -281,6 +306,15 @@ module EventQ
                                                receipt_handle: msg.receipt_handle, # required
                                                visibility_timeout: visibility_timeout.to_s, # required
                                            })
+
+          if @on_retry_block
+            EventQ.log(:debug, "[#{self.class}] - Executing on retry block.")
+            begin
+              @on_retry_block.call(message, abort)
+            rescue => e
+              EventQ.log(:error, "[#{self.class}] - An error occurred executing the on retry block. Error: #{e}")
+            end
+          end
 
         end
 
