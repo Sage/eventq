@@ -13,7 +13,7 @@ module EventQ
         @forks = []
         @is_running = false
 
-        @retry_exceeded_block = nil
+        @on_retry_exceeded_block = nil
         @on_retry_block = nil
         @on_error_block = nil
 
@@ -154,18 +154,49 @@ module EventQ
 
         rescue => e
           EventQ.log(:error, "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
-
-          if @on_error_block
-            EventQ.log(:debug, "[#{self.class}] - Executing on error block.")
-            begin
-              @on_error_block.call(e, message)
-            rescue => e2
-              EventQ.log(:error, "[#{self.class}] - An error occurred executing the on error block. Error: #{e2}")
-            end
-          end
+          call_on_error_block(error: e)
         end
 
         return received
+      end
+
+      def call_on_error_block(error:, message: nil)
+        if @on_error_block
+          EventQ.log(:debug, "[#{self.class}] - Executing on_error block.")
+          begin
+            @on_error_block.call(error, message)
+          rescue => e
+            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_error block. Error: #{e}")
+          end
+        else
+          EventQ.log(:debug, "[#{self.class}] - No on_error block specified to execute.")
+        end
+      end
+
+      def call_on_retry_exceeded_block(message)
+        if @on_retry_exceeded_block != nil
+          EventQ.log(:debug, "[#{self.class}] - Executing on_retry_exceeded block.")
+          begin
+            @on_retry_exceeded_block.call(message)
+          rescue => e
+            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_retry_exceeded block. Error: #{e}")
+          end
+        else
+          EventQ.log(:debug, "[#{self.class}] - No on_retry_exceeded block specified.")
+        end
+      end
+
+      def call_on_retry_block(message)
+        if @on_retry_block
+          EventQ.log(:debug, "[#{self.class}] - Executing on_retry block.")
+          begin
+            @on_retry_block.call(message, abort)
+          rescue => e
+            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_retry block. Error: #{e}")
+          end
+        else
+          EventQ.log(:debug, "[#{self.class}] - No on_retry block specified.")
+        end
       end
 
       def stop
@@ -238,9 +269,8 @@ module EventQ
 
         rescue => e
           EventQ.log(:error, "[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-
           error = true
-
+          call_on_error_block(error: e, message: message)
         end
 
         if message_args.abort || error
@@ -265,15 +295,7 @@ module EventQ
           if retry_attempts >= queue.max_retry_attempts
 
             EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded.")
-
-            if @retry_exceeded_block != nil
-              EventQ.log(:info, "[#{self.class}] - Executing retry exceeded block.")
-              begin
-                @retry_exceeded_block.call(message)
-              rescue => e
-                EventQ.log(:error, "[#{self.class}] - An error occurred executing the on retry block. Error: #{e}")
-              end
-            end
+            call_on_retry_exceeded_block(message)
 
           end
 
@@ -307,14 +329,7 @@ module EventQ
                                                visibility_timeout: visibility_timeout.to_s, # required
                                            })
 
-          if @on_retry_block
-            EventQ.log(:debug, "[#{self.class}] - Executing on retry block.")
-            begin
-              @on_retry_block.call(message, abort)
-            rescue => e
-              EventQ.log(:error, "[#{self.class}] - An error occurred executing the on retry block. Error: #{e}")
-            end
-          end
+          call_on_retry_block(message)
 
         end
 

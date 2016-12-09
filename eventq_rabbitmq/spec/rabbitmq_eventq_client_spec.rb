@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:client) do
