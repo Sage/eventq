@@ -28,7 +28,7 @@ module EventQ
         raise "[#{self.class}] - Worker is already running." if running?
 
         if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no] && options[:aws_region].")
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
         end
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
@@ -76,6 +76,7 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
+            # maintain backwards compatability bu allowing the client to be passed in via the options hash
             client = options[:client] || new_client_instance(options) # singleton or non-singleton
             connection = client.get_connection
 
@@ -85,6 +86,7 @@ module EventQ
               #check if the worker is still allowed to run and break out of thread loop if not
               if !@is_running
                 connection.close
+                #TODO - do we need to close the channel here also?
                 break
               end
 

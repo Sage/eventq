@@ -8,7 +8,7 @@ module EventQ
       def initialize(options)
 
         if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no], aws_region: options[:aws_region].")
         end
 
         @client = options[:client]

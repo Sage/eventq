@@ -33,7 +33,7 @@ module EventQ
         configure(queue, options)
 
         if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no], aws_region: options[:aws_region].")
         end
 
         raise "[#{self.class}] - Worker is already running." if running?
@@ -77,6 +77,7 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
+            # maintain backwards compatability bu allowing the client to be passed in via the options hash
             client = options[:client] || new_client_instance(options) # singleton or non-singleton
 
             manager = EventQ::Amazon::QueueManager.new({ client: client })
