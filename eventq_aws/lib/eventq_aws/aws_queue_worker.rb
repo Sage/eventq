@@ -243,7 +243,7 @@ module EventQ
       end
 
       def aws_creds_present?(options)
-        (options[:aws_account_no] != nil && options[:aws_region] != nil)
+        (options[:aws_account_no] && options[:aws_region])
       end
 
       def process_message(response, client, queue, q, block)

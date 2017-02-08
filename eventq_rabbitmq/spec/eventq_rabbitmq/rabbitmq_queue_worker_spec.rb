@@ -151,12 +151,14 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         let(:connection) { double }
         let(:channel) { double }
         let(:subscriber_queue) { EventQ::Queue.new }
+
         before{
           allow(client).to receive(:get_connection).and_return(connection)
           allow(connection).to receive(:create_channel).and_return(channel)
           allow(channel).to receive(:close).and_return(true)
           allow(connection).to receive(:close).and_return(true)
         }
+
         it 'will create an instance' do
           expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).once
           subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 1 }) do |content, args|
@@ -172,12 +174,14 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         let(:connection) { double }
         let(:channel) { double }
         let(:subscriber_queue) { EventQ::Queue.new }
+
         before{
           allow(client).to receive(:get_connection).and_return(connection)
           allow(connection).to receive(:create_channel).and_return(channel)
           allow(channel).to receive(:close).and_return(true)
           allow(connection).to receive(:close).and_return(true)
         }
+
         it 'will create an instance' do
           expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).thrice
           subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 3 }) do |content, args|
@@ -194,12 +198,14 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       let(:connection) { double }
       let(:channel) { double }
       let(:subscriber_queue) { EventQ::Queue.new }
+
       before{
         allow(client).to receive(:get_connection).and_return(connection)
         allow(connection).to receive(:create_channel).and_return(channel)
         allow(channel).to receive(:close).and_return(true)
         allow(connection).to receive(:close).and_return(true)
       }
+
       it 'will not create an instance' do
         expect(EventQ::RabbitMq::QueueClient).not_to receive(:new)
         subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
