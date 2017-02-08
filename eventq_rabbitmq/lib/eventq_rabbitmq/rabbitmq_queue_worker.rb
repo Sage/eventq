@@ -84,6 +84,7 @@ module EventQ
 
               #check if the worker is still allowed to run and break out of thread loop if not
               if !@is_running
+                connection.close
                 break
               end
 
