@@ -124,7 +124,7 @@ module EventQ
 
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if options[:wait] == true
           @threads.each { |thr| thr.join }
         end
 
