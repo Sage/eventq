@@ -242,10 +242,6 @@ module EventQ
         EventQ::Amazon::QueueClient.new({ aws_account_number: options[:aws_account_no], aws_region: options[:aws_region] })
       end
 
-      def aws_creds_present?(options)
-        (options[:aws_account_no] && options[:aws_region])
-      end
-
       def process_message(response, client, queue, q, block)
         msg = response.messages[0]
         retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
