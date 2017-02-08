@@ -33,7 +33,7 @@ module EventQ
         configure(queue, options)
 
         if options[:client] == nil
-          raise "[#{self.class}] - :client (QueueClient) must be specified."
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
         end
 
         raise "[#{self.class}] - Worker is already running." if running?
@@ -77,7 +77,8 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
-            client = options[:client]
+            client = options[:client] || new_client_instance(options) # singleton or non-singleton
+
             manager = EventQ::Amazon::QueueManager.new({ client: client })
 
             #begin the queue loop for this thread
@@ -235,6 +236,15 @@ module EventQ
       end
 
       private
+
+      def new_client_instance(options)
+        raise "[#{self.class}] - AWS Account No and Region not present." unless aws_creds_present?(options)
+        EventQ::Amazon::QueueClient.new({ aws_account_number: options[:aws_account_no], aws_region: options[:aws_region] })
+      end
+
+      def aws_creds_present?(options)
+        (options[:aws_account_no] != nil && options[:aws_region] != nil)
+      end
 
       def process_message(response, client, queue, q, block)
         msg = response.messages[0]

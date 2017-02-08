@@ -28,7 +28,7 @@ module EventQ
         raise "[#{self.class}] - Worker is already running." if running?
 
         if options[:client] == nil
-          raise "[#{self.class}] - :client (QueueClient) must be specified."
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no] && options[:aws_region].")
         end
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
@@ -68,16 +68,16 @@ module EventQ
           options[:durable] = true
         end
 
-        client = options[:client]
         manager = EventQ::RabbitMq::QueueManager.new
         manager.durable = options[:durable]
-        @connection = client.get_connection
-
         @threads = []
 
         #loop through each thread count
         @thread_count.times do
           thr = Thread.new do
+
+            client = options[:client] || new_client_instance(options) # singleton or non-singleton
+            connection = client.get_connection
 
             #begin the queue loop for this thread
             while true do
@@ -91,7 +91,7 @@ module EventQ
 
               begin
 
-                channel = @connection.create_channel
+                channel = connection.create_channel
 
                 has_received_message = thread_process_iteration(channel, manager, queue, block)
 
@@ -123,7 +123,6 @@ module EventQ
 
         if options.key?(:wait) && options[:wait] == true
           @threads.each { |thr| thr.join }
-          @connection.close
         end
 
         return true
@@ -189,9 +188,6 @@ module EventQ
         puts "[#{self.class}] - Stopping..."
         @is_running = false
         @threads.each { |thr| thr.join }
-        if @connection != nil
-          @connection.close
-        end
         return true
       end
 
@@ -326,6 +322,11 @@ module EventQ
       end
 
       private
+
+      def new_client_instance(options)
+        raise "[#{self.class}] - MQ Endpoint not present." unless options[:mq_endpoint]
+        EventQ::RabbitMq::QueueClient.new({endpoint: options[:mq_endpoint] })
+      end
 
       def process_message(payload, queue, channel, retry_exchange, delivery_info, block)
         abort = false

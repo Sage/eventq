@@ -1,11 +1,7 @@
 RSpec.describe EventQ::RabbitMq::QueueWorker do
 
-  let(:client) do
-    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
-  end
-
+  let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
   let(:connection) { client.get_connection }
-
   let(:channel) { connection.create_channel }
 
   after do
@@ -62,7 +58,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       end
       let(:payload) do
         {
-            content: { text: 'ABC' }
+          content: { text: 'ABC' }
         }
       end
       let(:json) do
@@ -144,6 +140,73 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
       after do
         EventQ::NonceManager.reset
+      end
+    end
+  end
+
+  describe 'threading' do
+    context 'non singleton client' do
+      context 'for a single thread' do
+        let(:client) { double }
+        let(:connection) { double }
+        let(:channel) { double }
+        let(:subscriber_queue) { EventQ::Queue.new }
+        before{
+          allow(client).to receive(:get_connection).and_return(connection)
+          allow(connection).to receive(:create_channel).and_return(channel)
+          allow(channel).to receive(:close).and_return(true)
+          allow(connection).to receive(:close).and_return(true)
+        }
+        it 'will create an instance' do
+          expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).once
+          subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+            received_count += 1
+          end
+
+          sleep(2)
+        end
+      end
+
+      context 'for multiple threads' do
+        let(:client) { double }
+        let(:connection) { double }
+        let(:channel) { double }
+        let(:subscriber_queue) { EventQ::Queue.new }
+        before{
+          allow(client).to receive(:get_connection).and_return(connection)
+          allow(connection).to receive(:create_channel).and_return(channel)
+          allow(channel).to receive(:close).and_return(true)
+          allow(connection).to receive(:close).and_return(true)
+        }
+        it 'will create an instance' do
+          expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).thrice
+          subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 3 }) do |content, args|
+            received_count += 1
+          end
+
+          sleep(2)
+        end
+      end
+    end
+
+    context 'singleton client' do
+      let(:client) { double }
+      let(:connection) { double }
+      let(:channel) { double }
+      let(:subscriber_queue) { EventQ::Queue.new }
+      before{
+        allow(client).to receive(:get_connection).and_return(connection)
+        allow(connection).to receive(:create_channel).and_return(channel)
+        allow(channel).to receive(:close).and_return(true)
+        allow(connection).to receive(:close).and_return(true)
+      }
+      it 'will not create an instance' do
+        expect(EventQ::RabbitMq::QueueClient).not_to receive(:new)
+        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+          received_count += 1
+        end
+
+        sleep(2)
       end
     end
   end

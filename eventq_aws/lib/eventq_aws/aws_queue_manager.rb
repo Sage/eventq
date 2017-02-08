@@ -8,7 +8,7 @@ module EventQ
       def initialize(options)
 
         if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'.freeze
+          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
         end
 
         @client = options[:client]
