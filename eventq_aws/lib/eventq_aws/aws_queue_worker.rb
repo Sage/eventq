@@ -109,7 +109,7 @@ module EventQ
 
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if options[:wait] == true
           @threads.each { |thr| thr.join }
         end
 
@@ -239,7 +239,6 @@ module EventQ
       private
 
       def new_client_instance(options)
-        raise "[#{self.class}] - AWS Account No and Region not present." unless aws_creds_present?(options)
         EventQ::Amazon::QueueClient.new({ aws_account_number: options[:aws_account_no], aws_region: options[:aws_region] })
       end
 

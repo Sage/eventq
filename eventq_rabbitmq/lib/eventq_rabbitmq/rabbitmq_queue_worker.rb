@@ -327,7 +327,6 @@ module EventQ
       private
 
       def new_client_instance(options)
-        raise "[#{self.class}] - MQ Endpoint not present." unless options[:mq_endpoint]
         EventQ::RabbitMq::QueueClient.new({endpoint: options[:mq_endpoint] })
       end
 
