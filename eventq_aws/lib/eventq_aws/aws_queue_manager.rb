@@ -7,9 +7,7 @@ module EventQ
 
       def initialize(options)
 
-        if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no], aws_region: options[:aws_region].")
-        end
+        raise "[#{self.class}] - :options[:client] or (options[:aws_account_no] and options[:aws_region) must be specified." unless valid_client?(options)
 
         @client = options[:client]
 
@@ -80,6 +78,12 @@ module EventQ
                                               }
                                           })
         return url
+      end
+
+      private
+
+      def valid_client?(options)
+        options[:client] || (options[:aws_account_no] && options[:aws_region])
       end
 
     end
