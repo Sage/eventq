@@ -27,9 +27,8 @@ module EventQ
 
         raise "[#{self.class}] - Worker is already running." if running?
 
-        if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:mq_endpoint].")
-        end
+        raise "[#{self.class}] - :options[:client] or options[:mq_endpoint] must be specified." unless valid_client?(options)
+
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
@@ -325,6 +324,10 @@ module EventQ
       end
 
       private
+
+      def valid_client?(options)
+        options[:client] || options[:mq_endpoint]
+      end
 
       def new_client_instance(options)
         EventQ::RabbitMq::QueueClient.new({endpoint: options[:mq_endpoint] })

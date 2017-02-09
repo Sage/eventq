@@ -32,9 +32,7 @@ module EventQ
 
         configure(queue, options)
 
-        if options[:client] == nil
-          EventQ.log(:info, "[#{self.class}] - options[:client] is now deprecated!!, please pass options[:aws_account_no], aws_region: options[:aws_region].")
-        end
+        raise "[#{self.class}] - :options[:client] or (options[:aws_account_no] and options[:aws_region) must be specified." unless valid_client?(options)
 
         raise "[#{self.class}] - Worker is already running." if running?
 
@@ -237,6 +235,10 @@ module EventQ
       end
 
       private
+
+      def valid_client?(options)
+        options[:client] || (options[:aws_account_no] && options[:aws_region])
+      end
 
       def new_client_instance(options)
         EventQ::Amazon::QueueClient.new({ aws_account_number: options[:aws_account_no], aws_region: options[:aws_region] })

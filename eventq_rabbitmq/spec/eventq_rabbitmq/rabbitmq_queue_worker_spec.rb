@@ -145,20 +145,20 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   end
 
   describe 'threading' do
+    let(:client) { double }
+    let(:connection) { double }
+    let(:channel) { double }
+    let(:subscriber_queue) { EventQ::Queue.new }
+
+    before{
+      allow(client).to receive(:get_connection).and_return(connection)
+      allow(connection).to receive(:create_channel).and_return(channel)
+      allow(channel).to receive(:close).and_return(true)
+      allow(connection).to receive(:close).and_return(true)
+    }
+
     context 'non singleton client' do
       context 'for a single thread' do
-        let(:client) { double }
-        let(:connection) { double }
-        let(:channel) { double }
-        let(:subscriber_queue) { EventQ::Queue.new }
-
-        before{
-          allow(client).to receive(:get_connection).and_return(connection)
-          allow(connection).to receive(:create_channel).and_return(channel)
-          allow(channel).to receive(:close).and_return(true)
-          allow(connection).to receive(:close).and_return(true)
-        }
-
         it 'will create an instance' do
           expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).once
           subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 1 }) do |content, args|
@@ -170,18 +170,6 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       end
 
       context 'for multiple threads' do
-        let(:client) { double }
-        let(:connection) { double }
-        let(:channel) { double }
-        let(:subscriber_queue) { EventQ::Queue.new }
-
-        before{
-          allow(client).to receive(:get_connection).and_return(connection)
-          allow(connection).to receive(:create_channel).and_return(channel)
-          allow(channel).to receive(:close).and_return(true)
-          allow(connection).to receive(:close).and_return(true)
-        }
-
         it 'will create an instance' do
           expect(EventQ::RabbitMq::QueueClient).to receive(:new).with({ endpoint: 'rabbitmq' }).thrice
           subject.start(subscriber_queue, { mq_endpoint: 'rabbitmq', wait: false, sleep: 0, thread_count: 3 }) do |content, args|
@@ -194,18 +182,6 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     end
 
     context 'singleton client' do
-      let(:client) { double }
-      let(:connection) { double }
-      let(:channel) { double }
-      let(:subscriber_queue) { EventQ::Queue.new }
-
-      before{
-        allow(client).to receive(:get_connection).and_return(connection)
-        allow(connection).to receive(:create_channel).and_return(channel)
-        allow(channel).to receive(:close).and_return(true)
-        allow(connection).to receive(:close).and_return(true)
-      }
-
       it 'will not create an instance' do
         expect(EventQ::RabbitMq::QueueClient).not_to receive(:new)
         subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
@@ -213,6 +189,15 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         end
 
         sleep(2)
+      end
+    end
+
+    context 'when client params not supplied' do
+      it 'raises an exception' do
+        expect {   subject.start(subscriber_queue, { wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+          received_count += 1
+        end
+        }.to raise_error
       end
     end
   end
