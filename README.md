@@ -36,6 +36,9 @@ A subscription queue should be defined to receive any events raised for the subs
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
  - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue. 
  - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
+ - **allow_retry_backoff** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff. 
+ - **max_retry_delay** [Int] [Optional] This is used to specify the max retry delay that should apply when allowing incremental back off.
+ - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
 
 **Example**
 
@@ -206,6 +209,22 @@ This is used to specify the serialization provider that should be used for event
 
     #set the serialization provider configuration to the JSON_PROVIDER
     EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
+    
+#### signature_provider
+
+This is used to specify the signature provider that should be used for message signing.
+
+> **Options:**
+>
+> - **SHA256** [Default] This is provider uses SHA256 to create message signatures.
+    
+#### signature_secret
+
+This is used to specify the signature secret that should be used for message signing.
+
+    #set the signature secret
+    EventQ::Configuration.signature_secret = 'secret key'
+
     
 ### NonceManager
 
