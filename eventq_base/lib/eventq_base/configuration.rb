@@ -6,10 +6,7 @@ module EventQ
     end
 
     def self.serialization_provider
-      if @serialization_provider == nil
-        @serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
-      end
-      @serialization_provider
+      @serialization_provider ||= EventQ::SerializationProviders::OJ_PROVIDER
     end
 
     def self.signature_provider=(value)
@@ -17,10 +14,7 @@ module EventQ
     end
 
     def self.signature_provider
-      if @signature_provider == nil
-        @signature_provider = EventQ::SignatureProviders::SHA256
-      end
-      @signature_provider
+      @signature_provider ||= EventQ::SignatureProviders::SHA256
     end
 
     def self.signature_secret=(value)
