@@ -29,4 +29,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'json_kit'
   spec.add_dependency 'oj'
   spec.add_dependency 'redlock'
+  spec.add_dependency 'openssl'
 end
