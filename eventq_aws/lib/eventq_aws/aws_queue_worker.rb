@@ -19,6 +19,7 @@ module EventQ
 
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
+        @signature_provider_manager = EventQ::SignatureProviders::Manager.new
 
         @last_gc_flush = Time.now
         @gc_flush_interval = 10
@@ -247,6 +248,8 @@ module EventQ
         message_args = EventQ::MessageArgs.new(message.type, retry_attempts)
 
         EventQ.log(:info, "[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+
+        @signature_provider_manager.validate_signature(message: message, queue: queue)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
           EventQ.log(:info, "[#{self.class}] - Duplicate Message received. Dropping message.")

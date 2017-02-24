@@ -46,6 +46,87 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   end
 
+  context 'when queue requires a signature' do
+    let(:secret) { 'secret' }
+    before do
+      EventQ::Configuration.signature_secret = secret
+    end
+    context 'and the received message contains a valid signature' do
+      it 'should process the message' do
+
+        event_type = 'queue.worker.event1'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = 'queue.worker1'
+        subscriber_queue.require_signature = true
+
+        subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({ client: client})
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+        eqclient.raise_event(event_type, message)
+
+        received = false
+
+        subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+          expect(event).to eq(message)
+          expect(args.type).to eq(event_type)
+          received = true
+          puts "Message Received: #{event}"
+        end
+
+        sleep(0.5)
+
+        expect(received).to eq(true)
+
+        subject.stop
+
+        expect(subject.is_running).to eq(false)
+
+      end
+    end
+    context 'and the received message contains a valid signature' do
+      it 'should NOT process the message' do
+
+        event_type = 'queue.worker.event1'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = 'queue.worker1'
+        subscriber_queue.require_signature = true
+
+        EventQ::Configuration.signature_secret = 'invalid'
+
+        subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({ client: client})
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+        eqclient.raise_event(event_type, message)
+
+        EventQ::Configuration.signature_secret = secret
+
+        received = false
+
+        subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+          expect(event).to eq(message)
+          expect(args.type).to eq(event_type)
+          received = true
+          puts "Message Received: #{event}"
+        end
+
+        sleep(0.5)
+
+        expect(received).to eq(false)
+
+        subject.stop
+
+        expect(subject.is_running).to eq(false)
+
+      end
+    end
+  end
+
   it 'should receive events in parallel on each thread from the subscriber queue' do
 
     event_type = 'queue.worker.event1'

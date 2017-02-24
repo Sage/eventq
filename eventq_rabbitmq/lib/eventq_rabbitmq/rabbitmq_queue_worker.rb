@@ -15,6 +15,7 @@ module EventQ
         @on_error_block = nil
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
+        @signature_provider_manager = EventQ::SignatureProviders::Manager.new
         @last_gc_flush = Time.now
         @gc_flush_interval = 10
       end
@@ -333,6 +334,8 @@ module EventQ
         message = deserialize_message(payload)
 
         EventQ.log(:info, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
+
+        @signature_provider_manager.validate_signature(message: message, queue: queue)
 
         message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
 
