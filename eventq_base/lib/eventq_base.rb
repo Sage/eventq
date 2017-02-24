@@ -20,4 +20,5 @@ require_relative 'eventq_base/serialization_providers'
 require_relative 'eventq_base/worker_id'
 require_relative 'eventq_base/nonce_manager'
 require_relative 'eventq_base/signature_providers'
+require_relative 'eventq_base/exceptions'
 

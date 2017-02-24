@@ -10,8 +10,8 @@ module EventQ
     class Manager
       def initialize
         @providers = {}
-        @providers[OJ_PROVIDER] = EventQ::SerializationProviders::OjSerializationProvider.new
-        @providers[JSON_PROVIDER] = EventQ::SerializationProviders::JsonSerializationProvider.new
+        @providers[OJ_PROVIDER] = EventQ::SerializationProviders::OjSerializationProvider
+        @providers[JSON_PROVIDER] = EventQ::SerializationProviders::JsonSerializationProvider
       end
 
       def get_provider(provider_type)
@@ -19,7 +19,7 @@ module EventQ
         if provider == nil
           raise "Invalid provider type specified: #{provider_type}"
         end
-        return provider
+        return provider.new
       end
     end
   end

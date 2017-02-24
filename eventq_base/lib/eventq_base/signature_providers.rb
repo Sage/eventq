@@ -11,6 +11,7 @@ module EventQ
         @providers[SHA256] = EventQ::SignatureProviders::Sha256SignatureProvider
       end
 
+      #This method is called to get a signature provider
       def get_provider(provider_type)
         provider = @providers[provider_type]
         if provider == nil
@@ -18,6 +19,26 @@ module EventQ
         end
         return provider.new
       end
+
+      #This method is called to validate a queue message's signature
+      def validate_signature(message:, queue:)
+        valid = true
+
+        if queue.require_signature == true && message.signature == nil
+          valid = false
+        elsif message.signature != nil
+          provider = get_provider(EventQ::Configuration.signature_provider)
+          valid = provider.valid?(message: message, secret: EventQ::Configuration.signature_secret)
+        end
+
+        if !valid
+          raise EventQ::Exceptions::InvalidSignatureException.new
+        end
+
+        true
+
+      end
+
     end
   end
 end
