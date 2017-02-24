@@ -6,6 +6,7 @@ module EventQ
     attr_accessor :max_retry_attempts
     attr_accessor :allow_retry_back_off
     attr_accessor :max_retry_delay
+    attr_accessor :require_signature
 
     def initialize
       @allow_retry = false
@@ -15,6 +16,8 @@ module EventQ
       @max_retry_attempts = 5
       #default retry back off settings
       @allow_retry_back_off = false
+      #default require signature to false
+      @require_signature = false
     end
   end
 end

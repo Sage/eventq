@@ -7,6 +7,7 @@ module EventQ
     attr_accessor_type :type, type: String
     attr_accessor_type :content
     attr_accessor_type :created, type: Time
+    attr_accessor_type :signature, type: String
 
     def initialize
       @retry_attempts = 0
