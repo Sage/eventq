@@ -212,7 +212,7 @@ This is used to specify the serialization provider that should be used for event
 The NonceManager is used to prevent duplicate messages from being processed. Each event message that is raised is given a unique identifier, most message queue providers guarantee at least once delivery which may result in the message being delivered more than once. If your use case needs to enforce once only processing then 
 the NonceManager can be configured to prevent duplicate messages from being processed. (It is a distributed store that currently uses redis locks to ensure accuracy between scaled out workers)
 
-#### #configure
+#### configure
 
 This method is called to configure the NonceManager, and must be called before starting the queue worker to be active.
 
@@ -226,16 +226,49 @@ This method is called to configure the NonceManager, and must be called before s
 
     EventQ::NonceManager.configure(server: 'redis://127.0.0.1:6379')
     
-    
-### EventQ
 
-#### #namespace
+### Namespace
 
 This attribute is used to specify a namespace for all events and queues to be created within.
 
 **Example**
 
     EventQ.namespace = 'development'
+
+### StatusChecker
+
+The status checker is used to verify the status of a queue or event type (topic/exchange).
+
+####queue?
+
+This method is called to verify connection to a queue.
+
+**Params:**
+
+ - **queue** [EventQ::Queue] [Required] This is a queue definition object.
+ 
+**Return** [Boolean] (True or False)
+
+
+**Example**
+
+    available = status_checker.queue?(queue)
+    
+####event_type?
+
+This method is called to verify connection to an event_type (topic/exchange).
+
+**Params:**
+
+- **event_type** [String] [Required] This is the unique identifier of the event_type.
+
+**Return** [Boolean] (True or False)
+
+
+**Example**
+
+    available = status_checker.event_type?(event_type)
+    
 
 
 ## Development
@@ -246,7 +279,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/vaughanbrittonsage/eventq. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/sage/eventq. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 
 ## License
