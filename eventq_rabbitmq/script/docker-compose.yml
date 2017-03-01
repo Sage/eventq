@@ -11,7 +11,7 @@ testrunner:
     - redis
   volumes:
     - ./container_loop.sh:/scripts/container_loop.sh
-    - ../:/gem_src
+    - ../.:/gem_src
 
 redis:
   image: redis:alpine
