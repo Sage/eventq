@@ -9,6 +9,7 @@ require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_worker'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_subscription_manager'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_eventq_client'
 require_relative '../lib/eventq_rabbitmq/default_queue'
+require_relative '../lib/eventq_rabbitmq/rabbitmq_status_checker'
 
 module EventQ
   def self.namespace

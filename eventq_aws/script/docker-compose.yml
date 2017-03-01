@@ -1,17 +1,14 @@
-rabbitmq:
-  image: gonkulatorlabs/rabbitmq
-  container_name: rabbitmq
-
 testrunner:
   image: eventq/rabbitmq
   container_name: gem_test_runner
   command: bash -c "./scripts/container_loop.sh"
   links:
-    - rabbitmq
     - redis
   volumes:
     - ./container_loop.sh:/scripts/container_loop.sh
-    - ../.:/gem_src
+    - ../:/gem_src
+  env_file:
+    - ../../.aws.env
 
 redis:
   image: redis:alpine

@@ -7,6 +7,7 @@ require 'eventq_aws/aws_queue_client'
 require 'eventq_aws/aws_queue_manager'
 require 'eventq_aws/aws_queue_worker'
 require 'eventq_aws/aws_subscription_manager'
+require_relative 'eventq_aws/aws_status_checker'
 
 module EventQ
   def self.namespace

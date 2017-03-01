@@ -3,5 +3,5 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in eventq_aws.gemspec
 gemspec
 
-gem 'oj'
-gem 'json'
+gem 'oj', '2.15.0'
+gem 'json', '1.8.3'

@@ -46,4 +46,25 @@ RSpec.describe EventQ::Amazon::QueueManager do
     end
   end
 
+  class TestEvent
+  end
+
+  describe '#topic_exists?' do
+    context 'when a topic exists' do
+      let(:event_type) { 'test-event' }
+      before do
+        queue_client.create_topic_arn(event_type)
+      end
+      it 'should return true' do
+        expect(subject.topic_exists?(event_type)).to be true
+      end
+    end
+    context 'when a topic does NOT exists' do
+      let(:event_type) { 'unknown-test-event' }
+      it 'should return true' do
+        expect(subject.topic_exists?(event_type)).to be false
+      end
+    end
+  end
+
 end
