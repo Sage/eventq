@@ -11,7 +11,7 @@ RSpec.describe EventQ::Amazon::StatusChecker do
   end
 
   subject do
-    EventQ::Amazon::StatusChecker.new(queue_manager)
+    EventQ::Amazon::StatusChecker.new(queue_manager: queue_manager, client: nil)
   end
 
   describe '#queue?' do
