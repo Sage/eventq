@@ -42,7 +42,7 @@ RSpec.describe EventQ::Amazon::QueueWorker do
       puts "Message Received: #{event}"
     end
 
-    sleep(5)
+    sleep(2)
 
     subject.stop
 
@@ -50,6 +50,87 @@ RSpec.describe EventQ::Amazon::QueueWorker do
 
     expect(subject.is_running).to eq(false)
 
+  end
+
+  context 'when queue requires a signature' do
+    let(:secret) { 'secret' }
+    before do
+      EventQ::Configuration.signature_secret = secret
+    end
+    context 'and the received message contains a valid signature' do
+      it 'should process the message' do
+
+        event_type = 'queue_worker_event1'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = SecureRandom.uuid.to_s
+        subscriber_queue.require_signature = true
+
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eventq_client.raise_event(event_type, message)
+
+        received = false
+
+        #wait 1 second to allow the message to be sent and broadcast to the queue
+        sleep(1)
+
+        subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+          expect(event).to eq(message)
+          expect(args).to be_a(EventQ::MessageArgs)
+          received = true
+          puts "Message Received: #{event}"
+        end
+
+        sleep(2)
+
+        subject.stop
+
+        expect(received).to eq(true)
+
+        expect(subject.is_running).to eq(false)
+
+      end
+    end
+    context 'and the received message contains an invalid signature' do
+      it 'should NOT process the message' do
+
+        event_type = 'queue_worker_event1'
+        subscriber_queue = EventQ::Queue.new
+        subscriber_queue.name = SecureRandom.uuid.to_s
+        subscriber_queue.require_signature = true
+
+        EventQ::Configuration.signature_secret = 'invalid'
+
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        message = 'Hello World'
+
+        eventq_client.raise_event(event_type, message)
+
+        received = false
+
+        #wait 1 second to allow the message to be sent and broadcast to the queue
+        sleep(1)
+
+        subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+          expect(event).to eq(message)
+          expect(args).to be_a(EventQ::MessageArgs)
+          received = true
+          puts "Message Received: #{event}"
+        end
+
+        sleep(2)
+
+        subject.stop
+
+        expect(received).to eq(true)
+
+        expect(subject.is_running).to eq(false)
+
+      end
+    end
   end
 
   it 'should receive an event from the subscriber queue and retry it.' do
@@ -85,7 +166,7 @@ RSpec.describe EventQ::Amazon::QueueWorker do
       end
     end
 
-    sleep(10)
+    sleep(4)
 
     subject.stop
 
@@ -135,7 +216,7 @@ RSpec.describe EventQ::Amazon::QueueWorker do
       end
     end
 
-    sleep(3)
+    sleep(5)
 
     expect(message_count).to eq(10)
     expect(received_messages.length).to eq(5)
@@ -287,7 +368,7 @@ RSpec.describe EventQ::Amazon::QueueWorker do
   context 'NonceManager' do
     context 'when a message has already been processed' do
       before do
-        EventQ::NonceManager.configure(server: 'redis://0.0.0.0:6379')
+        EventQ::NonceManager.configure(server: 'redis://redis:6379')
       end
       let(:queue_message) { EventQ::QueueMessage.new }
 

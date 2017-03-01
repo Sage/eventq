@@ -86,7 +86,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
       end
     end
-    context 'and the received message contains a valid signature' do
+    context 'and the received message contains an invalid signature' do
       it 'should NOT process the message' do
 
         event_type = 'queue.worker.event1'

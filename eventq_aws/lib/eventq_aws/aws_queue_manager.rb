@@ -65,6 +65,17 @@ module EventQ
         return true
       end
 
+      def topic_exists?(event_type)
+        topic_arn = @client.get_topic_arn(event_type)
+
+        begin
+        @client.sns.get_topic_attributes({ topic_arn: topic_arn })
+        rescue
+          return false
+        end
+        return true
+      end
+
       def queue_exists?(queue)
         _queue_name = EventQ.create_queue_name(queue.name)
         return @client.sqs.list_queues({ queue_name_prefix: _queue_name }).queue_urls.length > 0
