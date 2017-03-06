@@ -8,14 +8,19 @@ module EventQ
       end
 
       def serialize(object)
-        hash = @hash_helper.to_hash(object)
-        return JSON.dump(hash)
+        JSON.dump(object_to_hash(object))
       end
 
       def deserialize(json)
         return @class_kit_helper.from_json(json: json, klass: EventQ::QueueMessage)
       end
 
+      private
+
+      def object_to_hash(object)
+        return object if object.is_a?(Hash)
+        @hash_helper.to_hash(object)
+      end
     end
   end
 end
