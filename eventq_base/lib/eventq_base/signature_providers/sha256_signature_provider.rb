@@ -6,7 +6,7 @@ module EventQ
     class Sha256SignatureProvider
 
       def initialize
-        @serializer = EventQ::SerializationProviders::JsonSerializationProvider.new
+        @serializer = serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
       end
 
       #This method is called to create a signature for a message
@@ -22,6 +22,11 @@ module EventQ
         message.signature == signature
       end
 
+      private
+
+      def serialization_provider_manager
+        EventQ::SerializationProviders::Manager.new
+      end
     end
   end
 end
