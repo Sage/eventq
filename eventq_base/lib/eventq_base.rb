@@ -1,3 +1,4 @@
+require 'securerandom'
 require 'class_kit'
 require 'hash_kit'
 require 'json_kit'
