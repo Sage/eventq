@@ -15,5 +15,14 @@ module EventQ
       @id = SecureRandom.uuid
     end
 
+    # Creates a signature for the message
+    #
+    # @param provider [EventQ::SignatureProviders::Sha256SignatureProvider] Signature provider that implements
+    #   a write method
+    def sign(provider)
+      return unless EventQ::Configuration.signature_secret
+
+      self.signature = provider.write(message: self, secret: EventQ::Configuration.signature_secret)
+    end
   end
 end
