@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe EventQ::Amazon::QueueWorker do
+RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
   let(:queue_client) do
     EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
