@@ -18,18 +18,21 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
     EventQ::Amazon::EventQClient.new({ client: queue_client })
   end
 
+  let(:subscriber_queue) do
+    EventQ::Queue.new.tap do |sq|
+      sq.name = SecureRandom.uuid.to_s
+    end
+  end
+
+  let(:event_type) { 'test_queue1_event1' }
+  let(:message) { 'Hello World' }
+
   describe '#raise_event' do
 
     shared_examples 'any event raising' do
 
       it 'should raise an event object and be broadcast to a subscriber queue' do
-        event_type = 'test_queue1_event1'
-        subscriber_queue = EventQ::Queue.new
-        subscriber_queue.name = SecureRandom.uuid
-
         subscription_manager.subscribe(event_type, subscriber_queue)
-
-        message = 'Hello World'
 
         id = eventq_client.raise_event(event_type, message)
         puts "Message ID: #{id}"
