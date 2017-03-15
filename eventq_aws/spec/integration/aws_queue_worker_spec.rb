@@ -18,16 +18,18 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     EventQ::Amazon::EventQClient.new({ client: queue_client })
   end
 
+  let(:subscriber_queue) do
+    EventQ::Queue.new.tap do |sq|
+      sq.name = SecureRandom.uuid.to_s
+    end
+  end
+
+  let(:event_type) { 'queue_worker_event1' }
+  let(:event_type2) { 'queue_worker_event2' }
+  let(:message) { 'Hello World' }
+
   it 'should receive an event from the subscriber queue' do
-
-    event_type = 'queue_worker_event1'
-    subscriber_queue = EventQ::Queue.new
-    subscriber_queue.name = SecureRandom.uuid.to_s
-
     subscription_manager.subscribe(event_type, subscriber_queue)
-
-    message = 'Hello World'
-
     eventq_client.raise_event(event_type, message)
 
     received = false
@@ -49,26 +51,19 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     expect(received).to eq(true)
 
     expect(subject.is_running).to eq(false)
-
   end
 
   context 'when queue requires a signature' do
     let(:secret) { 'secret' }
+
     before do
       EventQ::Configuration.signature_secret = secret
+      subscriber_queue.require_signature = true
     end
+
     context 'and the received message contains a valid signature' do
       it 'should process the message' do
-
-        event_type = 'queue_worker_event1'
-        subscriber_queue = EventQ::Queue.new
-        subscriber_queue.name = SecureRandom.uuid.to_s
-        subscriber_queue.require_signature = true
-
         subscription_manager.subscribe(event_type, subscriber_queue)
-
-        message = 'Hello World'
-
         eventq_client.raise_event(event_type, message)
 
         received = false
@@ -90,23 +85,16 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         expect(received).to eq(true)
 
         expect(subject.is_running).to eq(false)
-
       end
     end
+
     context 'and the received message contains an invalid signature' do
-      it 'should NOT process the message' do
-
-        event_type = 'queue_worker_event1'
-        subscriber_queue = EventQ::Queue.new
-        subscriber_queue.name = SecureRandom.uuid.to_s
-        subscriber_queue.require_signature = true
-
+      before do
         EventQ::Configuration.signature_secret = 'invalid'
+      end
 
+      it 'should NOT process the message' do
         subscription_manager.subscribe(event_type, subscriber_queue)
-
-        message = 'Hello World'
-
         eventq_client.raise_event(event_type, message)
 
         received = false
@@ -128,23 +116,16 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         expect(received).to eq(true)
 
         expect(subject.is_running).to eq(false)
-
       end
     end
   end
 
   it 'should receive an event from the subscriber queue and retry it.' do
 
-    event_type = 'queue_worker_event1'
-    subscriber_queue = EventQ::Queue.new
-    subscriber_queue.name = SecureRandom.uuid.to_s
     subscriber_queue.retry_delay = 1000
     subscriber_queue.allow_retry = true
 
     subscription_manager.subscribe(event_type, subscriber_queue)
-
-    message = 'Hello World'
-
     eventq_client.raise_event(event_type, message)
 
     received = false
@@ -174,29 +155,15 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     expect(received_count).to eq(2)
     expect(received_attribute).to eq(1)
     expect(subject.is_running).to eq(false)
-
   end
 
   it 'should receive events in parallel on each thread from the subscriber queue' do
 
-    event_type = 'queue_worker_event2'
-    subscriber_queue = EventQ::Queue.new
-    subscriber_queue.name = SecureRandom.uuid.to_s
+    subscription_manager.subscribe(event_type2, subscriber_queue)
 
-    subscription_manager.subscribe(event_type, subscriber_queue)
-
-    message = 'Hello World'
-
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
-    eventq_client.raise_event(event_type, message)
+    10.times do
+      eventq_client.raise_event(event_type2, message)
+    end
 
     received_messages = []
 
@@ -229,24 +196,19 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     subject.stop
 
     expect(subject.is_running).to eq(false)
-
   end
 
   context 'queue.allow_retry_back_off = true' do
-    it 'should receive an event from the subscriber queue and retry it.' do
-
-      event_type = 'queue_worker_event1'
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid.to_s
+    before do
       subscriber_queue.retry_delay = 1000
       subscriber_queue.allow_retry = true
       subscriber_queue.allow_retry_back_off = true
       subscriber_queue.max_retry_delay = 5000
+    end
+
+    it 'should receive an event from the subscriber queue and retry it.' do
 
       subscription_manager.subscribe(event_type, subscriber_queue)
-
-      message = 'Hello World'
-
       eventq_client.raise_event(event_type, message)
 
       retry_attempt_count = 0
@@ -280,7 +242,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       subject.stop
 
       expect(subject.is_running).to eq(false)
-
     end
   end
 
@@ -295,7 +256,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     else
       received_messages.push({ :events => 1, :thread => thread_name })
     end
-
   end
 
   describe '#deserialize_message' do
@@ -303,19 +263,23 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       before do
         EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
       end
+
       context 'when payload is for a known type' do
         let(:a) do
           A.new.tap do |a|
             a.text = 'ABC'
           end
         end
+
         let(:payload) { Oj.dump(a) }
+
         it 'should deserialize the message into an object of the known type' do
           message = subject.deserialize_message(payload)
           expect(message).to be_a(A)
           expect(message.text).to eq('ABC')
         end
       end
+
       context 'when payload is for an unknown type' do
         let(:a) do
           A.new.tap do |a|
@@ -334,6 +298,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         let(:json) do
           Oj.dump(message)
         end
+
         it 'should deserialize the message into a Hash' do
           message = subject.deserialize_message(json)
           expect(message.content).to be_a(Hash)
@@ -341,10 +306,12 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         end
       end
     end
+
     context 'when serialization provider is JSON_PROVIDER' do
       before do
         EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
       end
+
       let(:payload) do
         {
             content: { text: 'ABC' }
@@ -353,6 +320,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       let(:json) do
         JSON.dump(payload)
       end
+
       it 'should deserialize payload' do
         message = subject.deserialize_message(json)
         expect(message).to be_a(EventQ::QueueMessage)
@@ -371,17 +339,10 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         EventQ::NonceManager.configure(server: 'redis://redis:6379')
       end
       let(:queue_message) { EventQ::QueueMessage.new }
+      let(:event_type) { 'queue_worker_event_noncemanager' }
 
       it 'should NOT process the message again' do
-
-        event_type = 'queue_worker_event_noncemanager'
-        subscriber_queue = EventQ::Queue.new
-        subscriber_queue.name = SecureRandom.uuid.to_s
-
         subscription_manager.subscribe(event_type, subscriber_queue)
-
-        message = 'Hello World'
-
         allow(eventq_client).to receive(:new_message).and_return(queue_message)
 
         eventq_client.raise_event(event_type, message)

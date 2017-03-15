@@ -20,6 +20,7 @@ RSpec.describe EventQ::Amazon::StatusChecker, integration: true do
         e.name = SecureRandom.uuid
       end
     end
+
     context 'when a queue can be connected to' do
       before do
         queue_manager.create_queue(queue)
@@ -28,6 +29,7 @@ RSpec.describe EventQ::Amazon::StatusChecker, integration: true do
         expect(subject.queue?(queue)).to be true
       end
     end
+
     context 'when a queue cant be connected to' do
       it 'should return false' do
         expect(subject.queue?(queue)).to be false
@@ -45,6 +47,7 @@ RSpec.describe EventQ::Amazon::StatusChecker, integration: true do
         expect(subject.event_type?(event_type)).to be true
       end
     end
+
     context 'when an event_type can NOT be connected to' do
       it 'should return false' do
         expect(subject.event_type?(event_type)).to be false

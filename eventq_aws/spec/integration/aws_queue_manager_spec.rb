@@ -11,37 +11,30 @@ RSpec.describe EventQ::Amazon::QueueManager, integration: true do
   end
 
   describe '#get_queue' do
-    context 'when a queue does not exist' do
-      it 'should create the queue' do
-
-        queue = EventQ::Queue.new
+    let(:queue) do
+      EventQ::Queue.new.tap do |queue|
         queue.name = SecureRandom.uuid.gsub('-','')
         queue.allow_retry = true
         queue.max_retry_attempts = 5
         queue.retry_delay = 30
+      end
+    end
 
+    context 'when a queue does not exist' do
+      it 'should create the queue' do
         queue_url = subject.get_queue(queue)
         expect(queue_url).not_to be_nil
-
       end
     end
 
     context 'when a queue already exists' do
       it 'should update the the queue' do
-
-        queue = EventQ::Queue.new
-        queue.name = SecureRandom.uuid.gsub('-','')
-        queue.allow_retry = true
-        queue.max_retry_attempts = 5
-        queue.retry_delay = 30
-
         queue_url = subject.create_queue(queue)
         expect(queue_url).not_to be_nil
 
         update_url = subject.get_queue(queue)
 
         expect(update_url).to eq(queue_url)
-
       end
     end
   end
@@ -59,6 +52,7 @@ RSpec.describe EventQ::Amazon::QueueManager, integration: true do
         expect(subject.topic_exists?(event_type)).to be true
       end
     end
+
     context 'when a topic does NOT exists' do
       let(:event_type) { 'unknown-test-event' }
       it 'should return true' do
