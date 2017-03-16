@@ -84,4 +84,56 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       end
     end
   end
+
+  describe '#raise_event_in_queue' do
+    let(:queue_name) { 'How_do_I_learn_to_queue_like_a_British_person' }
+    let(:queue) do
+      EventQ::Queue.new.tap do |queue|
+        queue.name = queue_name
+      end
+    end
+    let(:delay_seconds) { 3 }
+
+    it 'should send a message to SQS with a delay' do
+      queue_manager.create_queue(queue)
+      queue_client.sqs.purge_queue(queue_url: queue_client.get_queue_url(queue))
+
+      id = eventq_client.raise_event_in_queue(event_type, message, queue, delay_seconds)
+      puts "Message ID: #{id}"
+
+      puts '[QUEUE] waiting for message...'
+
+      #request a message from the queue
+      queue_url = queue_client.get_queue_url(queue)
+      response = queue_client.sqs.receive_message(
+                                                      queue_url: queue_url,
+                                                      max_number_of_messages: 1,
+                                                      wait_time_seconds: 1,
+                                                      message_attribute_names: ['ApproximateReceiveCount']
+                                                  )
+
+      expect(response.messages.length).to eq(0)
+
+      sleep(2)
+
+      response = queue_client.sqs.receive_message(
+          queue_url: queue_url,
+          max_number_of_messages: 1,
+          wait_time_seconds: 3,
+          message_attribute_names: ['ApproximateReceiveCount']
+      )
+
+      expect(response.messages.length).to eq(1)
+
+      msg = response.messages[0]
+      msg_body = Oj.load(msg.body)
+
+      puts "[QUEUE] - received message: #{msg_body}"
+
+      #remove the message from the queue so that it does not get retried
+      queue_client.sqs.delete_message(queue_url: queue_url, receipt_handle: msg.receipt_handle)
+
+      expect(msg_body.content).to eq(message)
+    end
+  end
 end
