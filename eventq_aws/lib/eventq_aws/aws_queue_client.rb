@@ -2,11 +2,7 @@ module EventQ
   module Amazon
     class QueueClient
 
-      attr_reader :sns
-      attr_reader :sqs
-
       def initialize(options = {})
-
         if options.has_key?(:aws_key)
           Aws.config[:credentials] = Aws::Credentials.new(options[:aws_key], options[:aws_secret])
         end
@@ -23,10 +19,16 @@ module EventQ
         else
           @aw_region = Aws.config[:region]
         end
+      end
 
-        @sns = Aws::SNS::Client.new
-        @sqs = Aws::SQS::Client.new
+      # Returns the AWS SQS Client
+      def sqs
+        @sqs ||= Aws::SQS::Client.new
+      end
 
+      # Returns the AWS SNS Client
+      def sns
+        @sns ||= Aws::SNS::Client.new
       end
 
       def get_topic_arn(event_type)
@@ -41,16 +43,19 @@ module EventQ
 
       def create_topic_arn(event_type)
         _event_type = EventQ.create_event_type(event_type)
-        response = @sns.create_topic({ name: aws_safe_name(_event_type) })
+        response = sns.create_topic(name: aws_safe_name(_event_type))
         return response.topic_arn
       end
 
+      # Returns the URL of the queue. The queue will be created when it does
+      #
+      # @param queue [EventQ::Queue]
       def get_queue_url(queue)
         _queue_name = EventQ.create_queue_name(queue.name)
-        response= @sqs.get_queue_url({
-                                            queue_name: aws_safe_name(_queue_name),
-                                            queue_owner_aws_account_id: @aws_account,
-                                        })
+        response= sqs.get_queue_url(
+                                     queue_name: aws_safe_name(_queue_name),
+                                     queue_owner_aws_account_id: @aws_account,
+                                   )
         return response.queue_url
       end
 
