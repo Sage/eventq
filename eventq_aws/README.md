@@ -27,7 +27,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ### Preparing the Docker images
 
-Run the setup script to build to environment. This will create the `eventq/aws` image.
+Run the setup script of eventq_aws to build the environment. This will create the `eventq/aws` image.
 
     $ cd script
     $ ./setup.sh
