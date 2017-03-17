@@ -95,6 +95,44 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     end
   end
 
+  describe '#register_event' do
+    let(:event_type) { 'event_type' }
+    context 'when an event is NOT already registered' do
+      it 'should register the event and return true' do
+        expect(subject.register_event(event_type)).to be true
+        known_types = subject.instance_variable_get(:@known_event_types)
+        expect(known_types.include?(event_type)).to be true
+      end
+    end
+    context 'when an event has already been registered' do
+      before do
+        known_types = subject.instance_variable_get(:@known_event_types)
+        known_types << event_type
+      end
+      it 'should return true' do
+        expect(subject.register_event(event_type)).to be true
+      end
+    end
+  end
+
+  describe '#registered?' do
+    let(:event_type) { 'event_type' }
+    context 'when an event_type is registered' do
+      before do
+        known_types = subject.instance_variable_get(:@known_event_types)
+        known_types << event_type
+      end
+      it 'should return true' do
+        expect(subject.registered?(event_type)).to be true
+      end
+    end
+    context 'when an event_type is NOT registered' do
+      it 'should return false' do
+        expect(subject.registered?(event_type)).to be false
+      end
+    end
+  end
+
   after do
     channel.close
     connection.close
