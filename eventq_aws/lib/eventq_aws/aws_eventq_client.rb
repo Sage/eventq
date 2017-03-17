@@ -15,9 +15,28 @@ module EventQ
         @serialization_manager = EventQ::SerializationProviders::Manager.new
         @signature_manager = EventQ::SignatureProviders::Manager.new
 
+        #this array is used to record known event types
+        @known_event_types = []
+
+      end
+
+      def registered?(event_type)
+        @known_event_types.include?(event_type)
+      end
+
+      def register_event(event_type)
+        if registered?(event_type)
+          return true
+        end
+
+        @client.create_topic_arn(event_type)
+        @known_event_types << event_type
+        true
       end
 
       def raise_event(event_type, event)
+        register_event(event_type)
+
         with_prepared_message(event_type, event) do |message|
           @client.sns.publish(
             topic_arn: topic_arn(event_type),
