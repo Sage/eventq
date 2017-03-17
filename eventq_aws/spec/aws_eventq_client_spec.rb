@@ -30,6 +30,12 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
       expect(subject.raise_event(event_type, event)).to eql message_id
     end
+
+    it 'registers the event_type before publishing an SNS event' do
+      expect(subject).to receive(:register_event).with(event_type).once.ordered
+      expect(subject).to receive(:with_prepared_message).once.ordered
+      subject.raise_event(event_type, event)
+    end
   end
 
   describe '#raise_event_in_queue' do
@@ -58,6 +64,46 @@ RSpec.describe EventQ::Amazon::EventQClient do
       end.and_return(result)
 
       expect(subject.raise_event_in_queue(event_type, event, queue, delay_seconds)).to eql message_id
+    end
+  end
+
+  describe '#register_event' do
+    let(:event_type) { 'event_type' }
+    context 'when an event is NOT already registered' do
+      it 'should register the event, create the topic and return true' do
+        expect(queue_client).to receive(:create_topic_arn).with(event_type).once
+        expect(subject.register_event(event_type)).to be true
+        known_types = subject.instance_variable_get(:@known_event_types)
+        expect(known_types.include?(event_type)).to be true
+      end
+    end
+    context 'when an event has already been registered' do
+      before do
+        known_types = subject.instance_variable_get(:@known_event_types)
+        known_types << event_type
+      end
+      it 'should return true' do
+        expect(queue_client).not_to receive(:create_topic_arn)
+        expect(subject.register_event(event_type)).to be true
+      end
+    end
+  end
+
+  describe '#registered?' do
+    let(:event_type) { 'event_type' }
+    context 'when an event_type is registered' do
+      before do
+        known_types = subject.instance_variable_get(:@known_event_types)
+        known_types << event_type
+      end
+      it 'should return true' do
+        expect(subject.registered?(event_type)).to be true
+      end
+    end
+    context 'when an event_type is NOT registered' do
+      it 'should return false' do
+        expect(subject.registered?(event_type)).to be false
+      end
     end
   end
 end
