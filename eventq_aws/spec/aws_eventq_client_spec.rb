@@ -2,119 +2,62 @@ require 'spec_helper'
 
 RSpec.describe EventQ::Amazon::EventQClient do
 
+  let(:aws_account_number) { '123456789012' }
+  let(:aws_region) { 'eu-west-1' }
+  let(:event_type) { 'test_queue1_event1' }
+  let(:event) { 'Hello World' }
+
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
+    EventQ::Amazon::QueueClient.new(aws_account_number: aws_account_number, aws_region: aws_region)
   end
 
-  let(:queue_manager) do
-    EventQ::Amazon::QueueManager.new({ client: queue_client })
-  end
+  subject { described_class.new(client: queue_client) }
 
-  let(:subscription_manager) do
-    EventQ::Amazon::SubscriptionManager.new({ client: queue_client, queue_manager: queue_manager })
-  end
+  describe '#raise_event' do
+    let(:response) { double('PublishResponse', message_id: message_id) }
+    let(:message_id) { '123' }
 
-  let(:eventq_client) do
-    EventQ::Amazon::EventQClient.new({ client: queue_client })
-  end
+    it 'publishes an SNS event' do
+      expect(queue_client.sns).to receive(:publish) do |options|
+        expect(options[:topic_arn]).to match %r{arn:aws:sns:#{aws_region}:#{aws_account_number}:#{event_type}}
 
-  context 'when EventQ.namespace is NOT specified' do
-    it 'should raise an event object and be broadcast to a subscriber queue' do
+        message_json = JSON.parse(options[:message])
+        expect(message_json['content']).to eql event
+        expect(message_json['type']).to eql event_type
 
-      event_type = 'test_queue1_event1'
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid
+        expect(options[:subject]).to eql event_type
+      end.and_return(response)
 
-      subscription_manager.subscribe(event_type, subscriber_queue)
-
-      message = 'Hello World'
-
-      id = eventq_client.raise_event(event_type, message)
-      puts "Message ID: #{id}"
-
-      #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
-      sleep(1)
-
-      q = queue_manager.get_queue(subscriber_queue)
-
-      puts '[QUEUE] waiting for message...'
-
-      #request a message from the queue
-      response = queue_client.sqs.receive_message({
-                                                      queue_url: q,
-                                                      max_number_of_messages: 1,
-                                                      wait_time_seconds: 5,
-                                                      message_attribute_names: ['ApproximateReceiveCount']
-                                                  })
-
-      expect(response.messages.length).to eq(1)
-
-      msg = response.messages[0]
-      msg_body = Oj.load(msg.body)
-      payload = Oj.load(msg_body["Message"])
-      puts "[QUEUE] - received message: #{payload}"
-
-      #remove the message from the queue so that it does not get retried
-      queue_client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-
-      expect(payload).to_not be_nil
-      expect(payload.content).to eq(message)
-
+      expect(subject.raise_event(event_type, event)).to eql message_id
     end
   end
 
-  context 'when EventQ.namespace is specified' do
+  describe '#raise_event_in_queue' do
+    let(:result) { double('SendMessageResult', message_id: message_id) }
+    let(:message_id) { '123' }
+    let(:queue_name) { 'What_happens_if_you_cut_the_queue_in_Britain' }
+    let(:queue) do
+      EventQ::Queue.new.tap do |queue|
+        queue.name = queue_name
+      end
+    end
+    let(:delay_seconds) { 23 }
+    let(:aws_sqs_client) { Aws::SQS::Client.new(stub_responses: true) }
 
     before do
-      EventQ.namespace = 'test'
+      allow(queue_client).to receive(:sqs).and_return(aws_sqs_client)
     end
 
-    it 'should raise an event object and be broadcast to a subscriber queue' do
+    it 'sends an event to SQS' do
+      expect(queue_client.sqs).to receive(:send_message) do |options|
+        message_json = JSON.parse(options[:message_body])
+        expect(message_json['content']).to eql event
+        expect(message_json['type']).to eql event_type
 
-      event_type = 'test_queue1_event1'
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid
+        expect(options[:delay_seconds]).to eql delay_seconds
+      end.and_return(result)
 
-      subscription_manager.subscribe(event_type, subscriber_queue)
-
-      message = 'Hello World'
-
-      id = eventq_client.raise_event(event_type, message)
-      puts "Message ID: #{id}"
-
-      #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
-      sleep(1)
-
-      q = queue_manager.get_queue(subscriber_queue)
-
-      puts '[QUEUE] waiting for message...'
-
-      #request a message from the queue
-      response = queue_client.sqs.receive_message({
-                                                      queue_url: q,
-                                                      max_number_of_messages: 1,
-                                                      wait_time_seconds: 5,
-                                                      message_attribute_names: ['ApproximateReceiveCount']
-                                                  })
-
-      expect(response.messages.length).to eq(1)
-
-      msg = response.messages[0]
-      msg_body = Oj.load(msg.body)
-      payload = Oj.load(msg_body["Message"])
-      puts "[QUEUE] - received message: #{payload}"
-
-      #remove the message from the queue so that it does not get retried
-      queue_client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
-
-      expect(payload).to_not be_nil
-      expect(payload.content).to eq(message)
-
-    end
-
-    after do
-      EventQ.namespace = nil
+      expect(subject.raise_event_in_queue(event_type, event, queue, delay_seconds)).to eql message_id
     end
   end
-
 end

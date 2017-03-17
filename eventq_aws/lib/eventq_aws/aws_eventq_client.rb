@@ -1,5 +1,7 @@
 module EventQ
   module Amazon
+    # Implements a general interface to raise an event
+    # EventQ::RabbitMq::EventQClient is the sister-class which does the same for RabbitMq
     class EventQClient
 
       def initialize(options)
@@ -16,9 +18,32 @@ module EventQ
       end
 
       def raise_event(event_type, event)
+        with_prepared_message(event_type, event) do |message|
+          @client.sns.publish(
+            topic_arn: topic_arn(event_type),
+            message: message,
+            subject: event_type
+          )
+        end
+      end
 
-        topic_arn = @client.get_topic_arn(event_type)
+      def raise_event_in_queue(event_type, event, queue, delay)
+        with_prepared_message(event_type, event) do |message|
+          @client.sqs.send_message(
+            queue_url: @client.get_queue_url(queue),
+            message_body: message,
+            delay_seconds: delay
+          )
+        end
+      end
 
+      def new_message
+        EventQ::QueueMessage.new
+      end
+
+      private
+
+      def with_prepared_message(event_type, event)
         qm = new_message
         qm.content = event
         qm.type = event_type
@@ -28,26 +53,24 @@ module EventQ
           qm.signature = provider.write(message: qm, secret: EventQ::Configuration.signature_secret)
         end
 
-        serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
+        message = serialized_message(qm)
 
-        message = serialization_provider.serialize(qm)
-
-        response = @client.sns.publish({
-                                           topic_arn: topic_arn,
-                                           message: message,
-                                           subject: event_type
-                                       })
+        response = yield(message)
 
         EventQ.log(:debug, "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}.")
 
-        return response.message_id
-
+        response.message_id
       end
 
-      def new_message
-        EventQ::QueueMessage.new
+      def serialized_message(queue_message)
+        serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
+
+        serialization_provider.serialize(queue_message)
       end
 
+      def topic_arn(event_type)
+        @client.get_topic_arn(event_type)
+      end
     end
   end
 end
