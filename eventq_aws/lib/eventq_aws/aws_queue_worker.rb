@@ -33,9 +33,7 @@ module EventQ
 
         configure(queue, options)
 
-        if options[:client] == nil
-          raise "[#{self.class}] - :client (QueueClient) must be specified."
-        end
+        raise "[#{self.class}] - :options[:client] or (options[:aws_account_no] and options[:aws_region) must be specified." unless valid_client?(options)
 
         raise "[#{self.class}] - Worker is already running." if running?
 
@@ -78,7 +76,9 @@ module EventQ
         @thread_count.times do
           thr = Thread.new do
 
-            client = options[:client]
+            # maintain backwards compatability bu allowing the client to be passed in via the options hash
+            client = options[:client] || new_client_instance(options) # singleton or non-singleton
+
             manager = EventQ::Amazon::QueueManager.new({ client: client })
 
             #begin the queue loop for this thread
@@ -108,7 +108,7 @@ module EventQ
 
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if options[:wait] == true
           @threads.each { |thr| thr.join }
         end
 
@@ -236,6 +236,14 @@ module EventQ
       end
 
       private
+
+      def valid_client?(options)
+        options[:client] || (options[:aws_account_no] && options[:aws_region])
+      end
+
+      def new_client_instance(options)
+        EventQ::Amazon::QueueClient.new({ aws_account_number: options[:aws_account_no], aws_region: options[:aws_region] })
+      end
 
       def process_message(response, client, queue, q, block)
         msg = response.messages[0]

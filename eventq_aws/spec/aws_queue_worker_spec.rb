@@ -18,6 +18,77 @@ RSpec.describe EventQ::Amazon::QueueWorker do
     EventQ::Amazon::EventQClient.new({ client: queue_client })
   end
 
+  describe 'threading' do
+    let(:queue_client) { double }
+    let(:subscriber_queue) { double }
+    let(:sqs) { double }
+    let(:list) { double }
+    let(:urls) { ['/test1', '/test2'] }
+
+    before(:each) do
+      allow(subscriber_queue).to receive(:name).and_return('test.name')
+      allow(list).to receive(:queue_urls).and_return(urls)
+      allow(sqs).to receive(:list_queues).and_return(list)
+      allow(queue_client).to receive(:sqs).and_return(sqs)
+      allow(queue_client).to receive(:get_queue_url).and_return(urls[0])
+      allow(sqs).to receive(:set_queue_attributes).and_return(true)
+      allow(sqs).to receive(:receive_message).and_return(true)
+    end
+
+    context 'non singleton client' do
+      before{
+        allow(EventQ::Amazon::QueueClient).to receive(:new).with({aws_account_number: 'foo', aws_region: 'bar'}).and_return(queue_client)
+      }
+
+      context 'for a single thread' do
+        it 'will create an instance' do
+          expect(EventQ::Amazon::QueueClient).to receive(:new).with({aws_account_number: 'foo', aws_region: 'bar'}).once
+          subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, aws_account_no: 'foo', aws_region: 'bar'}) do |event, args|
+            recieved+=1
+          end
+
+          sleep(2)
+          subject.stop
+        end
+      end
+
+      context 'for multiple threads' do
+        it 'will create an instance' do
+          expect(EventQ::Amazon::QueueClient).to receive(:new).with({aws_account_number: 'foo', aws_region: 'bar'}).thrice
+          subject.start(subscriber_queue, {:sleep => 1, :thread_count => 3, aws_account_no: 'foo', aws_region: 'bar'}) do |event, args|
+            recieved+=1
+          end
+
+          sleep(2)
+          subject.stop
+        end
+      end
+    end
+
+    context 'singleton client' do
+      it 'will not create an instance' do
+        expect(EventQ::Amazon::QueueClient).not_to receive(:new)
+        subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+          recieved+=1
+        end
+
+        sleep(2)
+        subject.stop
+      end
+    end
+
+    context 'when client params not supplied' do
+      it 'raises an exception' do
+        expect{ subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1 }) do |event, args|
+          recieved+=1
+        end }.to raise_error
+
+        sleep(2)
+        subject.stop
+      end
+    end
+  end
+
   it 'should receive an event from the subscriber queue' do
 
     event_type = 'queue_worker_event1'
@@ -347,7 +418,7 @@ RSpec.describe EventQ::Amazon::QueueWorker do
       end
       let(:payload) do
         {
-            content: { text: 'ABC' }
+          content: { text: 'ABC' }
         }
       end
       let(:json) do

@@ -28,9 +28,8 @@ module EventQ
 
         raise "[#{self.class}] - Worker is already running." if running?
 
-        if options[:client] == nil
-          raise "[#{self.class}] - :client (QueueClient) must be specified."
-        end
+        raise "[#{self.class}] - :options[:client] or options[:mq_endpoint] must be specified." unless valid_client?(options)
+
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
@@ -69,22 +68,25 @@ module EventQ
           options[:durable] = true
         end
 
-        client = options[:client]
         manager = EventQ::RabbitMq::QueueManager.new
         manager.durable = options[:durable]
-        @connection = client.get_connection
-
         @threads = []
 
         #loop through each thread count
         @thread_count.times do
           thr = Thread.new do
 
+            # maintain backwards compatability bu allowing the client to be passed in via the options hash
+            client = options[:client] || new_client_instance(options) # singleton or non-singleton
+            connection = client.get_connection
+
             #begin the queue loop for this thread
             while true do
 
               #check if the worker is still allowed to run and break out of thread loop if not
               if !@is_running
+                connection.close
+                #TODO - do we need to close the channel here also?
                 break
               end
 
@@ -92,7 +94,7 @@ module EventQ
 
               begin
 
-                channel = @connection.create_channel
+                channel = connection.create_channel
 
                 has_received_message = thread_process_iteration(channel, manager, queue, block)
 
@@ -122,9 +124,8 @@ module EventQ
 
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if options[:wait] == true
           @threads.each { |thr| thr.join }
-          @connection.close
         end
 
         return true
@@ -190,9 +191,6 @@ module EventQ
         puts "[#{self.class}] - Stopping..."
         @is_running = false
         @threads.each { |thr| thr.join }
-        if @connection != nil
-          @connection.close
-        end
         return true
       end
 
@@ -327,6 +325,14 @@ module EventQ
       end
 
       private
+
+      def valid_client?(options)
+        options[:client] || options[:mq_endpoint]
+      end
+
+      def new_client_instance(options)
+        EventQ::RabbitMq::QueueClient.new({endpoint: options[:mq_endpoint] })
+      end
 
       def process_message(payload, queue, channel, retry_exchange, delivery_info, block)
         abort = false
