@@ -27,12 +27,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ### Preparing the Docker images
 
-The Docker environment depends on the `eventq/rabbitmq` image, which is built by running the setup script in eventq_rabbitmq:
-
-    $ cd ../eventq_rabbitmq/script
-    $ ./setup.sh
-
-Run the setup script of eventq_aws to build to environment. This will create the `eventq/aws` image.
+Run the setup script of eventq_aws to build the environment. This will create the `eventq/aws` image.
 
     $ cd script
     $ ./setup.sh
