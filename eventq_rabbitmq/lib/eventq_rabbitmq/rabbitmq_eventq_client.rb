@@ -1,5 +1,7 @@
 module EventQ
   module RabbitMq
+    # Implements a general interface to raise an event
+    # EventQ::Amazon::EventQClient is the sister-class which does the same for AWS
     class EventQClient
 
       def initialize(options={})
@@ -32,93 +34,83 @@ module EventQ
       end
 
       def raise_event(event_type, event)
-
         register_event(event_type)
-
-        connection = @client.get_connection
 
         _event_type = EventQ.create_event_type(event_type)
 
-        begin
-          channel = connection.create_channel
+        with_connection do |channel|
+          exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
-          ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
+          message = serialized_message(_event_type, event)
 
-          qm = new_message
-          qm.content = event
-          qm.type = _event_type
-
-          if EventQ::Configuration.signature_secret != nil
-            provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)
-            qm.signature = provider.write(message: qm, secret: EventQ::Configuration.signature_secret)
-          end
-
-          serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
-
-          message = serialization_provider.serialize(qm)
-
-          ex.publish(message, :routing_key => _event_type)
+          exchange.publish(message, :routing_key => _event_type)
 
           EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}."
-        ensure
-          channel.close
-          connection.close
         end
-
-        return true
       end
 
       def raise_event_in_queue(event_type, event, queue, delay)
-
         register_event(event_type)
-
-        connection = @client.get_connection
 
         _event_type = EventQ.create_event_type(event_type)
 
-        begin
-          channel = connection.create_channel
-
-          ex = @queue_manager.get_exchange(channel, @event_raised_exchange)
+        with_connection do |channel|
+          exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
           delay_exchange = @queue_manager.get_delay_exchange(channel, queue)
 
-          delay_queue = @queue_manager.create_delay_queue(channel, queue, ex.name, delay)
+          delay_queue = @queue_manager.create_delay_queue(channel, queue, exchange.name, delay)
           delay_queue.bind(delay_exchange)
 
           _queue_name = EventQ.create_queue_name(queue.name)
 
           q = channel.queue(_queue_name, :durable => @durable)
-          q.bind(ex)
+          q.bind(exchange)
 
-          qm = new_message
-          qm.content = event
-          qm.type = _event_type
-
-          if EventQ::Configuration.signature_secret != nil
-            provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)
-            qm.signature = provider.write(message: qm, secret: EventQ::Configuration.signature_secret)
-          end
-
-          serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
-
-          message = serialization_provider.serialize(qm)
+          message = serialized_message(_event_type, event)
 
           delay_exchange.publish(message, :routing_key => _event_type)
 
           EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type} | Delay: #{delay}."
-        ensure
-          channel.close
-          connection.close
         end
-
-        return true
       end
 
       def new_message
         EventQ::QueueMessage.new
       end
 
+      private
+
+      def with_connection
+        connection = @client.get_connection
+
+        begin
+          channel = connection.create_channel
+
+          yield(channel)
+
+        ensure
+          channel&.close
+          connection.close
+        end
+
+        true
+      end
+
+      def serialized_message(event_type, event)
+        qm = new_message
+        qm.content = event
+        qm.type = event_type
+
+        if EventQ::Configuration.signature_secret != nil
+          provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)
+          qm.signature = provider.write(message: qm, secret: EventQ::Configuration.signature_secret)
+        end
+
+        serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
+
+        serialization_provider.serialize(qm)
+      end
     end
   end
 end
