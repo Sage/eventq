@@ -40,9 +40,9 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
         puts '[QUEUE] waiting for message...'
 
         begin
-          delivery_info, properties, payload = queue.pop
+          _delivery_info, _properties, payload = queue.pop
           qm = Oj.load(payload)
-          puts "[QUEUE] - received message: #{message}"
+          puts "[QUEUE] - received message: #{qm&.content.inspect}"
         rescue TimeOut::Error
           puts 'Failed due to connection timeout.'
         end
@@ -67,6 +67,52 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
       after do
         EventQ.namespace = nil
       end
+    end
+  end
+
+  describe '#raise_event_in_queue' do
+    let(:queue_name) { 'How_do_I_learn_to_queue_like_a_British_person' }
+    let(:queue_in) do
+      EventQ::Queue.new.tap do |queue|
+        queue.name = queue_name
+      end
+    end
+    let(:delay_seconds) { 3 }
+
+    it 'should raise an event object with a delay' do
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
+
+      queue = queue_manager.get_queue(channel, subscriber_queue)
+
+      qm = nil
+
+      puts '[QUEUE] waiting for message... (but there should be none)'
+
+      begin
+        _delivery_info, _properties, payload = queue.pop
+        qm = Oj.load(payload.to_s)
+        puts "[QUEUE] - received message: #{qm&.content.inspect}"
+      rescue TimeOut::Error
+        puts 'Failed due to connection timeout.'
+      end
+
+      expect(qm).to be_nil
+
+      puts '[QUEUE] waiting for message...'
+      sleep 3.2
+
+      begin
+        _delivery_info, _properties, payload = queue.pop
+        qm = Oj.load(payload.to_s)
+        puts "[QUEUE] - received message: #{qm&.content.inspect}"
+      rescue TimeOut::Error
+        puts 'Failed due to connection timeout.'
+      end
+
+      expect(qm).to_not be_nil
+      expect(qm.content).to eq(message)
     end
   end
 

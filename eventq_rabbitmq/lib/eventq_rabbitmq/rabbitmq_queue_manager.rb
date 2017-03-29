@@ -42,6 +42,11 @@ module EventQ
         return channel.fanout("#{_queue_name}.ex")
       end
 
+      def get_delay_exchange(channel, queue)
+        _queue_name = EventQ.create_queue_name(queue.name)
+        channel.fanout("#{_queue_name}.d.ex")
+      end
+
       def get_retry_queue(channel, queue)
         subscriber_exchange = get_subscriber_exchange(channel, queue)
 
@@ -61,6 +66,12 @@ module EventQ
 
         end
 
+      end
+
+      def create_delay_queue(channel, queue, dlx_name, delay=0)
+        queue_name = EventQ.create_queue_name(queue.name)
+        channel.queue("#{queue_name}.#{delay}.delay", durable: @durable,
+                      arguments: { X_DEAD_LETTER_EXCHANGE => dlx_name, X_MESSAGE_TTL => delay * 1000 })
       end
 
       def get_exchange(channel, exchange)
