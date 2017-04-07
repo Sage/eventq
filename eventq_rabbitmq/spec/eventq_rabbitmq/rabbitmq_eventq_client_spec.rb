@@ -25,6 +25,16 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     end
   end
 
+  def receive_message(queue)
+    _delivery_info, _properties, payload = queue.pop
+    qm = Oj.load(payload.to_s)
+    puts "[QUEUE] - received message: #{qm&.content.inspect}"
+    qm
+  rescue Timeout::Error
+    puts 'Failed due to connection timeout.'
+    nil
+  end
+
   describe '#raise_event' do
 
     shared_examples 'any event raising' do
@@ -35,17 +45,9 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         queue = queue_manager.get_queue(channel, subscriber_queue)
 
-        qm = nil
-
         puts '[QUEUE] waiting for message...'
 
-        begin
-          _delivery_info, _properties, payload = queue.pop
-          qm = Oj.load(payload)
-          puts "[QUEUE] - received message: #{qm&.content.inspect}"
-        rescue TimeOut::Error
-          puts 'Failed due to connection timeout.'
-        end
+        qm = receive_message(queue)
 
         expect(qm).to_not be_nil
         expect(qm.content).to eq(message)
@@ -86,33 +88,57 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
       queue = queue_manager.get_queue(channel, subscriber_queue)
 
-      qm = nil
+      puts '[QUEUE] waiting for message... (but there should be none yet)'
 
-      puts '[QUEUE] waiting for message... (but there should be none)'
-
-      begin
-        _delivery_info, _properties, payload = queue.pop
-        qm = Oj.load(payload.to_s)
-        puts "[QUEUE] - received message: #{qm&.content.inspect}"
-      rescue TimeOut::Error
-        puts 'Failed due to connection timeout.'
-      end
-
+      qm = receive_message(queue)
       expect(qm).to be_nil
 
       puts '[QUEUE] waiting for message...'
       sleep 3.2
 
-      begin
-        _delivery_info, _properties, payload = queue.pop
-        qm = Oj.load(payload.to_s)
-        puts "[QUEUE] - received message: #{qm&.content.inspect}"
-      rescue TimeOut::Error
-        puts 'Failed due to connection timeout.'
-      end
-
+      qm = receive_message(queue)
       expect(qm).to_not be_nil
       expect(qm.content).to eq(message)
+    end
+
+    context 'two events with different delays' do
+      let(:other_delay_seconds) { 7 }
+      let(:other_message) { 'Brave New World' }
+
+      it 'should raise an event object with a delay' do
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
+        subject.raise_event_in_queue(event_type, other_message, queue_in, other_delay_seconds)
+
+        queue = queue_manager.get_queue(channel, subscriber_queue)
+
+        puts '[QUEUE] waiting for message... (but there should be none yet)'
+
+        qm = receive_message(queue)
+        expect(qm).to be_nil
+
+        puts '[QUEUE] waiting for message...'
+        sleep 3.2
+
+        qm = receive_message(queue)
+        expect(qm).to_not be_nil
+        expect(qm.content).to eq(message)
+
+        # check for other message
+
+        puts '[QUEUE] waiting for other message... (but there should be none yet)'
+
+        qm = receive_message(queue)
+        expect(qm).to be_nil
+
+        puts '[QUEUE] waiting for other message...'
+        sleep 4
+
+        qm = receive_message(queue)
+        expect(qm).to_not be_nil
+        expect(qm.content).to eq(other_message)
+      end
     end
   end
 

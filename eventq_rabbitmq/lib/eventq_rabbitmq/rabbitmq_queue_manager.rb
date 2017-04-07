@@ -42,9 +42,9 @@ module EventQ
         return channel.fanout("#{_queue_name}.ex")
       end
 
-      def get_delay_exchange(channel, queue)
+      def get_delay_exchange(channel, queue, delay)
         _queue_name = EventQ.create_queue_name(queue.name)
-        channel.fanout("#{_queue_name}.d.ex")
+        channel.fanout("#{_queue_name}.#{delay}.d.ex")
       end
 
       def get_retry_queue(channel, queue)
