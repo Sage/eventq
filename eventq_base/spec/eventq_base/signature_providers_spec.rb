@@ -7,7 +7,7 @@ RSpec.describe EventQ::SignatureProviders::Manager do
     end
     context 'when an unknown provider type is specified' do
       it 'should return the provider class' do
-        expect{ subject.get_provider('unknown') }.to raise_error
+        expect{ subject.get_provider('unknown') }.to raise_error 'Invalid provider type specified: unknown'
       end
     end
   end
