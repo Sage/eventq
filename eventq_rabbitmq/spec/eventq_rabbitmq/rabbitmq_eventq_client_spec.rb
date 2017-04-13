@@ -73,20 +73,18 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
   end
 
   describe '#raise_event_in_queue' do
-    let(:queue_name) { 'How_do_I_learn_to_queue_like_a_British_person' }
+    let(:queue_name) { 'delay_queue' }
     let(:queue_in) do
       EventQ::Queue.new.tap do |queue|
         queue.name = queue_name
       end
     end
-    let(:delay_seconds) { 3 }
+    let(:delay_seconds) { 2 }
 
     it 'should raise an event object with a delay' do
-      subscription_manager.subscribe(event_type, subscriber_queue)
-
       subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
 
-      queue = queue_manager.get_queue(channel, subscriber_queue)
+      queue = channel.queue(queue_name)
 
       puts '[QUEUE] waiting for message... (but there should be none yet)'
 
@@ -94,7 +92,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
       expect(qm).to be_nil
 
       puts '[QUEUE] waiting for message...'
-      sleep 3.2
+      sleep 2.2
 
       qm = receive_message(queue)
       expect(qm).to_not be_nil
@@ -102,16 +100,14 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     end
 
     context 'two events with different delays' do
-      let(:other_delay_seconds) { 7 }
+      let(:other_delay_seconds) { 4 }
       let(:other_message) { 'Brave New World' }
 
       it 'should raise an event object with a delay' do
-        subscription_manager.subscribe(event_type, subscriber_queue)
-
         subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
         subject.raise_event_in_queue(event_type, other_message, queue_in, other_delay_seconds)
 
-        queue = queue_manager.get_queue(channel, subscriber_queue)
+        queue = channel.queue(queue_name)
 
         puts '[QUEUE] waiting for message... (but there should be none yet)'
 
@@ -119,7 +115,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
         expect(qm).to be_nil
 
         puts '[QUEUE] waiting for message...'
-        sleep 3.2
+        sleep 2.2
 
         qm = receive_message(queue)
         expect(qm).to_not be_nil
@@ -133,7 +129,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
         expect(qm).to be_nil
 
         puts '[QUEUE] waiting for other message...'
-        sleep 4
+        sleep 2
 
         qm = receive_message(queue)
         expect(qm).to_not be_nil

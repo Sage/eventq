@@ -55,7 +55,7 @@ module EventQ
         _event_type = EventQ.create_event_type(event_type)
 
         with_connection do |channel|
-          exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
+          exchange = @queue_manager.get_queue_exchange(channel, queue)
 
           delay_exchange = @queue_manager.get_delay_exchange(channel, queue, delay)
 
@@ -64,8 +64,8 @@ module EventQ
 
           _queue_name = EventQ.create_queue_name(queue.name)
 
-          q = channel.queue(_queue_name, durable: @durable)
-          q.bind(exchange)
+          q = channel.queue(_queue_name, durable: @queue_manager.durable)
+          q.bind(exchange, routing_key: _event_type)
 
           message = serialized_message(_event_type, event)
 

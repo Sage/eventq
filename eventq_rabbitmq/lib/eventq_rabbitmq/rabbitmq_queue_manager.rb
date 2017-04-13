@@ -32,6 +32,11 @@ module EventQ
         return q
       end
 
+      def get_queue_exchange(channel, queue)
+        _exchange_name = EventQ.create_exchange_name(queue.name)
+        channel.direct("#{_exchange_name}.ex")
+      end
+
       def get_retry_exchange(channel, queue)
         _queue_name = EventQ.create_queue_name(queue.name)
         return channel.fanout("#{_queue_name}.r.ex")
@@ -44,7 +49,7 @@ module EventQ
 
       def get_delay_exchange(channel, queue, delay)
         _queue_name = EventQ.create_queue_name(queue.name)
-        channel.fanout("#{_queue_name}.#{delay}.d.ex")
+        channel.direct("#{_queue_name}.#{delay}.d.ex")
       end
 
       def get_retry_queue(channel, queue)
@@ -78,7 +83,6 @@ module EventQ
         _exchange_name = EventQ.create_exchange_name(exchange.name)
         return channel.direct(_exchange_name, :durable => @durable)
       end
-
     end
   end
 end
