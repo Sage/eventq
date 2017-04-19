@@ -73,7 +73,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
   end
 
   describe '#raise_event_in_queue' do
-    let(:queue_name) { 'delay_queue' }
+    let(:queue_name) { SecureRandom.uuid }
     let(:queue_in) do
       EventQ::Queue.new.tap do |queue|
         queue.name = queue_name
@@ -84,7 +84,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     it 'should raise an event object with a delay' do
       subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
 
-      queue = channel.queue(queue_name)
+      queue = channel.queue(queue_name, durable: queue_manager.durable)
 
       puts '[QUEUE] waiting for message... (but there should be none yet)'
 
@@ -107,7 +107,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
         subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
         subject.raise_event_in_queue(event_type, other_message, queue_in, other_delay_seconds)
 
-        queue = channel.queue(queue_name)
+        queue = channel.queue(queue_name, durable: queue_manager.durable)
 
         puts '[QUEUE] waiting for message... (but there should be none yet)'
 
