@@ -6,92 +6,135 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:subscription_manager) { EventQ::RabbitMq::SubscriptionManager.new({ client: client }) }
 
-  subject do
-    return EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
-  end
+  let(:queue_manager) { EventQ::RabbitMq::QueueManager.new }
 
   let(:connection) { client.get_connection }
 
   let(:channel) { connection.create_channel }
 
-  context 'when EventQ.namespace is NOT specified' do
-    it 'should raise an event object and be broadcast to a subscriber queue' do
+  let(:event_type) { 'test_event1' }
+  let(:message) { 'Hello World' }
 
-      event_type = 'test_event1'
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid
+  subject do
+    EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+  end
 
-      subscription_manager.subscribe(event_type, subscriber_queue)
-
-      message = 'Hello World'
-
-      subject.raise_event(event_type, message)
-
-      queue_manager = EventQ::RabbitMq::QueueManager.new
-
-      queue = queue_manager.get_queue(channel, subscriber_queue)
-
-      qm = nil
-
-      puts '[QUEUE] waiting for message...'
-
-      begin
-        delivery_info, properties, payload = queue.pop
-        qm = Oj.load(payload)
-        puts "[QUEUE] - received message: #{message}"
-      rescue TimeOut::Error
-        puts 'Failed due to connection timeout.'
-      end
-
-
-      expect(qm).to_not be_nil
-      expect(qm.content).to eq(message)
-
+  let(:subscriber_queue) do
+    EventQ::Queue.new.tap do |sq|
+      sq.name = SecureRandom.uuid
     end
   end
 
-  context 'when EventQ.namespace is specified' do
+  def receive_message(queue)
+    _delivery_info, _properties, payload = queue.pop
+    qm = Oj.load(payload.to_s)
+    puts "[QUEUE] - received message: #{qm&.content.inspect}"
+    qm
+  rescue Timeout::Error
+    puts 'Failed due to connection timeout.'
+    nil
+  end
 
-    before do
-      EventQ.namespace = 'test'
+  describe '#raise_event' do
+
+    shared_examples 'any event raising' do
+      it 'should raise an event object and be broadcast to a subscriber queue' do
+        subscription_manager.subscribe(event_type, subscriber_queue)
+
+        subject.raise_event(event_type, message)
+
+        queue = queue_manager.get_queue(channel, subscriber_queue)
+
+        puts '[QUEUE] waiting for message...'
+
+        qm = receive_message(queue)
+
+        expect(qm).to_not be_nil
+        expect(qm.content).to eq(message)
+      end
     end
 
-    it 'should raise an event object and be broadcast to a subscriber queue' do
 
-      event_type = 'test_event1'
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid
+    context 'when EventQ.namespace is NOT specified' do
+      it_behaves_like 'any event raising'
+    end
 
-      subscription_manager.subscribe(event_type, subscriber_queue)
-
-      message = 'Hello World'
-
-      subject.raise_event(event_type, message)
-
-      queue_manager = EventQ::RabbitMq::QueueManager.new
-
-      queue = queue_manager.get_queue(channel, subscriber_queue)
-
-      qm = nil
-
-      puts '[QUEUE] waiting for message...'
-
-      begin
-        delivery_info, properties, payload = queue.pop
-        qm = Oj.load(payload)
-        puts "[QUEUE] - received message: #{message}"
-      rescue TimeOut::Error
-        puts 'Failed due to connection timeout.'
+    context 'when EventQ.namespace is specified' do
+      before do
+        EventQ.namespace = 'test'
       end
 
+      it_behaves_like 'any event raising'
 
+      after do
+        EventQ.namespace = nil
+      end
+    end
+  end
+
+  describe '#raise_event_in_queue' do
+    let(:queue_name) { SecureRandom.uuid }
+    let(:queue_in) do
+      EventQ::Queue.new.tap do |queue|
+        queue.name = queue_name
+      end
+    end
+    let(:delay_seconds) { 2 }
+
+    it 'should raise an event object with a delay' do
+      subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
+
+      queue = channel.queue(queue_name, durable: queue_manager.durable)
+
+      puts '[QUEUE] waiting for message... (but there should be none yet)'
+
+      qm = receive_message(queue)
+      expect(qm).to be_nil
+
+      puts '[QUEUE] waiting for message...'
+      sleep 2.2
+
+      qm = receive_message(queue)
       expect(qm).to_not be_nil
       expect(qm.content).to eq(message)
-
     end
 
-    after do
-      EventQ.namespace = nil
+    context 'two events with different delays' do
+      let(:other_delay_seconds) { 4 }
+      let(:other_message) { 'Brave New World' }
+
+      it 'should raise an event object with a delay' do
+        subject.raise_event_in_queue(event_type, message, queue_in, delay_seconds)
+        subject.raise_event_in_queue(event_type, other_message, queue_in, other_delay_seconds)
+
+        queue = channel.queue(queue_name, durable: queue_manager.durable)
+
+        puts '[QUEUE] waiting for message... (but there should be none yet)'
+
+        qm = receive_message(queue)
+        expect(qm).to be_nil
+
+        puts '[QUEUE] waiting for message...'
+        sleep 2.2
+
+        qm = receive_message(queue)
+        expect(qm).to_not be_nil
+        expect(qm.content).to eq(message)
+
+        # check for other message
+
+        puts '[QUEUE] waiting for other message... (but there should be none yet)'
+
+        qm = receive_message(queue)
+        expect(qm).to be_nil
+
+        puts '[QUEUE] waiting for other message...'
+        sleep 2
+
+        qm = receive_message(queue)
+        expect(qm).to_not be_nil
+        expect(qm.content).to eq(other_message)
+      end
     end
   end
 
@@ -137,5 +180,4 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     channel.close
     connection.close
   end
-
 end
