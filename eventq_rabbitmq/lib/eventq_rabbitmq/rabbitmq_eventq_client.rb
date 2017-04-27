@@ -45,7 +45,9 @@ module EventQ
 
           exchange.publish(message, routing_key: _event_type)
 
-          EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type}."
+          EventQ.logger.debug do
+            "[#{self.class}] - Raised event to Exchange: #{_event_type} | Message: #{message}."
+          end
         end
       end
 
@@ -71,7 +73,9 @@ module EventQ
 
           delay_exchange.publish(message, routing_key: _event_type)
 
-          EventQ.logger.debug "[#{self.class}] - Raised event. Message: #{message} | Type: #{event_type} | Delay: #{delay}."
+          EventQ.logger.debug do
+            "[#{self.class}] - Raised event to Exchange: #{_event_type} | Message: #{message} | Delay: #{delay}."
+          end
         end
       end
 

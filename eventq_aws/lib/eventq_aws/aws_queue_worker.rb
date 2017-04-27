@@ -40,8 +40,8 @@ module EventQ
         raise "[#{self.class}] - Worker is already running." if running?
 
         client = options[:client]
-        Eventq.log(:debug) do
-          "[#{self.class} #start] - Listening for messages to queue: #{queue.name}, Queue Url: #{client.get_queue_url(queue)}, Queue arn: #{client.get_queue_arn(queue)}"
+        EventQ.logger.debug do
+          "[#{self.class} #start] - Listening for messages on queue: #{queue.name}, Queue Url: #{client.get_queue_url(queue)}, Queue arn: #{client.get_queue_arn(queue)}"
         end
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
