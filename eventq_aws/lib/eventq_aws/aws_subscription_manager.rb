@@ -36,12 +36,7 @@ module EventQ
       "Effect": "Allow",
       "Principal": "*",
       "Action": "sqs:*",
-      "Resource": "' + queue_arn + '",
-      "Condition" : {
-        "ArnEquals" : {
-          "aws:SourceArn":"' + topic_arn + '"
-        }
-      }
+      "Resource": "' + queue_arn + '"
     }
   ]
 }'
