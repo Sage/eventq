@@ -33,6 +33,9 @@ module EventQ
         end
 
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
+        EventQ.logger.debug do
+          "[#{self.class} #start] - Listening for messages on queue: #{EventQ.create_queue_name(queue.name)}"
+        end
 
         @forks = []
 

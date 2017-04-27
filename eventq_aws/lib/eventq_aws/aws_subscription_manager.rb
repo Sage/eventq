@@ -53,7 +53,9 @@ module EventQ
                                   protocol: 'sqs'.freeze,
                                   endpoint: queue_arn
                               })
-
+        EventQ.logger.debug do
+          "[#{self.class} #subscribe] - Subscribing Queue: #{queue.name} to topic_arn: #{topic_arn}, endpoint: #{queue_arn}"
+        end
         return true
 
       end
