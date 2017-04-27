@@ -32,6 +32,9 @@ module EventQ
           raise "[#{self.class}] - :client (QueueClient) must be specified."
         end
 
+        Eventq.log(:debug) do
+          "[#{self.class} #start] - Listening for messages on queue: #{queue.name}"
+        end
         EventQ.log(:info, "[#{self.class}] - Listening for messages.")
 
         @forks = []

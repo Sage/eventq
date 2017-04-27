@@ -26,6 +26,10 @@ module EventQ
         channel.close
         connection.close
 
+        Eventq.log(:debug) do
+          "[#{self.class} #subscribe] - Subscribing to queue: #{queue.name}"
+        end
+
         return true
       end
 

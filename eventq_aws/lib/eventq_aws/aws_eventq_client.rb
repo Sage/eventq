@@ -44,15 +44,22 @@ module EventQ
             subject: event_type
           )
         end
+        Eventq.log(:debug) do
+          "[#{self.class} #raise_event] - Published to SNS with topic_arn: #{topic_arn(event_type)}, event_type: #{event_type}"
+        end
       end
 
       def raise_event_in_queue(event_type, event, queue, delay)
+        queue_url = @client.get_queue_url(queue)
         with_prepared_message(event_type, event) do |message|
           @client.sqs.send_message(
-            queue_url: @client.get_queue_url(queue),
+            queue_url: queue_url,
             message_body: message,
             delay_seconds: delay
           )
+        end
+        Eventq.log(:debug) do
+          "[#{self.class} #raise_event_in_queue] - Raised event to SQS queue: #{queue_url}, event_type: #{event_type}"
         end
       end
 
