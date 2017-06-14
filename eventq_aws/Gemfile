@@ -5,3 +5,4 @@ gemspec
 
 gem 'oj', '2.15.0'
 gem 'json', '1.8.3'
+gem 'openssl', '2.0.4'

@@ -16,6 +16,7 @@ RSpec.describe EventQ::Amazon::EventQClient do
   describe '#raise_event' do
     let(:response) { double('PublishResponse', message_id: message_id) }
     let(:message_id) { '123' }
+    let(:message_context) { { 'foo' => 'bar' } }
 
     it 'publishes an SNS event' do
       expect(queue_client.sns).to receive(:publish) do |options|
@@ -24,11 +25,12 @@ RSpec.describe EventQ::Amazon::EventQClient do
         message_json = JSON.parse(options[:message])
         expect(message_json['content']).to eql event
         expect(message_json['type']).to eql event_type
+        expect(message_json['context']).to eql message_context
 
         expect(options[:subject]).to eql event_type
       end.and_return(response)
 
-      expect(subject.raise_event(event_type, event)).to eql message_id
+      expect(subject.raise_event(event_type, event, message_context)).to eql message_id
     end
 
     it 'registers the event_type before publishing an SNS event' do

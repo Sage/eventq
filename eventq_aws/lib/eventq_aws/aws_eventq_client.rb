@@ -34,10 +34,14 @@ module EventQ
         true
       end
 
-      def raise_event(event_type, event)
+      def publish(topic:, event:, context: {})
+        raise_event(topic, event, context)
+      end
+
+      def raise_event(event_type, event, context = {})
         register_event(event_type)
 
-        with_prepared_message(event_type, event) do |message|
+        with_prepared_message(event_type, event, context) do |message|
 
           response = @client.sns.publish(
             topic_arn: topic_arn(event_type),
@@ -53,9 +57,9 @@ module EventQ
         end
       end
 
-      def raise_event_in_queue(event_type, event, queue, delay)
+      def raise_event_in_queue(event_type, event, queue, delay, context = {})
         queue_url = @client.get_queue_url(queue)
-        with_prepared_message(event_type, event) do |message|
+        with_prepared_message(event_type, event, context) do |message|
 
           response = @client.sqs.send_message(
             queue_url: queue_url,
@@ -77,10 +81,11 @@ module EventQ
 
       private
 
-      def with_prepared_message(event_type, event)
+      def with_prepared_message(event_type, event, context)
         qm = new_message
         qm.content = event
         qm.type = event_type
+        qm.context = context
 
         if EventQ::Configuration.signature_secret != nil
           provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)

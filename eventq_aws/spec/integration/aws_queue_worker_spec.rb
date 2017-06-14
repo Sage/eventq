@@ -27,10 +27,11 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   let(:event_type) { 'queue_worker_event1' }
   let(:event_type2) { 'queue_worker_event2' }
   let(:message) { 'Hello World' }
+  let(:message_context) { { foo: 'bar' } }
 
   it 'should receive an event from the subscriber queue' do
     subscription_manager.subscribe(event_type, subscriber_queue)
-    eventq_client.raise_event(event_type, message)
+    eventq_client.raise_event(event_type, message, message_context)
 
     received = false
 
@@ -40,6 +41,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
+      expect(args.context).to eq message_context
       received = true
       puts "Message Received: #{event}"
     end

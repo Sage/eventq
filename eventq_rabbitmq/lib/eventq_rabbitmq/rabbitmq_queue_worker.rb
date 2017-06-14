@@ -22,7 +22,7 @@ module EventQ
 
       def start(queue, options = {}, &block)
 
-        EventQ.log(:info, "[#{self.class}] - Preparing to start listening for messages.")
+        EventQ.logger.info("[#{self.class}] - Preparing to start listening for messages.")
 
         configure(queue, options)
 
@@ -32,7 +32,7 @@ module EventQ
           raise "[#{self.class}] - :client (QueueClient) must be specified."
         end
 
-        EventQ.log(:info, "[#{self.class}] - Listening for messages.")
+        EventQ.logger.info("[#{self.class}] - Listening for messages.")
         EventQ.logger.debug do
           "[#{self.class} #start] - Listening for messages on queue: #{EventQ.create_queue_name(queue.name)}"
         end
@@ -100,7 +100,7 @@ module EventQ
                 has_received_message = thread_process_iteration(channel, manager, queue, block)
 
               rescue => e
-                EventQ.log(:error, "An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
+                EventQ.logger.error("An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
                 call_on_error_block(error: e)
               end
 
@@ -111,9 +111,9 @@ module EventQ
               gc_flush
 
               if !has_received_message
-                EventQ.log(:debug, "[#{self.class}] - No message received.")
+                EventQ.logger.debug { "[#{self.class}] - No message received." }
                 if @sleep > 0
-                  EventQ.log(:debug, "[#{self.class}] - Sleeping for #{@sleep} seconds")
+                  EventQ.logger.debug { "[#{self.class}] - Sleeping for #{@sleep} seconds" }
                   sleep(@sleep)
                 end
               end
@@ -136,14 +136,14 @@ module EventQ
 
       def call_on_error_block(error:, message: nil)
         if @on_error_block
-          EventQ.log(:debug, "[#{self.class}] - Executing on_error block.")
+          EventQ.logger.debug { "[#{self.class}] - Executing on_error block." }
           begin
             @on_error_block.call(error, message)
           rescue => e
-            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_error block. Error: #{e}")
+            EventQ.logger.error("[#{self.class}] - An error occurred executing the on_error block. Error: #{e}")
           end
         else
-          EventQ.log(:debug, "[#{self.class}] - No on_error block specified to execute.")
+          EventQ.logger.debug { "[#{self.class}] - No on_error block specified to execute." }
         end
       end
 
@@ -182,7 +182,7 @@ module EventQ
           end
 
         rescue => e
-          EventQ.log(:error, "[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | Backtrace: #{e.backtrace}")
+          EventQ.logger.error("[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | Backtrace: #{e.backtrace}")
           call_on_error_block(error: e)
         end
 
@@ -230,64 +230,64 @@ module EventQ
 
       def call_on_retry_exceeded_block(message)
         if @retry_exceeded_block != nil
-          EventQ.log(:debug, "[#{self.class}] - Executing on_retry_exceeded block.")
+          EventQ.logger.debug { "[#{self.class}] - Executing on_retry_exceeded block." }
           begin
             @retry_exceeded_block.call(message)
           rescue => e
-            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_retry_exceeded block. Error: #{e}")
+            EventQ.logger.error("[#{self.class}] - An error occurred executing the on_retry_exceeded block. Error: #{e}")
           end
         else
-          EventQ.log(:debug, "[#{self.class}] - No on_retry_exceeded block specified.")
+          EventQ.logger.debug { "[#{self.class}] - No on_retry_exceeded block specified." }
         end
       end
 
       def call_on_retry_block(message)
         if @on_retry_block
-          EventQ.log(:debug, "[#{self.class}] - Executing on_retry block.")
+          EventQ.logger.debug { "[#{self.class}] - Executing on_retry block." }
           begin
             @on_retry_block.call(message, abort)
           rescue => e
-            EventQ.log(:error, "[#{self.class}] - An error occurred executing the on_retry block. Error: #{e}")
+            EventQ.logger.error("[#{self.class}] - An error occurred executing the on_retry block. Error: #{e}")
           end
         else
-          EventQ.log(:debug, "[#{self.class}] - No on_retry block specified.")
+          EventQ.logger.debug { "[#{self.class}] - No on_retry block specified." }
         end
       end
 
       def reject_message(channel, message, delivery_info, retry_exchange, queue, abort)
 
-        EventQ.log(:info, "[#{self.class}] - Message rejected removing from queue.")
+        EventQ.logger.info("[#{self.class}] - Message rejected removing from queue.")
         #reject the message to remove from queue
         channel.reject(delivery_info.delivery_tag, false)
 
         #check if the message retry limit has been exceeded
         if message.retry_attempts >= queue.max_retry_attempts
 
-          EventQ.log(:info, "[#{self.class}] - Message retry attempt limit exceeded. Msg: #{serialize_message(message)}")
+          EventQ.logger.info("[#{self.class}] - Message retry attempt limit exceeded. Msg: #{serialize_message(message)}")
 
           call_on_retry_exceeded_block(message)
 
         #check if the message is allowed to be retried
         elsif queue.allow_retry
 
-          EventQ.log(:debug, "[#{self.class}] - Incrementing retry attempts count.")
+          EventQ.logger.debug { "[#{self.class}] - Incrementing retry attempts count." }
           message.retry_attempts += 1
 
           if queue.allow_retry_back_off == true
-            EventQ.log(:debug, "[#{self.class}] - Calculating message back off retry delay. Attempts: #{message.retry_attempts} * Retry Delay: #{queue.retry_delay}")
+            EventQ.logger.debug { "[#{self.class}] - Calculating message back off retry delay. Attempts: #{message.retry_attempts} * Retry Delay: #{queue.retry_delay}" }
             message_ttl = message.retry_attempts * queue.retry_delay
             if (message.retry_attempts * queue.retry_delay) > queue.max_retry_delay
-              EventQ.log(:debug, "[#{self.class}] - Max message back off retry delay reached.")
+              EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
               message_ttl = queue.max_retry_delay
             end
           else
-            EventQ.log(:debug, "[#{self.class}] - Setting fixed retry delay for message.")
+            EventQ.logger.debug { "[#{self.class}] - Setting fixed retry delay for message." }
             message_ttl = queue.retry_delay
           end
 
-          EventQ.log(:debug, "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}")
+          EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}" }
           retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
-          EventQ.log(:debug, "[#{self.class}] - Published message to retry exchange.")
+          EventQ.logger.debug { "[#{self.class}] - Published message to retry exchange." }
 
           call_on_retry_block(message)
 
@@ -323,7 +323,7 @@ module EventQ
           @gc_flush_interval = options[:gc_flush_interval]
         end
 
-        EventQ.log(:info, "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 
@@ -336,14 +336,14 @@ module EventQ
         error = false
         message = deserialize_message(payload)
 
-        EventQ.log(:info, "[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
+        EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
 
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
-        message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts)
+        message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts, message.context)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
-          EventQ.log(:info, "[#{self.class}] - Duplicate Message received. Dropping message.")
+          EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")
           channel.acknowledge(delivery_info.delivery_tag, false)
           return false
         end
@@ -354,15 +354,15 @@ module EventQ
 
           if message_args.abort == true
             abort = true
-            EventQ.log(:info, "[#{self.class}] - Message aborted.")
+            EventQ.logger.info("[#{self.class}] - Message aborted.")
           else
             #accept the message as processed
             channel.acknowledge(delivery_info.delivery_tag, false)
-            EventQ.log(:info, "[#{self.class}] - Message acknowledged.")
+            EventQ.logger.info("[#{self.class}] - Message acknowledged.")
           end
 
         rescue => e
-          EventQ.log(:error, "[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
+          EventQ.logger.error("[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
           error = true
           call_on_error_block(error: e, message: message)
         end

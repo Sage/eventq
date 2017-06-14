@@ -33,7 +33,11 @@ module EventQ
         true
       end
 
-      def raise_event(event_type, event)
+      def publish(topic:, event:, context: {})
+        raise_event(topic, event, context)
+      end
+
+      def raise_event(event_type, event, context = {})
         register_event(event_type)
 
         _event_type = EventQ.create_event_type(event_type)
@@ -41,7 +45,7 @@ module EventQ
         with_connection do |channel|
           exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
-          message = serialized_message(_event_type, event)
+          message = serialized_message(_event_type, event, context)
 
           exchange.publish(message, routing_key: _event_type)
 
@@ -51,7 +55,7 @@ module EventQ
         end
       end
 
-      def raise_event_in_queue(event_type, event, queue, delay)
+      def raise_event_in_queue(event_type, event, queue, delay, context = {})
         register_event(event_type)
 
         _event_type = EventQ.create_event_type(event_type)
@@ -69,7 +73,7 @@ module EventQ
           q = channel.queue(_queue_name, durable: @queue_manager.durable)
           q.bind(exchange, routing_key: _event_type)
 
-          message = serialized_message(_event_type, event)
+          message = serialized_message(_event_type, event, context)
 
           delay_exchange.publish(message, routing_key: _event_type)
 
@@ -101,10 +105,11 @@ module EventQ
         true
       end
 
-      def serialized_message(event_type, event)
+      def serialized_message(event_type, event, context)
         qm = new_message
         qm.content = event
         qm.type = event_type
+        qm.context = context
 
         if EventQ::Configuration.signature_secret != nil
           provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)

@@ -236,15 +236,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
+    message_context = { foo: 'bar' }
 
     eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
-    eqclient.raise_event(event_type, message)
+    eqclient.raise_event(event_type, message, message_context)
 
     received = false
 
     subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
+      expect(args.context).to eq message_context
       received = true
       puts "Message Received: #{event}"
     end

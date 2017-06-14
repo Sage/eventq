@@ -14,6 +14,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:event_type) { 'test_event1' }
   let(:message) { 'Hello World' }
+  let(:message_context) { { foo: 'bar' } }
 
   subject do
     EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
@@ -35,13 +36,31 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     nil
   end
 
+  describe '#publish' do
+    it 'should raise an event object and be broadcast to a subscriber queue' do
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      subject.publish(topic: event_type, event: message, context: message_context)
+
+      queue = queue_manager.get_queue(channel, subscriber_queue)
+
+      puts '[QUEUE] waiting for message...'
+
+      qm = receive_message(queue)
+
+      expect(qm).to_not be_nil
+      expect(qm.content).to eq(message)
+      expect(qm.context).to eq message_context
+    end
+  end
+
   describe '#raise_event' do
 
     shared_examples 'any event raising' do
       it 'should raise an event object and be broadcast to a subscriber queue' do
         subscription_manager.subscribe(event_type, subscriber_queue)
 
-        subject.raise_event(event_type, message)
+        subject.raise_event(event_type, message, message_context)
 
         queue = queue_manager.get_queue(channel, subscriber_queue)
 
@@ -51,6 +70,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         expect(qm).to_not be_nil
         expect(qm.content).to eq(message)
+        expect(qm.context).to eq message_context
       end
     end
 
