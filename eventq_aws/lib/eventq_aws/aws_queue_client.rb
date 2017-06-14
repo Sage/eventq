@@ -17,7 +17,7 @@ module EventQ
           @aws_region = options[:aws_region]
           Aws.config[:region] = @aws_region
         else
-          @aw_region = Aws.config[:region]
+          @aws_region = Aws.config[:region]
         end
       end
 
