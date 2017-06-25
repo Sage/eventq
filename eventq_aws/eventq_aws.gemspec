@@ -25,5 +25,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry"
 
   spec.add_dependency 'aws-sdk-core'
-  spec.add_dependency 'eventq_base'
+  spec.add_dependency 'eventq_base', '~> 1.14'
 end

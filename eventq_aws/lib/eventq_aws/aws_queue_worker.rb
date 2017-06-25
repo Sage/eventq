@@ -250,7 +250,10 @@ module EventQ
         payload = JSON.load(msg.body)
         message = deserialize_message(payload[MESSAGE])
 
-        message_args = EventQ::MessageArgs.new(message.type, retry_attempts, message.context)
+        message_args = EventQ::MessageArgs.new(type: message.type,
+                                               retry_attempts: retry_attempts,
+                                               context: message.context,
+                                               content_type: message.content_type)
 
         EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
 
