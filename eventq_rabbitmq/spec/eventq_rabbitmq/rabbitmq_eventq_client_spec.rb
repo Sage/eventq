@@ -50,6 +50,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
       expect(qm).to_not be_nil
       expect(qm.content).to eq(message)
+      expect(qm.content_type).to eq message.class.to_s
       expect(qm.context).to eq message_context
     end
   end
@@ -70,6 +71,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         expect(qm).to_not be_nil
         expect(qm.content).to eq(message)
+        expect(qm.content_type).to eq message.class.to_s
         expect(qm.context).to eq message_context
       end
     end

@@ -246,6 +246,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
+      expect(args.content_type).to eq message.class.to_s
       expect(args.context).to eq message_context
       received = true
       puts "Message Received: #{event}"

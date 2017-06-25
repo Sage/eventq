@@ -110,6 +110,7 @@ module EventQ
         qm.content = event
         qm.type = event_type
         qm.context = context
+        qm.content_type = event.class.to_s
 
         if EventQ::Configuration.signature_secret != nil
           provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)

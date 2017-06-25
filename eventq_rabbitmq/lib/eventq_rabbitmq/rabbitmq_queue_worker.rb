@@ -340,7 +340,10 @@ module EventQ
 
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
-        message_args = EventQ::MessageArgs.new(message.type, message.retry_attempts, message.context)
+        message_args = EventQ::MessageArgs.new(type: message.type,
+                                               retry_attempts: message.retry_attempts,
+                                               context: message.context,
+                                               content_type: message.content_type)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
           EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")
