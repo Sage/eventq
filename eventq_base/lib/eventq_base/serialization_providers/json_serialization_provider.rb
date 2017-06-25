@@ -3,7 +3,6 @@ module EventQ
     class JsonSerializationProvider
 
       def initialize
-        require 'json'
         require 'class_kit'
         require 'hash_kit'
         @class_kit_helper = ClassKit::Helper.new
@@ -11,6 +10,7 @@ module EventQ
       end
 
       def serialize(object)
+        require 'json'
         JSON.dump(object_to_hash(object))
       end
 
