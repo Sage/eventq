@@ -1,9 +1,6 @@
 require 'securerandom'
-require 'class_kit'
-require 'hash_kit'
-require 'json_kit'
-require 'oj'
 require 'redlock'
+require 'class_kit'
 
 require_relative 'eventq_base/version'
 require_relative 'eventq_base/eventq_logger'

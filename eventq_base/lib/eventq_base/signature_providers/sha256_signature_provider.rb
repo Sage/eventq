@@ -1,11 +1,10 @@
-require 'openssl'
-require 'base64'
-
 module EventQ
   module SignatureProviders
     class Sha256SignatureProvider
 
       def initialize
+        require 'openssl'
+        require 'base64'
         @serializer = serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
       end
 

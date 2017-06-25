@@ -22,12 +22,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec"
-  spec.add_development_dependency "pry"
 
   spec.add_dependency 'class_kit'
-  spec.add_dependency 'hash_kit'
-  spec.add_dependency 'json_kit'
-  spec.add_dependency 'oj'
-  spec.add_dependency 'redlock'
-  spec.add_dependency 'openssl'
 end

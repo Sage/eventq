@@ -6,7 +6,7 @@ module EventQ
     end
 
     def self.serialization_provider
-      @serialization_provider ||= EventQ::SerializationProviders::OJ_PROVIDER
+      @serialization_provider ||= EventQ::SerializationProviders::BINARY_PROVIDER
     end
 
     def self.signature_provider=(value)
