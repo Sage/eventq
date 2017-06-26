@@ -4,8 +4,17 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '10.5.0'
-gem 'oj', '2.15.0'
 gem 'json', '1.8.3'
 gem 'rspec'
 gem 'redlock'
-gem 'pry'
+
+platforms :ruby do
+  gem 'oj', '2.15.0'
+  gem 'openssl', '2.0.3'
+  gem 'pry'
+end
+
+platforms :jruby do
+  gem 'pry-debugger-jruby'
+  gem 'jruby-openssl'
+end

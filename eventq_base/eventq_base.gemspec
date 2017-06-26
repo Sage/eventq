@@ -24,4 +24,14 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
 
   spec.add_dependency 'class_kit'
+  spec.add_dependency 'redlock'
+
+  if RUBY_PLATFORM =~ /java/
+    spec.platform = 'java'
+    spec.add_dependency('jruby-openssl')
+  else
+    spec.add_dependency('oj')
+    spec.add_dependency('openssl')
+  end
+
 end

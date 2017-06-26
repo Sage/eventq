@@ -10,7 +10,6 @@ module EventQ
       end
 
       def serialize(object)
-        require 'json'
         JSON.dump(object_to_hash(object))
       end
 
