@@ -1,5 +1,10 @@
 require 'eventq_base'
-require 'bunny'
+if RUBY_PLATFORM =~ /java/
+  require 'march_hare'
+else
+  require 'bunny'
+end
+
 require 'hash_kit'
 require_relative '../lib/eventq_rabbitmq/version'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_client'

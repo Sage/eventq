@@ -23,6 +23,12 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec'
 
-  spec.add_dependency 'bunny'
-  spec.add_dependency 'eventq_base', '~> 1.14'
+  spec.add_dependency 'eventq_base', '~> 1.15'
+
+  if RUBY_PLATFORM =~ /java/
+    spec.platform = 'java'
+    spec.add_dependency 'march_hare'
+  else
+    spec.add_dependency 'bunny'
+  end
 end

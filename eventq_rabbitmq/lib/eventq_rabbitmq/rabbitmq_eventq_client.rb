@@ -98,7 +98,7 @@ module EventQ
           yield(channel)
 
         ensure
-          channel&.close
+          channel&.close if channel.open?
           connection.close
         end
 

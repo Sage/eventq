@@ -32,6 +32,22 @@ module EventQ
         return q
       end
 
+      def pop_message(queue:)
+        if RUBY_PLATFORM =~ /java/
+          headers, payload = queue.pop({ :ack => true, :block => true })
+          if headers == nil
+            return [nil,nil]
+          end
+          [headers.delivery_tag, payload]
+        else
+          headers, properties, payload = queue.pop({ :manual_ack => true, :block => true })
+          if headers == nil
+            return [nil,nil]
+          end
+          [headers.delivery_tag, payload]
+        end
+      end
+
       def get_queue_exchange(channel, queue)
         _exchange_name = EventQ.create_exchange_name(queue.name)
         channel.direct("#{_exchange_name}.ex")

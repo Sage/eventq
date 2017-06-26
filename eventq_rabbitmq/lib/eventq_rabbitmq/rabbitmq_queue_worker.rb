@@ -104,7 +104,7 @@ module EventQ
                 call_on_error_block(error: e)
               end
 
-              if channel != nil && channel.status != :closed
+              if channel != nil && channel.open?
                 channel.close
               end
 
@@ -167,7 +167,7 @@ module EventQ
         received = false
 
         begin
-          delivery_info, properties, payload = q.pop(:manual_ack => true, :block => true)
+          delivery_info, payload = manager.pop_message(queue: q)
 
           #check that message was received
           if payload != nil
@@ -254,11 +254,11 @@ module EventQ
         end
       end
 
-      def reject_message(channel, message, delivery_info, retry_exchange, queue, abort)
+      def reject_message(channel, message, delivery_tag, retry_exchange, queue, abort)
 
         EventQ.logger.info("[#{self.class}] - Message rejected removing from queue.")
         #reject the message to remove from queue
-        channel.reject(delivery_info.delivery_tag, false)
+        channel.reject(delivery_tag, false)
 
         #check if the message retry limit has been exceeded
         if message.retry_attempts >= queue.max_retry_attempts
@@ -331,7 +331,7 @@ module EventQ
 
       private
 
-      def process_message(payload, queue, channel, retry_exchange, delivery_info, block)
+      def process_message(payload, queue, channel, retry_exchange, delivery_tag, block)
         abort = false
         error = false
         message = deserialize_message(payload)
@@ -347,7 +347,7 @@ module EventQ
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
           EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")
-          channel.acknowledge(delivery_info.delivery_tag, false)
+          channel.acknowledge(delivery_tag, false)
           return false
         end
 
@@ -360,7 +360,7 @@ module EventQ
             EventQ.logger.info("[#{self.class}] - Message aborted.")
           else
             #accept the message as processed
-            channel.acknowledge(delivery_info.delivery_tag, false)
+            channel.acknowledge(delivery_tag, false)
             EventQ.logger.info("[#{self.class}] - Message acknowledged.")
           end
 
@@ -372,7 +372,7 @@ module EventQ
 
         if error || abort
           EventQ::NonceManager.failed(message.id)
-          reject_message(channel, message, delivery_info, retry_exchange, queue, abort)
+          reject_message(channel, message, delivery_tag, retry_exchange, queue, abort)
         else
           EventQ::NonceManager.complete(message.id)
         end

@@ -14,7 +14,9 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
   let(:event_type) { 'test_event1' }
   let(:message) { 'Hello World' }
-  let(:message_context) { { foo: 'bar' } }
+  let(:message_context) { { 'foo' => 'bar' } }
+
+  let(:class_kit) { ClassKit::Helper.new }
 
   subject do
     EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
@@ -27,13 +29,25 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
   end
 
   def receive_message(queue)
-    _delivery_info, _properties, payload = queue.pop
-    qm = Oj.load(payload.to_s)
-    puts "[QUEUE] - received message: #{qm&.content.inspect}"
+    delivery_tag, payload = queue_manager.pop_message(queue: queue)
+    if payload == nil
+      return nil
+    end
+    if RUBY_PLATFORM =~ /java/
+      hash = JSON.load(payload.to_s)
+      if hash == nil
+        return nil
+      end
+      qm = class_kit.from_hash(hash: hash, klass: EventQ::QueueMessage)
+    else
+      qm = Oj.load(payload.to_s)
+      if qm == nil
+        return nil
+      end
+    end
+
+    puts "[QUEUE] - received message: #{qm.content}"
     qm
-  rescue Timeout::Error
-    puts 'Failed due to connection timeout.'
-    nil
   end
 
   describe '#publish' do
@@ -114,7 +128,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
       expect(qm).to be_nil
 
       puts '[QUEUE] waiting for message...'
-      sleep 2.2
+      sleep 2.5
 
       qm = receive_message(queue)
       expect(qm).to_not be_nil
@@ -199,7 +213,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
   end
 
   after do
-    channel.close
+    channel.close if channel.open?
     connection.close
   end
 end

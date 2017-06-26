@@ -30,7 +30,7 @@ module EventQ
             :pass => @password,
             :ssl => @ssl,
             :read_timeout => 4,
-            :heartbeat => 20,
+            :heartbeat => 8,
             :continuation_timeout => 5000,
             :automatically_recover => true,
             :network_recovery_interval => 1,
@@ -39,7 +39,12 @@ module EventQ
       end
 
       def get_connection
-        conn = Bunny.new(connection_options)
+        if RUBY_PLATFORM =~ /java/
+          conn = MarchHare.connect(connection_options)
+        else
+          conn = Bunny.new(connection_options)
+        end
+
         conn.start
         return conn
       end
