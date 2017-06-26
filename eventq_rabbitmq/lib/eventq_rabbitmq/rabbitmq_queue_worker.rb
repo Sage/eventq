@@ -87,7 +87,7 @@ module EventQ
             while true do
 
               #check if the worker is still allowed to run and break out of thread loop if not
-              if !@is_running
+              unless running?
                 break
               end
 
@@ -192,9 +192,11 @@ module EventQ
       def stop
         puts "[#{self.class}] - Stopping..."
         @is_running = false
-        @threads.each { |thr| thr.join }
+        Thread.list.each do |thread|
+          thread.exit unless thread == Thread.current
+        end
         if @connection != nil
-          @connection.close
+          @connection.close if @connection.open?
         end
         return true
       end
