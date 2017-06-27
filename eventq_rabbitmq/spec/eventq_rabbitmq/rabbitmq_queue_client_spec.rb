@@ -22,10 +22,10 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     sleep 0.2
 
     delivery_tag, payload = manager.pop_message(queue: q)
-    puts "#{dlq.message_count} messages dead lettered so far"
+    EventQ.logger.debug { "#{dlq.message_count} messages dead lettered so far" }
     expect(dlq.message_count).to eq(0)
 
-    puts "Rejecting a message"
+    EventQ.logger.debug { "Rejecting a message" }
     channel.nack(delivery_tag)
 
     sleep 0.2
@@ -33,11 +33,11 @@ RSpec.describe EventQ::RabbitMq::QueueClient do
     channel = connection.create_channel
     dlx  = channel.fanout("bunny.examples.dlx.exchange")
     dlq  = channel.queue("subscriber_retry", :exclusive => true).bind(dlx)
-    puts "#{dlq.message_count} messages dead lettered so far"
+    EventQ.logger.debug { "#{dlq.message_count} messages dead lettered so far" }
     expect(dlq.message_count).to eq(1)
 
     dlx.delete
-    puts "Disconnecting..."
+    EventQ.logger.debug { "Disconnecting..." }
   end
 
   it 'should use a delay queue correctly' do

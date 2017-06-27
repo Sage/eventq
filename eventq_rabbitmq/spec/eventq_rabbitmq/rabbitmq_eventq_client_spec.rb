@@ -46,7 +46,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
       end
     end
 
-    puts "[QUEUE] - received message: #{qm.content}"
+    EventQ.logger.debug { "[QUEUE] - received message: #{qm.content}" }
     qm
   end
 
@@ -58,7 +58,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
       queue = queue_manager.get_queue(channel, subscriber_queue)
 
-      puts '[QUEUE] waiting for message...'
+      EventQ.logger.debug { '[QUEUE] waiting for message...' }
 
       qm = receive_message(queue)
 
@@ -79,7 +79,7 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         queue = queue_manager.get_queue(channel, subscriber_queue)
 
-        puts '[QUEUE] waiting for message...'
+        EventQ.logger.debug { '[QUEUE] waiting for message...' }
 
         qm = receive_message(queue)
 
@@ -122,12 +122,12 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
       queue = channel.queue(queue_name, durable: queue_manager.durable)
 
-      puts '[QUEUE] waiting for message... (but there should be none yet)'
+      EventQ.logger.debug { '[QUEUE] waiting for message... (but there should be none yet)' }
 
       qm = receive_message(queue)
       expect(qm).to be_nil
 
-      puts '[QUEUE] waiting for message...'
+      EventQ.logger.debug { '[QUEUE] waiting for message...' }
       sleep 2.5
 
       qm = receive_message(queue)
@@ -145,12 +145,12 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         queue = channel.queue(queue_name, durable: queue_manager.durable)
 
-        puts '[QUEUE] waiting for message... (but there should be none yet)'
+        EventQ.logger.debug { '[QUEUE] waiting for message... (but there should be none yet)' }
 
         qm = receive_message(queue)
         expect(qm).to be_nil
 
-        puts '[QUEUE] waiting for message...'
+        EventQ.logger.debug { '[QUEUE] waiting for message...' }
         sleep 2.2
 
         qm = receive_message(queue)
@@ -159,12 +159,12 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
 
         # check for other message
 
-        puts '[QUEUE] waiting for other message... (but there should be none yet)'
+        EventQ.logger.debug { '[QUEUE] waiting for other message... (but there should be none yet)' }
 
         qm = receive_message(queue)
         expect(qm).to be_nil
 
-        puts '[QUEUE] waiting for other message...'
+        EventQ.logger.debug { '[QUEUE] waiting for other message...' }
         sleep 2
 
         qm = receive_message(queue)

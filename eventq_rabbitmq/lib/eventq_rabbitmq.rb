@@ -9,7 +9,13 @@ require 'hash_kit'
 require_relative '../lib/eventq_rabbitmq/version'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_client'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_manager'
-require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_worker'
+
+if RUBY_PLATFORM =~ /java/
+  require_relative '../lib/eventq_rabbitmq/jruby/rabbitmq_queue_worker'
+else
+  require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_worker'
+end
+
 require_relative '../lib/eventq_rabbitmq/rabbitmq_subscription_manager'
 require_relative '../lib/eventq_rabbitmq/rabbitmq_eventq_client'
 require_relative '../lib/eventq_rabbitmq/default_queue'

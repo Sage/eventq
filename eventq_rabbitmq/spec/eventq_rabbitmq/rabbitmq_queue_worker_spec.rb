@@ -9,8 +9,12 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   let(:channel) { connection.create_channel }
 
   after do
+    begin
     channel.close if channel.open?
-    connection.close
+    connection.close if connection.open?
+    rescue => e
+      EventQ.logger.error { "Timeout error occurred closing connection. Error: #{e}" }
+    end
   end
 
   describe '#deserialize_message' do
@@ -143,6 +147,8 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
         sleep(2)
 
+        subject.stop
+
         expect(received_count).to eq 1
       end
 
@@ -250,7 +256,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       expect(args.type).to eq(event_type)
       expect(args.content_type).to eq message.class.to_s
       expect(args.context).to eq message_context
-      puts "Message Received: #{event}"
+      EventQ.logger.debug { "Message Received: #{event}" }
     end
 
     sleep(1)
@@ -287,7 +293,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug { "Message Received: #{event}" }
         end
 
         sleep(1)
@@ -326,7 +332,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug { "Message Received: #{event}" }
         end
 
         sleep(0.5)
@@ -375,10 +381,10 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       expect(args.type).to eq(event_type)
 
       mutex.synchronize do
-        puts "Message Received: #{event}"
+        EventQ.logger.debug { "Message Received: #{event}" }
         message_count += 1
         add_to_received_list(received_messages)
-        puts 'message processed.'
+        EventQ.logger.debug { 'message processed.' }
         sleep 0.2
       end
     end
@@ -610,7 +616,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   def add_to_received_list(received_messages)
 
     thread_name = Thread.current.object_id
-    puts "[THREAD] #{thread_name}"
+    EventQ.logger.debug { "[THREAD] #{thread_name}" }
     thread = received_messages.select { |i| i[:thread] == thread_name }
 
     if thread.length > 0

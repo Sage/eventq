@@ -1,3 +1,5 @@
+require 'java'
+java_import java.util.concurrent.Executors
 module EventQ
   module RabbitMq
     class QueueWorker
@@ -37,23 +39,7 @@ module EventQ
           "[#{self.class} #start] - Listening for messages on queue: #{EventQ.create_queue_name(queue.name)}"
         end
 
-        @forks = []
-
-        if @fork_count > 1
-          @fork_count.times do
-            pid = fork do
-              start_process(options, queue, block)
-            end
-            @forks.push(pid)
-          end
-
-          if options.key?(:wait) && options[:wait] == true
-            @forks.each { |pid| Process.wait(pid) }
-          end
-
-        else
-          start_process(options, queue, block)
-        end
+        start_process(options, queue, block)
 
       end
 
@@ -77,17 +63,22 @@ module EventQ
         manager.durable = options[:durable]
         @connection = client.get_connection
 
-        @threads = []
+        @executor = java.util.concurrent.Executors::newFixedThreadPool @thread_count
 
         #loop through each thread count
         @thread_count.times do
-          thr = Thread.new do
+
+          @executor.execute do
 
             #begin the queue loop for this thread
             while true do
 
               #check if the worker is still allowed to run and break out of thread loop if not
               unless running?
+                break
+              end
+
+              if @executor.is_shutdown
                 break
               end
 
@@ -121,12 +112,11 @@ module EventQ
             end
 
           end
-          @threads.push(thr)
 
         end
 
         if options.key?(:wait) && options[:wait] == true
-          @threads.each { |thr| thr.join }
+          while running? do end
           @connection.close if @connection.open?
         end
 
@@ -192,15 +182,9 @@ module EventQ
       def stop
         EventQ.logger.info { "[#{self.class}] - Stopping..." }
         @is_running = false
-        Thread.list.each do |thread|
-          thread.exit unless thread == Thread.current
-        end
+        @executor.shutdown
         if @connection != nil
-          begin
-            @connection.close if @connection.open?
-          rescue Timeout::Error
-            EventQ.logger.error { 'Timeout occurred closing connection.' }
-          end
+          @connection.close if @connection.open?
         end
         return true
       end

@@ -4,6 +4,8 @@ require 'pry'
 
 require_relative '../lib/eventq_rabbitmq'
 
+EventQ.logger.level = Logger::ERROR
+
 RSpec.configure do |config|
 
   config.before(:each) do
