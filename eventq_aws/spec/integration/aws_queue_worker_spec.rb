@@ -27,13 +27,14 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   let(:event_type) { 'queue_worker_event1' }
   let(:event_type2) { 'queue_worker_event2' }
   let(:message) { 'Hello World' }
-  let(:message_context) { { foo: 'bar' } }
+  let(:message_context) { { 'foo' => 'bar' } }
 
   it 'should receive an event from the subscriber queue' do
     subscription_manager.subscribe(event_type, subscriber_queue)
     eventq_client.raise_event(event_type, message, message_context)
 
     received = false
+    context = nil
 
     #wait 1 second to allow the message to be sent and broadcast to the queue
     sleep(1)
@@ -41,9 +42,9 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
-      expect(args.context).to eq message_context
+      context = message_context
       received = true
-      puts "Message Received: #{event}"
+      EventQ.logger.debug {  "Message Received: #{event}" }
     end
 
     sleep(2)
@@ -51,6 +52,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     subject.stop
 
     expect(received).to eq(true)
+    expect(context).to eq message_context
 
     expect(subject.is_running).to eq(false)
   end
@@ -77,7 +79,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug {  "Message Received: #{event}" }
         end
 
         sleep(2)
@@ -108,7 +110,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug {  "Message Received: #{event}" }
         end
 
         sleep(2)
@@ -143,7 +145,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       received = true
       received_count += 1
       received_attribute = args.retry_attempts
-      puts "Message Received: #{event}"
+      EventQ.logger.debug {  "Message Received: #{event}" }
       if received_count != 2
         args.abort = true
       end
@@ -178,10 +180,10 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       expect(args).to be_a(EventQ::MessageArgs)
 
       mutex.synchronize do
-        puts "Message Received: #{event}"
+        EventQ.logger.debug {  "Message Received: #{event}" }
         message_count += 1
         add_to_received_list(received_messages)
-        puts 'message processed.'
+        EventQ.logger.debug {  'message processed.' }
       end
     end
 
@@ -250,7 +252,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   def add_to_received_list(received_messages)
 
     thread_name = Thread.current.object_id
-    puts "[THREAD] #{thread_name}"
+    EventQ.logger.debug {  "[THREAD] #{thread_name}" }
     thread = received_messages.detect { |i| i[:thread] == thread_name }
 
     if thread != nil

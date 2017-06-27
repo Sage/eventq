@@ -9,50 +9,56 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   let(:channel) { connection.create_channel }
 
   after do
-    channel.close
-    connection.close
+    begin
+    channel.close if channel.open?
+    connection.close if connection.open?
+    rescue => e
+      EventQ.logger.error { "Timeout error occurred closing connection. Error: #{e}" }
+    end
   end
 
   describe '#deserialize_message' do
-    context 'when serialization provider is OJ_PROVIDER' do
-      before do
-        EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
-      end
-      context 'when payload is for a known type' do
-        let(:a) do
-          A.new.tap do |a|
-            a.text = 'ABC'
+    unless RUBY_PLATFORM =~ /java/
+      context 'when serialization provider is OJ_PROVIDER' do
+        before do
+          EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+        end
+        context 'when payload is for a known type' do
+          let(:a) do
+            A.new.tap do |a|
+              a.text = 'ABC'
+            end
+          end
+          let(:payload) { Oj.dump(a) }
+          it 'should deserialize the message into an object of the known type' do
+            message = subject.deserialize_message(payload)
+            expect(message).to be_a(A)
+            expect(message.text).to eq('ABC')
           end
         end
-        let(:payload) { Oj.dump(a) }
-        it 'should deserialize the message into an object of the known type' do
-          message = subject.deserialize_message(payload)
-          expect(message).to be_a(A)
-          expect(message.text).to eq('ABC')
-        end
-      end
-      context 'when payload is for an unknown type' do
-        let(:a) do
-          A.new.tap do |a|
-            a.text = 'ABC'
+        context 'when payload is for an unknown type' do
+          let(:a) do
+            A.new.tap do |a|
+              a.text = 'ABC'
+            end
           end
-        end
-        let(:payload) do
-          string = Oj.dump(a)
-          JSON.load(string.sub('"^o":"A"', '"^o":"B"'))
-        end
-        let(:message) do
-          EventQ::QueueMessage.new.tap do |m|
-            m.content = payload
+          let(:payload) do
+            string = Oj.dump(a)
+            JSON.load(string.sub('"^o":"A"', '"^o":"B"'))
           end
-        end
-        let(:json) do
-          Oj.dump(message)
-        end
-        it 'should deserialize the message into a Hash' do
-          message = subject.deserialize_message(json)
-          expect(message.content).to be_a(Hash)
-          expect(message.content[:text]).to eq('ABC')
+          let(:message) do
+            EventQ::QueueMessage.new.tap do |m|
+              m.content = payload
+            end
+          end
+          let(:json) do
+            Oj.dump(message)
+          end
+          it 'should deserialize the message into a Hash' do
+            message = subject.deserialize_message(json)
+            expect(message.content).to be_a(Hash)
+            expect(message.content[:text]).to eq('ABC')
+          end
         end
       end
     end
@@ -74,8 +80,10 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         expect(message.content).to be_a(Hash)
         expect(message.content[:text]).to eq('ABC')
       end
-      after do
-        EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+      unless RUBY_PLATFORM =~ /java/
+        after do
+          EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+        end
       end
     end
   end
@@ -138,6 +146,8 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         end
 
         sleep(2)
+
+        subject.stop
 
         expect(received_count).to eq 1
       end
@@ -236,29 +246,24 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     subscription_manager.subscribe(event_type, subscriber_queue)
 
     message = 'Hello World'
-    message_context = { foo: 'bar' }
+    message_context = { 'foo' => 'bar' }
 
     eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message, message_context)
 
-    received = false
-
-    subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+    subject.start(subscriber_queue, {:sleep => 1, client: client, thread_count: 1 }) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
+      expect(args.content_type).to eq message.class.to_s
       expect(args.context).to eq message_context
-      received = true
-      puts "Message Received: #{event}"
+      EventQ.logger.debug { "Message Received: #{event}" }
     end
 
-    sleep(0.5)
-
-    expect(received).to eq(true)
+    sleep(1)
 
     subject.stop
 
     expect(subject.is_running).to eq(false)
-
   end
 
   context 'when queue requires a signature' do
@@ -288,10 +293,10 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug { "Message Received: #{event}" }
         end
 
-        sleep(0.5)
+        sleep(1)
 
         expect(received).to eq(true)
 
@@ -327,7 +332,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
-          puts "Message Received: #{event}"
+          EventQ.logger.debug { "Message Received: #{event}" }
         end
 
         sleep(0.5)
@@ -376,10 +381,10 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       expect(args.type).to eq(event_type)
 
       mutex.synchronize do
-        puts "Message Received: #{event}"
+        EventQ.logger.debug { "Message Received: #{event}" }
         message_count += 1
         add_to_received_list(received_messages)
-        puts 'message processed.'
+        EventQ.logger.debug { 'message processed.' }
         sleep 0.2
       end
     end
@@ -611,7 +616,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   def add_to_received_list(received_messages)
 
     thread_name = Thread.current.object_id
-    puts "[THREAD] #{thread_name}"
+    EventQ.logger.debug { "[THREAD] #{thread_name}" }
     thread = received_messages.select { |i| i[:thread] == thread_name }
 
     if thread.length > 0

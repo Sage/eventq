@@ -1,3 +1,5 @@
+require 'java'
+java_import java.util.concurrent.Executors
 module EventQ
   module Amazon
     class QueueWorker
@@ -9,8 +11,6 @@ module EventQ
       attr_accessor :is_running
 
       def initialize
-        @threads = []
-        @forks = []
         @is_running = false
 
         @on_retry_exceeded_block = nil
@@ -46,23 +46,7 @@ module EventQ
 
         EventQ.logger.info("[#{self.class}] - Listening for messages.")
 
-        @forks = []
-
-        if @fork_count > 1
-          @fork_count.times do
-            pid = fork do
-              start_process(options, queue, block)
-            end
-            @forks.push(pid)
-          end
-
-          if options.key?(:wait) && options[:wait] == true
-            @forks.each { |pid| Process.wait(pid) }
-          end
-
-        else
-          start_process(options, queue, block)
-        end
+        start_process(options, queue, block)
 
         return true
       end
@@ -77,11 +61,13 @@ module EventQ
         end
 
         @is_running = true
-        @threads = []
+
+        @executor = java.util.concurrent.Executors::newFixedThreadPool @thread_count
 
         #loop through each thread count
         @thread_count.times do
-          thr = Thread.new do
+
+          @executor.execute do
 
             client = options[:client]
             manager = EventQ::Amazon::QueueManager.new({ client: client })
@@ -90,7 +76,11 @@ module EventQ
             while true do
 
               #check if the worker is still allowed to run and break out of thread loop if not
-              if !@is_running
+              unless running?
+                break
+              end
+
+              if @executor.is_shutdown
                 break
               end
 
@@ -109,12 +99,11 @@ module EventQ
             end
 
           end
-          @threads.push(thr)
 
         end
 
         if options.key?(:wait) && options[:wait] == true
-          @threads.each { |thr| thr.join }
+          while running? do end
         end
 
       end
@@ -208,7 +197,7 @@ module EventQ
       def stop
         EventQ.logger.info("[#{self.class}] - Stopping.")
         @is_running = false
-        @threads.each { |thr| thr.join }
+        @executor.shutdown
         return true
       end
 
@@ -362,11 +351,6 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        @fork_count = 1
-        if options.key?(:fork_count)
-          @fork_count = options[:fork_count]
-        end
-
         if options.key?(:gc_flush_interval)
           @gc_flush_interval = options[:gc_flush_interval]
         end
@@ -375,7 +359,7 @@ module EventQ
           @queue_poll_wait = options[:queue_poll_wait]
         end
 
-        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep} | GC Flush Interval: #{@gc_flush_interval} | Queue Poll Wait: #{@queue_poll_wait}.")
+        EventQ.logger.info("[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep} | GC Flush Interval: #{@gc_flush_interval} | Queue Poll Wait: #{@queue_poll_wait}.")
 
         return true
 

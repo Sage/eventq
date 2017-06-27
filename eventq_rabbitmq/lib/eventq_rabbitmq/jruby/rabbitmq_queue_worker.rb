@@ -1,3 +1,5 @@
+require 'java'
+java_import java.util.concurrent.Executors
 module EventQ
   module RabbitMq
     class QueueWorker
@@ -6,8 +8,6 @@ module EventQ
       attr_accessor :is_running
 
       def initialize
-        @threads = []
-        @forks = []
         @is_running = false
 
         @retry_exceeded_block = nil
@@ -37,24 +37,9 @@ module EventQ
           "[#{self.class} #start] - Listening for messages on queue: #{EventQ.create_queue_name(queue.name)}"
         end
 
-        @forks = []
+        start_process(options, queue, block)
 
-        if @fork_count > 1
-          @fork_count.times do
-            pid = fork do
-              start_process(options, queue, block)
-            end
-            @forks.push(pid)
-          end
-
-          if options.key?(:wait) && options[:wait] == true
-            @forks.each { |pid| Process.wait(pid) }
-          end
-
-        else
-          start_process(options, queue, block)
-        end
-
+        return true
       end
 
       def start_process(options, queue, block)
@@ -77,17 +62,22 @@ module EventQ
         manager.durable = options[:durable]
         @connection = client.get_connection
 
-        @threads = []
+        @executor = java.util.concurrent.Executors::newFixedThreadPool @thread_count
 
         #loop through each thread count
         @thread_count.times do
-          thr = Thread.new do
+
+          @executor.execute do
 
             #begin the queue loop for this thread
             while true do
 
               #check if the worker is still allowed to run and break out of thread loop if not
               unless running?
+                break
+              end
+
+              if @executor.is_shutdown
                 break
               end
 
@@ -121,12 +111,11 @@ module EventQ
             end
 
           end
-          @threads.push(thr)
 
         end
 
         if options.key?(:wait) && options[:wait] == true
-          @threads.each { |thr| thr.join }
+          while running? do end
           @connection.close if @connection.open?
         end
 
@@ -192,15 +181,9 @@ module EventQ
       def stop
         EventQ.logger.info { "[#{self.class}] - Stopping..." }
         @is_running = false
-        Thread.list.each do |thread|
-          thread.exit unless thread == Thread.current
-        end
+        @executor.shutdown
         if @connection != nil
-          begin
-            @connection.close if @connection.open?
-          rescue Timeout::Error
-            EventQ.logger.error { 'Timeout occurred closing connection.' }
-          end
+          @connection.close if @connection.open?
         end
         return true
       end
@@ -319,17 +302,12 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        @fork_count = 1
-        if options.key?(:fork_count)
-          @fork_count = options[:fork_count]
-        end
-
         @gc_flush_interval = 10
         if options.key?(:gc_flush_interval)
           @gc_flush_interval = options[:gc_flush_interval]
         end
 
-        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        EventQ.logger.info("[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 

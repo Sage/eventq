@@ -3,6 +3,8 @@ module EventQ
     class JsonSerializationProvider
 
       def initialize
+        require 'class_kit'
+        require 'hash_kit'
         @class_kit_helper = ClassKit::Helper.new
         @hash_helper = HashKit::Helper.new
       end

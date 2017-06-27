@@ -24,23 +24,25 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
     end
   end
 
+  let(:class_kit) { ClassKit::Helper.new }
+
   let(:event_type) { 'test_queue1_event1' }
   let(:message) { 'Hello World' }
-  let(:message_context) { { foo: 'bar' } }
+  let(:message_context) { { 'foo' => 'bar' } }
 
   describe '#publish' do
     it 'should raise an event object and be broadcast to a subscriber queue' do
       subscription_manager.subscribe(event_type, subscriber_queue)
 
       id = eventq_client.publish(topic: event_type, event: message, context: message_context)
-      puts "Message ID: #{id}"
+      EventQ.logger.debug { "Message ID: #{id}" }
 
       #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
       sleep(1)
 
       q = queue_manager.get_queue(subscriber_queue)
 
-      puts '[QUEUE] waiting for message...'
+      EventQ.logger.debug {  '[QUEUE] waiting for message...' }
 
       #request a message from the queue
       response = queue_client.sqs.receive_message({
@@ -53,9 +55,10 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       expect(response.messages.length).to eq(1)
 
       msg = response.messages[0]
-      msg_body = Oj.load(msg.body)
-      payload = Oj.load(msg_body["Message"])
-      puts "[QUEUE] - received message: #{payload}"
+      msg_body = JSON.load(msg.body)
+      payload_hash = JSON.load(msg_body["Message"])
+      payload = class_kit.from_hash(hash: payload_hash, klass: EventQ::QueueMessage)
+      EventQ.logger.debug {  "[QUEUE] - received message: #{payload}" }
 
       #remove the message from the queue so that it does not get retried
       queue_client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
@@ -74,14 +77,14 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
         subscription_manager.subscribe(event_type, subscriber_queue)
 
         id = eventq_client.raise_event(event_type, message, message_context)
-        puts "Message ID: #{id}"
+        EventQ.logger.debug {  "Message ID: #{id}" }
 
         #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
         sleep(1)
 
         q = queue_manager.get_queue(subscriber_queue)
 
-        puts '[QUEUE] waiting for message...'
+        EventQ.logger.debug {  '[QUEUE] waiting for message...' }
 
         #request a message from the queue
         response = queue_client.sqs.receive_message({
@@ -94,9 +97,10 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
         expect(response.messages.length).to eq(1)
 
         msg = response.messages[0]
-        msg_body = Oj.load(msg.body)
-        payload = Oj.load(msg_body["Message"])
-        puts "[QUEUE] - received message: #{payload}"
+        msg_body = JSON.load(msg.body)
+        payload_hash = JSON.load(msg_body["Message"])
+        payload = class_kit.from_hash(hash: payload_hash, klass: EventQ::QueueMessage)
+        EventQ.logger.debug {  "[QUEUE] - received message: #{payload}" }
 
         #remove the message from the queue so that it does not get retried
         queue_client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
@@ -139,9 +143,9 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       queue_client.sqs.purge_queue(queue_url: queue_client.get_queue_url(queue))
 
       id = eventq_client.raise_event_in_queue(event_type, message, queue, delay_seconds)
-      puts "Message ID: #{id}"
+      EventQ.logger.debug {  "Message ID: #{id}" }
 
-      puts '[QUEUE] waiting for message...'
+      EventQ.logger.debug {  '[QUEUE] waiting for message...' }
 
       #request a message from the queue
       queue_url = queue_client.get_queue_url(queue)
@@ -166,14 +170,15 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       expect(response.messages.length).to eq(1)
 
       msg = response.messages[0]
-      msg_body = Oj.load(msg.body)
+      payload_hash = JSON.load(msg.body)
+      payload = class_kit.from_hash(hash: payload_hash, klass: EventQ::QueueMessage)
 
-      puts "[QUEUE] - received message: #{msg_body}"
+      EventQ.logger.debug {  "[QUEUE] - received message: #{msg_body}" }
 
       #remove the message from the queue so that it does not get retried
       queue_client.sqs.delete_message(queue_url: queue_url, receipt_handle: msg.receipt_handle)
 
-      expect(msg_body.content).to eq(message)
+      expect(payload.content).to eq(message)
     end
   end
 end

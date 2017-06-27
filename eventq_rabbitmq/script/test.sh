@@ -3,4 +3,5 @@
 echo start rspec tests
 docker-compose up -d
 
-docker exec -it gem_test_runner bash -c "cd gem_src && sleep 4 && bundle install && bundle exec rspec $*"
+docker exec -it testrunner bash -c "cd gem_src && sleep 4 && bundle install && bundle exec rspec $*" \
+&& docker exec -it testrunner_jruby bash -c "cd gem_src && rm -rf Gemfile.lock && jruby -S bundle install && jruby -S rspec $*"
