@@ -8,8 +8,6 @@ module EventQ
       attr_accessor :is_running
 
       def initialize
-        @threads = []
-        @forks = []
         @is_running = false
 
         @retry_exceeded_block = nil
@@ -41,6 +39,7 @@ module EventQ
 
         start_process(options, queue, block)
 
+        return true
       end
 
       def start_process(options, queue, block)
@@ -303,17 +302,12 @@ module EventQ
           @sleep = options[:sleep]
         end
 
-        @fork_count = 1
-        if options.key?(:fork_count)
-          @fork_count = options[:fork_count]
-        end
-
         @gc_flush_interval = 10
         if options.key?(:gc_flush_interval)
           @gc_flush_interval = options[:gc_flush_interval]
         end
 
-        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
+        EventQ.logger.info("[#{self.class}] - Configuring. Thread Count: #{@thread_count} | Interval Sleep: #{@sleep}.")
 
         return true
 

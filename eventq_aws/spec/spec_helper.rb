@@ -1,7 +1,6 @@
-require 'pry'
-require 'oj'
-require 'json'
 require_relative '../lib/eventq_aws'
+
+EventQ.logger.level = Logger::ERROR
 
 module EventQ
   def self.AWS_ACCOUNT_NUMBER

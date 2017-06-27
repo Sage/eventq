@@ -24,5 +24,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec'
 
   spec.add_dependency 'aws-sdk-core'
-  spec.add_dependency 'eventq_base', '~> 1.14'
+  spec.add_dependency 'eventq_base', '~> 1.15'
+
+  if RUBY_PLATFORM =~ /java/
+    spec.platform = 'java'
+  end
 end
