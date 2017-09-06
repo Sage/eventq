@@ -27,7 +27,7 @@ module EventQ
         connection.close
 
         EventQ.logger.debug do
-          "[#{self.class} #subscribe] - Subscribing queue: #{EventQ.create_queue_name(queue.name)} to Exchange: #{_event_type}"
+          "[#{self.class} #subscribe] - Subscribing queue: #{queue.name} to Exchange: #{_event_type}"
         end
 
         return true
