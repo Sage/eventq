@@ -170,7 +170,7 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       expect(response.messages.length).to eq(1)
 
       msg = response.messages[0]
-      payload_hash = JSON.load(msg.body)
+      payload_hash = JSON.load(JSON.load(msg.body)[EventQ::Amazon::QueueWorker::MESSAGE])
       payload = class_kit.from_hash(hash: payload_hash, klass: EventQ::QueueMessage)
 
       EventQ.logger.debug {  "[QUEUE] - received message: #{msg_body}" }

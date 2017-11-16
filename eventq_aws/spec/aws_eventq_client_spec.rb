@@ -58,9 +58,11 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
     it 'sends an event to SQS' do
       expect(queue_client.sqs).to receive(:send_message) do |options|
-        message_json = JSON.parse(options[:message_body])
-        expect(message_json['content']).to eql event
-        expect(message_json['type']).to eql event_type
+        outer_message_json = JSON.parse(options[:message_body])
+
+        inner_message_json = JSON.parse(outer_message_json[EventQ::Amazon::QueueWorker::MESSAGE])
+        expect(inner_message_json['content']).to eql event
+        expect(inner_message_json['type']).to eql event_type
 
         expect(options[:delay_seconds]).to eql delay_seconds
       end.and_return(result)
