@@ -63,7 +63,7 @@ module EventQ
 
           response = @client.sqs.send_message(
             queue_url: queue_url,
-            message_body: message,
+            message_body: sqs_message_body_for(message),
             delay_seconds: delay
           )
 
@@ -110,6 +110,10 @@ module EventQ
 
       def topic_arn(event_type)
         @client.get_topic_arn(event_type)
+      end
+
+      def sqs_message_body_for(payload_message)
+        JSON.dump(EventQ::Amazon::QueueWorker::MESSAGE => payload_message)
       end
     end
   end
