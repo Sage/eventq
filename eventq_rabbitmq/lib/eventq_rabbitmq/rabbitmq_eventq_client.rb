@@ -45,12 +45,12 @@ module EventQ
         with_connection do |channel|
           exchange = @queue_manager.get_exchange(channel, @event_raised_exchange)
 
-          message = serialized_message(_event_type, event, context)
+          message = serialized_message(event_type, event, context)
 
           exchange.publish(message, routing_key: _event_type)
 
           EventQ.logger.debug do
-            "[#{self.class}] - Raised event to Exchange: #{_event_type} | Message: #{message}."
+            "[#{self.class}] - Raised event to Exchange. Routing Key: #{_event_type} | Message: #{message}."
           end
         end
       end
@@ -73,12 +73,12 @@ module EventQ
           q = channel.queue(_queue_name, durable: @queue_manager.durable)
           q.bind(exchange, routing_key: _event_type)
 
-          message = serialized_message(_event_type, event, context)
+          message = serialized_message(event_type, event, context)
 
           delay_exchange.publish(message, routing_key: _event_type)
 
           EventQ.logger.debug do
-            "[#{self.class}] - Raised event to Exchange: #{_event_type} | Message: #{message} | Delay: #{delay}."
+            "[#{self.class}] - Raised event to Queue: #{_queue_name} | Message: #{message} | Delay: #{delay}."
           end
         end
       end
