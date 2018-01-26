@@ -2,14 +2,12 @@ module EventQ
   module SerializationProviders
     module JRuby
       module Oj
-        class TimeWriter < AttributeWriter
+        class ValueWriter < AttributeWriter
           def valid?(obj)
-            obj.is_a?(Time)
+            obj.is_a?(String) || obj.is_a?(Integer) || obj.is_a?(Float)
           end
           def exec(obj)
-            {
-              '^t': obj.to_f
-            }
+            obj
           end
         end
       end

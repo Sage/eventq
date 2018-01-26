@@ -2,9 +2,9 @@ module EventQ
   module SerializationProviders
     module JRuby
       module Oj
-        class DateWriter < ::AttributeWriter
+        class DateWriter < AttributeWriter
           def valid?(obj)
-            obj.is_a?(Date)
+            obj.is_a?(Date) && !obj.is_a?(DateTime)
           end
           def exec(obj)
             {

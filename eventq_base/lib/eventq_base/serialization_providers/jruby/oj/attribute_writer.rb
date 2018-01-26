@@ -5,7 +5,7 @@ module EventQ
         class AttributeWriter
 
           def self.exec(obj)
-            aw = descendants.detect { |a| a.new.valid?(obj) } || ::ClassWriter.new
+            aw = descendants.detect { |a| a.new.valid?(obj) } || ClassWriter
             aw.new.exec(obj)
           end
 
