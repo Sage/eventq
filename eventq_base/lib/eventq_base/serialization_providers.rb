@@ -2,6 +2,7 @@ require_relative 'serialization_providers/json_serialization_provider'
 unless RUBY_PLATFORM =~ /java/
   require_relative 'serialization_providers/oj_serialization_provider'
 end
+require_relative 'serialization_providers/jruby'
 require_relative 'serialization_providers/binary_serialization_provider'
 
 module EventQ
@@ -14,7 +15,9 @@ module EventQ
     class Manager
       def initialize
         @providers = {}
-        unless RUBY_PLATFORM =~ /java/
+        if RUBY_PLATFORM =~ /java/
+          @providers[OJ_PROVIDER] = EventQ::SerializationProviders::JRuby::OjSerializationProvider
+        else
           @providers[OJ_PROVIDER] = EventQ::SerializationProviders::OjSerializationProvider
         end
         @providers[JSON_PROVIDER] = EventQ::SerializationProviders::JsonSerializationProvider
@@ -23,7 +26,7 @@ module EventQ
 
       def get_provider(provider_type)
         provider = @providers[provider_type]
-        if provider == nil
+        if provider.nil?
           raise "Invalid provider type specified: #{provider_type}"
         end
         return provider.new
