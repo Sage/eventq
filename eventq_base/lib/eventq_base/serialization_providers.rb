@@ -16,7 +16,7 @@ module EventQ
       def initialize
         @providers = {}
         if RUBY_PLATFORM =~ /java/
-          @providers[OJ_PROVIDER] = EventQ::SerializationProviders::Jruby::OjSerializationProvider
+          @providers[OJ_PROVIDER] = EventQ::SerializationProviders::JRuby::OjSerializationProvider
         else
           @providers[OJ_PROVIDER] = EventQ::SerializationProviders::OjSerializationProvider
         end
@@ -26,7 +26,7 @@ module EventQ
 
       def get_provider(provider_type)
         provider = @providers[provider_type]
-        if provider == nil
+        if provider.nil?
           raise "Invalid provider type specified: #{provider_type}"
         end
         return provider.new
