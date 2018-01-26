@@ -1,6 +1,7 @@
 require_relative 'serialization_providers/json_serialization_provider'
 unless RUBY_PLATFORM =~ /java/
   require_relative 'serialization_providers/oj_serialization_provider'
+  require_relative 'serialization_providers/jruby/joj'
 end
 require_relative 'serialization_providers/binary_serialization_provider'
 
