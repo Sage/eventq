@@ -53,7 +53,6 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       require 'oj'
 
       it 'creates json that CRuby OJ can deserialize' do
-        binding.pry
         itm = Oj.load(json)
         expect(itm).to be_a(TestItem)
         expect(itm.string).to eq item3.string
@@ -62,6 +61,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
         expect(itm.date).to eq item3.date
         expect(itm.datetime).to eq item3.datetime
         expect(itm.time.to_f).to eq item3.time.to_f
+        expect(itm.true).to eq item3.true
+        expect(itm.false).to eq item3.false
         expect(itm.hash).to be_a(Hash)
         expect(itm.hash['string']).to eq hash1[:string]
         expect(itm.hash['time'].to_f).to eq hash1[:time].to_f
