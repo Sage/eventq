@@ -4,7 +4,7 @@ module EventQ
       module Oj
         class ValueWriter < AttributeWriter
           def valid?(obj)
-            obj.is_a?(String) || obj.is_a?(Integer) || obj.is_a?(Float)
+            obj.is_a?(String) || obj.is_a?(Integer) || obj.is_a?(Float) || obj.is_a?(TrueClass) || obj.is_a?(FalseClass)
           end
           def exec(obj)
             obj

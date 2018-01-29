@@ -15,6 +15,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
     end
   end
   let(:item2) do
@@ -25,6 +27,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
     end
   end
   let(:item3) do
@@ -35,6 +39,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
       e.hash = hash1.dup
       e.array_hash = [hash1.dup, hash2.dup]
       e.test_item = item1.dup
@@ -47,6 +53,7 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       require 'oj'
 
       it 'creates json that CRuby OJ can deserialize' do
+        binding.pry
         itm = Oj.load(json)
         expect(itm).to be_a(TestItem)
         expect(itm.string).to eq item3.string
