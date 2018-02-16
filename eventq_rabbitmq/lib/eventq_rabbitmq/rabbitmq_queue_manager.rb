@@ -50,7 +50,7 @@ module EventQ
 
       def get_queue_exchange(channel, queue)
         _exchange_name = EventQ.create_exchange_name(queue.name)
-        channel.direct("#{_exchange_name}.ex")
+        channel.fanout("#{_exchange_name}.ex")
       end
 
       def get_retry_exchange(channel, queue)
