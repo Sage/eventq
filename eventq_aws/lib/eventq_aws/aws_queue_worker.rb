@@ -260,8 +260,7 @@ module EventQ
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
-          EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")
-          client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+          EventQ.logger.info("[#{self.class}] - Duplicate Message received. Ignoring message.")
           return false
         end
 
