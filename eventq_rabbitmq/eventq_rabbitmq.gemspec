@@ -7,11 +7,11 @@ Gem::Specification.new do |spec|
   spec.name          = "eventq_rabbitmq"
   spec.version       = EventqRabbitmq::VERSION
   spec.authors       = ["vaughanbrittonsage"]
-  spec.email         = ["vaughanbritton@gmail.com"]
+  spec.email         = ["vaughan.britton@sage.com"]
 
   spec.summary       = 'This is the rabbitmq implementation for EventQ'
   spec.description   = 'This is the rabbitmq implementation for EventQ'
-  spec.homepage      = "https://github.com/vaughanbrittonsage/eventq"
+  spec.homepage      = "https://github.com/sage/eventq"
   spec.license       = "MIT"
 
   spec.files         = Dir.glob("{bin,lib}/**/**/**")

@@ -7,11 +7,11 @@ Gem::Specification.new do |spec|
   spec.name          = "eventq_base"
   spec.version       = EventqBase::VERSION
   spec.authors       = ["vaughanbrittonsage"]
-  spec.email         = ["vaughanbritton@gmail.com"]
+  spec.email         = ["vaughan.britton@sage.com"]
 
   spec.summary       = 'This gem contains the base classes and contracts required by any eventq implementations.'
   spec.description   = 'This gem contains the base classes and contracts required by any eventq implementations.'
-  spec.homepage      = "https://github.com/vaughanbrittonsage/eventq"
+  spec.homepage      = "https://github.com/sage/eventq"
   spec.license       = "MIT"
 
   spec.files         = Dir.glob("{bin,lib}/**/**/**")
