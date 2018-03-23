@@ -303,5 +303,8 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/sage/e
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+EventQ is available as open source under the terms of the
+[MIT licence](https://github.com/Sage/eventq/blob/master/LICENSE).
+
+Copyright (c) 2018 Sage Group Plc. All rights reserved.
 
