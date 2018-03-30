@@ -40,21 +40,18 @@ module EventQ
         @forks = []
 
         if @fork_count > 1
-          @fork_count.times do
-            pid = fork do
-              start_process(options, queue, block)
+          Thread.new do
+            @fork_count.times do
+              pid = fork do
+                start_process(options, queue, block)
+              end
+              @forks.push(pid)
             end
-            @forks.push(pid)
-          end
-
-          if options.key?(:wait) && options[:wait] == true
             @forks.each { |pid| Process.wait(pid) }
           end
-
         else
           start_process(options, queue, block)
         end
-
       end
 
       def start_process(options, queue, block)
@@ -101,7 +98,7 @@ module EventQ
           end
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if options.key?(:wait) && options[:wait] == true || options[:fork_count] > 1
           while running? do
             sleep 5
           end
