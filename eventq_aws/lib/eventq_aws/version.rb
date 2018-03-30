@@ -2,6 +2,6 @@
 
 module EventQ
   module Amazon
-    VERSION = "2.0.0"
+    VERSION = "1.16.1"
   end
 end

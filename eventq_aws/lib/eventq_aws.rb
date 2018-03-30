@@ -1,5 +1,4 @@
-require 'aws-sdk-sns'
-require 'aws-sdk-sqs'
+require 'aws-sdk-core'
 require 'eventq_base'
 
 require 'eventq_aws/version'
