@@ -69,7 +69,7 @@ module EventQ
         return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
       end
 
-      def keep_alive(connections: 15, interval: 1.5)
+      def keep_alive(connections: 5, interval: 1)
         connections.times do
           Thread.new do
             while true do

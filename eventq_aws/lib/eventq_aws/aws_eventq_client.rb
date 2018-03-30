@@ -79,7 +79,7 @@ module EventQ
         EventQ::QueueMessage.new
       end
 
-      def keep_alive(connections: 15, interval: 1.5)
+      def keep_alive(connections: 5, interval: 1)
         @client.keep_alive(connections: connections, interval: interval)
       end
 
