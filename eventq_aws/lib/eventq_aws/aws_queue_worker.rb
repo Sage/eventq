@@ -49,17 +49,15 @@ module EventQ
         @forks = []
 
         if @fork_count > 1
-          @fork_count.times do
-            pid = fork do
-              start_process(options, queue, block)
+          Thread.new do
+            @fork_count.times do
+              pid = fork do
+                start_process(options, queue, block)
+              end
+              @forks.push(pid)
             end
-            @forks.push(pid)
-          end
-
-          if options.key?(:wait) && options[:wait] == true
             @forks.each { |pid| Process.wait(pid) }
           end
-
         else
           start_process(options, queue, block)
         end
@@ -82,7 +80,6 @@ module EventQ
         #loop through each thread count
         @thread_count.times do
           thr = Thread.new do
-
             client = options[:client]
             manager = EventQ::Amazon::QueueManager.new({ client: client })
 
@@ -107,16 +104,13 @@ module EventQ
               end
 
             end
-
           end
           @threads.push(thr)
-
         end
 
-        if options.key?(:wait) && options[:wait] == true
+        if (options.key?(:wait) && options[:wait] == true) || (options.key?(:fork_count) && options[:fork_count] > 1)
           @threads.each { |thr| thr.join }
         end
-
       end
 
       def gc_flush
@@ -138,7 +132,7 @@ module EventQ
 
         begin
 
-          #request a message from the queue
+          # request a message from the queue
           response = client.sqs.receive_message({
                                                     queue_url: q,
                                                     max_number_of_messages: 1,
@@ -346,17 +340,16 @@ module EventQ
       end
 
       def configure(queue, options = {})
-
         @queue = queue
 
-        #default thread count
+        # default thread count
         @thread_count = 5
         if options.key?(:thread_count)
           @thread_count = options[:thread_count]
         end
 
-        #default sleep time in seconds
-        @sleep = 5
+        # default sleep time in seconds
+        @sleep = 0
         if options.key?(:sleep)
           @sleep = options[:sleep]
         end
@@ -370,6 +363,7 @@ module EventQ
           @gc_flush_interval = options[:gc_flush_interval]
         end
 
+        @queue_poll_wait = 15
         if options.key?(:queue_poll_wait)
           @queue_poll_wait = options[:queue_poll_wait]
         end
@@ -377,9 +371,7 @@ module EventQ
         EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep} | GC Flush Interval: #{@gc_flush_interval} | Queue Poll Wait: #{@queue_poll_wait}.")
 
         return true
-
       end
-
     end
   end
 end

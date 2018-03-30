@@ -7,8 +7,13 @@ testrunner:
   volumes:
     - ./container_loop.sh:/scripts/container_loop.sh
     - ../:/gem_src
-  env_file:
-    - ../../.aws.env
+  environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+      - AWS_ACCOUNT_NUMBER
+  #  env_file:
+  #    - ../../.aws.env
 
 testrunner_jruby:
   image: 522104923602.dkr.ecr.eu-west-1.amazonaws.com/sageone/jruby:20170623
@@ -19,8 +24,13 @@ testrunner_jruby:
   volumes:
     - ./container_loop.sh:/scripts/container_loop.sh
     - ../:/gem_src
-  env_file:
-    - ../../.aws.env
+  environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+      - AWS_ACCOUNT_NUMBER
+  #  env_file:
+  #    - ../../.aws.env
 
 redis:
   image: redis:alpine

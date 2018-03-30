@@ -36,10 +36,10 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     received = false
     context = nil
 
-    #wait 1 second to allow the message to be sent and broadcast to the queue
+    # wait 1 second to allow the message to be sent and broadcast to the queue
     sleep(1)
 
-    subject.start(subscriber_queue, {:sleep => 1, :thread_count => 1, client: queue_client }) do |event, args|
+    subject.start(subscriber_queue, {:thread_count => 1, client: queue_client }) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
       context = message_context
@@ -175,7 +175,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     mutex = Mutex.new
 
-    subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5, client: queue_client }) do |event, args|
+    subject.start(subscriber_queue, {:thread_count => 5, client: queue_client }) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
 
