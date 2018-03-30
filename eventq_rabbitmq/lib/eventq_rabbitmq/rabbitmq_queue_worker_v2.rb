@@ -98,7 +98,7 @@ module EventQ
           end
         end
 
-        if options.key?(:wait) && options[:wait] == true || options[:fork_count] > 1
+        if (options.key?(:wait) && options[:wait] == true) || (options.key?(:fork_count) && options[:fork_count] > 1)
           while running? do
             sleep 5
           end
