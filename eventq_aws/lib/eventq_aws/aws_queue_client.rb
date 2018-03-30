@@ -13,6 +13,9 @@ module EventQ
 
         @aws_account = options[:aws_account_number]
 
+        @sns_keep_alive_timeout = options[:sns_keep_alive_timeout] || 15
+        @sns_continue_timeout = options[:sns_continue_timeout] || 5
+
         if options.has_key?(:aws_region)
           @aws_region = options[:aws_region]
           Aws.config[:region] = @aws_region
@@ -28,7 +31,10 @@ module EventQ
 
       # Returns the AWS SNS Client
       def sns
-        @sns ||= Aws::SNS::Client.new
+        @sns ||= Aws::SNS::Client.new(
+          http_idle_timeout: @sns_keep_alive_timeout,
+          http_continue_timeout: @sns_continue_timeout
+        )
       end
 
       def get_topic_arn(event_type)
@@ -62,7 +68,6 @@ module EventQ
       def aws_safe_name(name)
         return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
       end
-
     end
   end
 end
