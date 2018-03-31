@@ -4,6 +4,8 @@ class TestItem
   attr_accessor :float
   attr_accessor :date
   attr_accessor :datetime
+  attr_accessor :true
+  attr_accessor :false
   attr_accessor :time
   attr_accessor :hash
   attr_accessor :array_hash

@@ -15,6 +15,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
     end
   end
   let(:item2) do
@@ -25,6 +27,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
     end
   end
   let(:item3) do
@@ -35,6 +39,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.date = Date.today
       e.datetime = DateTime.now
       e.time = Time.now
+      e.true = true
+      e.false = false
       e.hash = hash1.dup
       e.array_hash = [hash1.dup, hash2.dup]
       e.test_item = item1.dup
@@ -55,6 +61,8 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
         expect(itm.date).to eq item3.date
         expect(itm.datetime).to eq item3.datetime
         expect(itm.time.to_f).to eq item3.time.to_f
+        expect(itm.true).to eq item3.true
+        expect(itm.false).to eq item3.false
         expect(itm.hash).to be_a(Hash)
         expect(itm.hash['string']).to eq hash1[:string]
         expect(itm.hash['time'].to_f).to eq hash1[:time].to_f
