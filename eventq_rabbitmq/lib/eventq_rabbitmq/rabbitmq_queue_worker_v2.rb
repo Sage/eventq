@@ -65,7 +65,7 @@ module EventQ
           options[:durable] = true
         end
 
-        client = options[:client]
+        client = options[:client].dup
         manager = EventQ::RabbitMq::QueueManager.new
         manager.durable = options[:durable]
         @connection = client.get_connection
@@ -75,7 +75,7 @@ module EventQ
         q = manager.get_queue(channel, queue)
         retry_exchange = manager.get_retry_exchange(channel, queue)
 
-        q.subscribe(:manual_ack => true, :consumer_tag => SecureRandom.uuid) do |delivery_info, properties, payload|
+        q.subscribe(:manual_ack => true, :exclusive => false) do |delivery_info, properties, payload|
           begin
             tag_processing_thread
             process_message(payload, queue, channel, retry_exchange, delivery_info.delivery_tag, block)
