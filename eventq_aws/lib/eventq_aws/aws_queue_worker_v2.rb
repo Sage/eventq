@@ -1,6 +1,8 @@
+require 'aws-sdk'
+
 module EventQ
   module Amazon
-    class QueueWorker
+    class QueueWorkerV2
       include EventQ::WorkerId
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'.freeze
@@ -9,7 +11,6 @@ module EventQ
       attr_accessor :is_running
 
       def initialize
-        @threads = []
         @forks = []
         @is_running = false
 
@@ -20,9 +21,6 @@ module EventQ
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
         @signature_provider_manager = EventQ::SignatureProviders::Manager.new
-
-        @last_gc_flush = Time.now
-        @gc_flush_interval = 10
 
         @queue_poll_wait = 10
       end
@@ -75,89 +73,34 @@ module EventQ
         end
 
         @is_running = true
-        @threads = []
 
-        #loop through each thread count
-        @thread_count.times do
-          thr = Thread.new do
-            client = options[:client]
-            manager = EventQ::Amazon::QueueManager.new({ client: client })
+        Thread.new do
+          client = options[:client]
+          manager = EventQ::Amazon::QueueManager.new({ client: client })
 
-            #begin the queue loop for this thread
-            while true do
+          queue_url = manager.get_queue(queue)
+          poller = Aws::SQS::QueuePoller.new(queue_url, attribute_names: [APPROXIMATE_RECEIVE_COUNT])
 
-              #check if the worker is still allowed to run and break out of thread loop if not
-              if !@is_running
-                break
-              end
-
-              has_message_received = thread_process_iteration(client, manager, queue, block)
-
-              gc_flush
-
-              if !has_message_received
-                EventQ.logger.debug { "[#{self.class}] - No message received." }
-                if @sleep > 0
-                  EventQ.logger.debug { "[#{self.class}] - Sleeping for #{@sleep} seconds" }
-                  sleep(@sleep)
-                end
-              end
-
-            end
-          end
-          @threads.push(thr)
-        end
-
-        if (options.key?(:wait) && options[:wait] == true) || (options.key?(:fork_count) && options[:fork_count] > 1)
-          @threads.each { |thr| thr.join }
-        end
-      end
-
-      def gc_flush
-        if Time.now - last_gc_flush > @gc_flush_interval
-          GC.start
-          @last_gc_flush = Time.now
-        end
-      end
-
-      def last_gc_flush
-        @last_gc_flush
-      end
-
-      def thread_process_iteration(client, manager, queue, block)
-        #get the queue
-        q = manager.get_queue(queue)
-
-        received = false
-
-        begin
-
-          # request a message from the queue
-          response = client.sqs.receive_message({
-                                                    queue_url: q,
-                                                    max_number_of_messages: 1,
-                                                    wait_time_seconds: @queue_poll_wait,
-                                                    attribute_names: [APPROXIMATE_RECEIVE_COUNT]
-                                                })
-
-          #check that a message was received
-          if response.messages.length > 0
-            received = true
+          poller.poll(skip_delete: true) do |msg, stats|
             begin
               tag_processing_thread
-              process_message(response, client, queue, q, block)
+              process_message(msg, poller, queue, block)
+            rescue => e
+              EventQ.logger.error do
+                "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}"
+              end
+              call_on_error_block(error: e)
             ensure
               untag_processing_thread
             end
-
           end
-
-        rescue => e
-          EventQ.log(:error, "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
-          call_on_error_block(error: e)
         end
 
-        return received
+        if (options.key?(:wait) && options[:wait] == true) || (options.key?(:fork_count) && options[:fork_count] > 1)
+          while running? do
+            sleep 5
+          end
+        end
       end
 
       def call_on_error_block(error:, message: nil)
@@ -202,7 +145,6 @@ module EventQ
       def stop
         EventQ.logger.info("[#{self.class}] - Stopping.")
         @is_running = false
-        @threads.each { |thr| thr.join }
         return true
       end
 
@@ -236,11 +178,10 @@ module EventQ
 
       private
 
-      def process_message(response, client, queue, q, block)
-        msg = response.messages[0]
+      def process_message(msg, poller, queue, block)
         retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
 
-        #deserialize the message payload
+        # deserialize the message payload
         payload = JSON.load(msg.body)
         message = deserialize_message(payload[MESSAGE])
 
@@ -262,7 +203,7 @@ module EventQ
           return false
         end
 
-        #begin worker block for queue message
+        # begin worker block for queue message
         begin
 
           block.call(message.content, message_args)
@@ -270,8 +211,8 @@ module EventQ
           if message_args.abort == true
             EventQ.logger.info("[#{self.class}] - Message aborted.")
           else
-            #accept the message as processed
-            client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+            # accept the message as processed
+            poller.delete_message(msg)
             EventQ.logger.info("[#{self.class}] - Message acknowledged.")
           end
 
@@ -283,7 +224,7 @@ module EventQ
 
         if message_args.abort || error
           EventQ::NonceManager.failed(message.id)
-          reject_message(queue, client, msg, q, retry_attempts, message, message_args.abort)
+          reject_message(queue, poller, msg, retry_attempts, message, message_args.abort)
         else
           EventQ::NonceManager.complete(message.id)
         end
@@ -291,24 +232,18 @@ module EventQ
         return true
       end
 
-      def reject_message(queue, client, msg, q, retry_attempts, message, abort)
-
+      def reject_message(queue, poller, msg, retry_attempts, message, abort)
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
-
           EventQ.logger.info("[#{self.class}] - Message rejected removing from queue. Message: #{serialize_message(message)}")
 
-          #remove the message from the queue so that it does not get retried again
-          client.sqs.delete_message({ queue_url: q, receipt_handle: msg.receipt_handle })
+          # remove the message from the queue so that it does not get retried again
+          poller.delete_message(msg)
 
           if retry_attempts >= queue.max_retry_attempts
-
             EventQ.logger.info("[#{self.class}] - Message retry attempt limit exceeded.")
             call_on_retry_exceeded_block(message)
-
           end
-
         elsif queue.allow_retry
-
           retry_attempts += 1
 
           EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
@@ -331,14 +266,9 @@ module EventQ
           end
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}" }
-          client.sqs.change_message_visibility({
-                                               queue_url: q, # required
-                                               receipt_handle: msg.receipt_handle, # required
-                                               visibility_timeout: visibility_timeout.to_s, # required
-                                           })
+          poller.change_message_visibility_timeout(msg, visibility_timeout)
 
           call_on_retry_block(message)
-
         end
 
       end
@@ -346,16 +276,12 @@ module EventQ
       def configure(queue, options = {})
         @queue = queue
 
-        # default thread count
-        @thread_count = 5
         if options.key?(:thread_count)
-          @thread_count = options[:thread_count]
+          EventQ.logger.warn("[#{self.class}] - :thread_count is deprecated.")
         end
 
-        # default sleep time in seconds
-        @sleep = 0
         if options.key?(:sleep)
-          @sleep = options[:sleep]
+          EventQ.logger.warn("[#{self.class}] - :sleep is deprecated.")
         end
 
         @fork_count = 1
@@ -363,16 +289,7 @@ module EventQ
           @fork_count = options[:fork_count]
         end
 
-        if options.key?(:gc_flush_interval)
-          @gc_flush_interval = options[:gc_flush_interval]
-        end
-
-        @queue_poll_wait = 15
-        if options.key?(:queue_poll_wait)
-          @queue_poll_wait = options[:queue_poll_wait]
-        end
-
-        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | Interval Sleep: #{@sleep} | GC Flush Interval: #{@gc_flush_interval} | Queue Poll Wait: #{@queue_poll_wait}.")
+        EventQ.logger.info("[#{self.class}] - Configuring. Process Count: #{@fork_count}.")
 
         return true
       end

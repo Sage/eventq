@@ -37,14 +37,14 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       id = eventq_client.publish(topic: event_type, event: message, context: message_context)
       EventQ.logger.debug { "Message ID: #{id}" }
 
-      #sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
+      # sleep for 2 seconds to allow the aws message to be sent to the topic and broadcast to subscribers
       sleep(1)
 
       q = queue_manager.get_queue(subscriber_queue)
 
       EventQ.logger.debug {  '[QUEUE] waiting for message...' }
 
-      #request a message from the queue
+      # request a message from the queue
       response = queue_client.sqs.receive_message({
                                                       queue_url: q,
                                                       max_number_of_messages: 1,

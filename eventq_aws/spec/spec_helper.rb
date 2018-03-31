@@ -2,6 +2,8 @@ require_relative '../lib/eventq_aws'
 
 EventQ.logger.level = Logger::ERROR
 
+require 'pry'
+
 module EventQ
   def self.AWS_ACCOUNT_NUMBER
     ENV.fetch('AWS_ACCOUNT_NUMBER')
