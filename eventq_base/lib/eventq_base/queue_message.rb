@@ -13,7 +13,7 @@ module EventQ
 
     def initialize
       @retry_attempts = 0
-      @created = Time.now.to_i
+      @created = Time.now.to_f
       @id = SecureRandom.uuid
       @context = {}
     end
