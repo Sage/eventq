@@ -358,17 +358,19 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     mutex = Mutex.new
 
-    subject.start(subscriber_queue, {client: client}) do |event, args|
-      expect(event).to eq(message)
-      expect(args.type).to eq(event_type)
-
-      mutex.synchronize do
-        EventQ.logger.debug { "Message Received: #{event}" }
-        message_count += 1
-        add_to_received_list(received_messages)
-        EventQ.logger.debug { 'message processed.' }
-        sleep 0.2
-      end
+    subject.start(subscriber_queue, {fork_count: 5, client: client}) do |event, args|
+      sleep 0.1
+      puts "message received: #{Process.pid}"
+      # expect(event).to eq(message)
+      # expect(args.type).to eq(event_type)
+      #
+      # mutex.synchronize do
+      #   EventQ.logger.debug { "Message Received: #{event}" }
+      #   message_count += 1
+      #   add_to_received_list(received_messages)
+      #   EventQ.logger.debug { 'message processed.' }
+      #   sleep 0.2
+      # end
     end
 
     sleep(8)

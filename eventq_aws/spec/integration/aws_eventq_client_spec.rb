@@ -30,10 +30,6 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
   let(:message) { 'Hello World' }
   let(:message_context) { { 'foo' => 'bar' } }
 
-  before do
-    eventq_client.keep_alive
-  end
-
   describe '#publish' do
     it 'should raise an event object and be broadcast to a subscriber queue' do
       subscription_manager.subscribe(event_type, subscriber_queue)

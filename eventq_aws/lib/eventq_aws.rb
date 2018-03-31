@@ -12,6 +12,7 @@ if RUBY_PLATFORM =~ /java/
   require 'eventq_aws/jruby/aws_queue_worker'
 else
   require 'eventq_aws/aws_queue_worker'
+  require 'eventq_aws/aws_queue_worker_v2'
 end
 
 module EventQ

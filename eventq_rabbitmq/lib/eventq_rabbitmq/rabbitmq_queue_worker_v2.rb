@@ -6,7 +6,6 @@ module EventQ
       attr_accessor :is_running
 
       def initialize
-        @threads = []
         @forks = []
         @is_running = false
 
@@ -16,8 +15,6 @@ module EventQ
         @hash_helper = HashKit::Helper.new
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
         @signature_provider_manager = EventQ::SignatureProviders::Manager.new
-        @last_gc_flush = Time.now
-        @gc_flush_interval = 10
       end
 
       def start(queue, options = {}, &block)
@@ -73,28 +70,23 @@ module EventQ
         manager.durable = options[:durable]
         @connection = client.get_connection
 
-        @threads = []
+        channel = @connection.create_channel
 
-        # loop through each thread count
-        @thread_count.times do
-          channel = @connection.create_channel
+        q = manager.get_queue(channel, queue)
+        retry_exchange = manager.get_retry_exchange(channel, queue)
 
-          q = manager.get_queue(channel, queue)
-          retry_exchange = manager.get_retry_exchange(channel, queue)
-
-          q.subscribe(:manual_ack => true, :consumer_tag => SecureRandom.uuid) do |delivery_info, properties, payload|
-            begin
-              tag_processing_thread
-              process_message(payload, queue, channel, retry_exchange, delivery_info.delivery_tag, block)
-            rescue => e
-              EventQ.logger.error(
-                "[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | "\
+        q.subscribe(:manual_ack => true, :consumer_tag => SecureRandom.uuid) do |delivery_info, properties, payload|
+          begin
+            tag_processing_thread
+            process_message(payload, queue, channel, retry_exchange, delivery_info.delivery_tag, block)
+          rescue => e
+            EventQ.logger.error(
+              "[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | "\
 "Backtrace: #{e.backtrace}"
-              )
-              call_on_error_block(error: e)
-            ensure
-              untag_processing_thread
-            end
+            )
+            call_on_error_block(error: e)
+          ensure
+            untag_processing_thread
           end
         end
 
@@ -234,10 +226,12 @@ module EventQ
       def configure(queue, options = {})
         @queue = queue
 
-        # default thread count
-        @thread_count = 1
         if options.key?(:thread_count)
-          @thread_count = options[:thread_count]
+          EventQ.logger.warn("[#{self.class}] - :thread_count is deprecated.")
+        end
+
+        if options.key?(:sleep)
+          EventQ.logger.warn("[#{self.class}] - :sleep is deprecated.")
         end
 
         @fork_count = 1
@@ -246,8 +240,7 @@ module EventQ
         end
 
         EventQ.logger.info(
-          "[#{self.class}] - Configuring. Process Count: #{@fork_count} | Thread Count: #{@thread_count} | "\
-"Interval Sleep: #{@sleep}."
+          "[#{self.class}] - Configuring. Process Count: #{@fork_count}."
         )
 
         return true
@@ -264,10 +257,14 @@ module EventQ
 
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
-        message_args = EventQ::MessageArgs.new(type: message.type,
-                                               retry_attempts: message.retry_attempts,
-                                               context: message.context,
-                                               content_type: message.content_type)
+        message_args = EventQ::MessageArgs.new(
+          type: message.type,
+          retry_attempts: message.retry_attempts,
+          context: message.context,
+          content_type: message.content_type,
+          id: message.id,
+          sent: message.created
+        )
 
         if(!EventQ::NonceManager.is_allowed?(message.id))
           EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")

@@ -6,14 +6,18 @@ module EventQ
     attr_accessor :abort
     attr_accessor :drop
     attr_reader :context
+    attr_reader :id
+    attr_reader :sent
 
-    def initialize(type:, retry_attempts:, context: {}, content_type:)
+    def initialize(type:, retry_attempts:, context: {}, content_type:, id: nil, sent: nil)
       @type = type
       @retry_attempts = retry_attempts
       @abort = false
       @drop = false
       @context = context
       @content_type = content_type
+      @id = id
+      @sent = sent
     end
   end
 end

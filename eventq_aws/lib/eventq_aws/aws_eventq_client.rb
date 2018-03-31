@@ -79,10 +79,6 @@ module EventQ
         EventQ::QueueMessage.new
       end
 
-      def keep_alive(connections: 5, interval: 1)
-        @client.keep_alive(connections: connections, interval: interval)
-      end
-
       private
 
       def with_prepared_message(event_type, event, context)

@@ -68,28 +68,6 @@ module EventQ
       def aws_safe_name(name)
         return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
       end
-
-      def keep_alive(connections: 5, interval: 1)
-        connections.times do
-          Thread.new do
-            while true do
-              begin
-                Seahorse::Client::NetHttp::ConnectionPool.pools.each do |cp|
-                  pool = cp.instance_variable_get(:@pool)
-                  pool.each do |k,v|
-                    cp.session_for(URI(k)) do |session|
-                      session.request(Net::HTTP::Get.new('/'))
-                    end
-                  end
-                end
-              rescue
-                # swallow error and do nothing
-              end
-              sleep interval
-            end
-          end
-        end
-      end
     end
   end
 end
