@@ -7,7 +7,7 @@ module EventQ
     attr_accessor_type :type, type: String
     attr_accessor_type :content
     attr_accessor_type :content_type, type: String
-    attr_accessor_type :created, type: Time
+    attr_accessor_type :created, type: Float
     attr_accessor_type :signature, type: String
     attr_accessor_type :context, type: Hash
 
