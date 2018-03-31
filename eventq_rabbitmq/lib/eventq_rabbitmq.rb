@@ -14,6 +14,7 @@ if RUBY_PLATFORM =~ /java/
   require_relative '../lib/eventq_rabbitmq/jruby/rabbitmq_queue_worker'
 else
   require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_worker'
+  require_relative '../lib/eventq_rabbitmq/rabbitmq_queue_worker_v2'
 end
 
 require_relative '../lib/eventq_rabbitmq/rabbitmq_subscription_manager'
