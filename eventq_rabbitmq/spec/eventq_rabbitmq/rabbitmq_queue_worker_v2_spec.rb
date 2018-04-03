@@ -364,7 +364,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
       end
     end
 
-    sleep(8)
+    sleep(2)
 
     expect(message_count).to eq(10)
 

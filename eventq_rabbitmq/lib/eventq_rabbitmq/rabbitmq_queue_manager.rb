@@ -16,18 +16,18 @@ module EventQ
 
         _queue_name = EventQ.create_queue_name(queue.name)
 
-        #get/create the queue
+        # get/create the queue
         q = channel.queue(_queue_name, :durable => @durable)
+
+        subscriber_exchange = get_subscriber_exchange(channel, queue)
 
         if queue.allow_retry
           retry_exchange = get_retry_exchange(channel, queue)
-          subscriber_exchange = get_subscriber_exchange(channel, queue)
-
           retry_queue = get_retry_queue(channel, queue)
           retry_queue.bind(retry_exchange)
-
-          q.bind(subscriber_exchange)
         end
+
+        q.bind(subscriber_exchange)
 
         return q
       end

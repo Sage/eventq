@@ -71,11 +71,12 @@ module EventQ
         @connection = client.get_connection
 
         channel = @connection.create_channel
+        channel.prefetch(1)
 
         q = manager.get_queue(channel, queue)
         retry_exchange = manager.get_retry_exchange(channel, queue)
 
-        q.subscribe(:manual_ack => true, :exclusive => false) do |delivery_info, properties, payload|
+        q.subscribe(:manual_ack => true, :block => false, :exclusive => false) do |delivery_info, properties, payload|
           begin
             tag_processing_thread
             process_message(payload, queue, channel, retry_exchange, delivery_info.delivery_tag, block)
@@ -116,7 +117,7 @@ module EventQ
         EventQ.logger.info { "[#{self.class}] - Stopping..." }
         @is_running = false
 
-        if @connection != nil
+        unless @connection.nil?
           begin
             @connection.close if @connection.open?
           rescue Timeout::Error
