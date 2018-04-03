@@ -1,3 +1,4 @@
+require 'thread'
 module EventQ
   module RabbitMq
     # Implements a general interface to raise an event
@@ -16,8 +17,20 @@ module EventQ
         @serialization_manager = EventQ::SerializationProviders::Manager.new
         @signature_manager = EventQ::SignatureProviders::Manager.new
 
-        #this array is used to record known event types
+        # this array is used to record known event types
         @known_event_types = []
+
+        @connection_pool = ::Queue.new
+      end
+
+      def check_out_connection
+        @connection_pool.pop(true)
+      rescue
+        @client.get_connection
+      end
+
+      def check_in_connection(connection)
+        @connection_pool.push(connection)
       end
 
       def registered?(event_type)
@@ -90,7 +103,7 @@ module EventQ
       private
 
       def with_connection
-        connection = @client.get_connection
+        connection = check_out_connection
 
         begin
           channel = connection.create_channel
@@ -99,7 +112,7 @@ module EventQ
 
         ensure
           channel&.close if channel.open?
-          connection.close
+          check_in_connection(connection)
         end
 
         true
