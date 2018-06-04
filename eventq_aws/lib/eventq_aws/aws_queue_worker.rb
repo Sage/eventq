@@ -293,7 +293,7 @@ module EventQ
 
       def reject_message(queue, client, msg, q, retry_attempts, message, abort)
 
-        if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
+        if abort || !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
 
           EventQ.logger.info("[#{self.class}] - Message rejected removing from queue. Message: #{serialize_message(message)}")
 
