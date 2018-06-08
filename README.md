@@ -32,25 +32,29 @@ A subscription queue should be defined to receive any events raised for the subs
 
 **Attributes**
 
- - **name** [String] [Required] This is the name of the queue, it must be unique.
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
- - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue. 
- - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
  - **allow_retry_backoff** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff. 
+ - **dlq** [EventQ::Queue] [Optional] [Default=nil] A queue that will receive the messages which were not successfully processed after maximum number of receives by consumers. This is created at the same time as the parent queue.
+ - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
+ - **max_receive_count** [Int] [Optional] [Default=30] The maximum number of times that a message can be received by consumers. When this value is exceeded for a message the message will be automatically sent to the Dead Letter Queue.
  - **max_retry_delay** [Int] [Optional] This is used to specify the max retry delay that should apply when allowing incremental back off.
+ - **name** [String] [Required] This is the name of the queue, it must be unique.
  - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
+ - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue. 
 
 **Example**
 
-    #create a queue that allows retries and accepts a maximum of 3 retries with a 20 second delay between retries.
-    class DataChangeAddressQueue < Queue
-	    def initialize
-		    @name = 'Data.Change.Address'
-		    @allow_retry = true
-		    @retry_delay = 20000
-		    @max_retry_attempts = 3
-		end
-	end
+```ruby
+# Create a queue that allows retries and accepts a maximum of 3 retries with a 20 second delay between retries.
+class DataChangeAddressQueue < Queue
+  def initialize
+    @name = 'Data.Change.Address'
+    @allow_retry = true
+    @retry_delay = 20000
+    @max_retry_attempts = 3
+  end
+end
+```
 
 ### SubscriptionManager
 

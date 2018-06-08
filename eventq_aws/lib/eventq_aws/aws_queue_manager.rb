@@ -26,24 +26,19 @@ module EventQ
       end
 
       def get_queue(queue)
-
-        if queue_exists?(queue)
-          update_queue(queue)
-        else
-          create_queue(queue)
+        if queue.dlq
+          queue_exists?(queue.dlq) ? update_queue(queue.dlq) : create_queue(queue.dlq)
         end
 
+        queue_exists?(queue) ? update_queue(queue) : create_queue(queue)
       end
 
       def create_queue(queue)
         _queue_name = EventQ.create_queue_name(queue.name)
         response = @client.sqs.create_queue({
-                                                queue_name: _queue_name,
-                                                attributes: {
-                                                    VISIBILITY_TIMEOUT => @visibility_timeout.to_s,
-                                                    MESSAGE_RETENTION_PERIOD => @message_retention_period.to_s
-                                                }
-                                            })
+          queue_name: _queue_name,
+          attributes: queue_attributes(queue)
+        })
 
         return response.queue_url
       end
@@ -84,15 +79,25 @@ module EventQ
       def update_queue(queue)
         url = @client.get_queue_url(queue)
         @client.sqs.set_queue_attributes({
-                                             queue_url: url, # required
-                                              attributes: {
-                                                  VISIBILITY_TIMEOUT => @visibility_timeout.to_s,
-                                                  MESSAGE_RETENTION_PERIOD => @message_retention_period.to_s
-                                              }
-                                          })
+          queue_url: url, # required
+          attributes: queue_attributes(queue)
+        })
         return url
       end
 
+      def queue_attributes(queue)
+        attributes = {
+          VISIBILITY_TIMEOUT => @visibility_timeout.to_s,
+          MESSAGE_RETENTION_PERIOD => @message_retention_period.to_s
+        }
+
+        if queue.dlq
+          dlq_arn = @client.get_queue_arn(queue.dlq)
+          attributes['RedrivePolicy'] = %Q({"maxReceiveCount":"#{queue.max_receive_count}","deadLetterTargetArn":"#{dlq_arn}"})
+        end
+
+        attributes
+      end
     end
   end
 end
