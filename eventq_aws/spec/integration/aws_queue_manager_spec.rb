@@ -17,24 +17,58 @@ RSpec.describe EventQ::Amazon::QueueManager, integration: true do
         queue.allow_retry = true
         queue.max_retry_attempts = 5
         queue.retry_delay = 30
+        queue.dlq = dlq
       end
     end
 
+    let(:dlq) { nil }
+
     context 'when a queue does not exist' do
-      it 'should create the queue' do
+      it 'creates the queue' do
         queue_url = subject.get_queue(queue)
         expect(queue_url).not_to be_nil
       end
     end
 
     context 'when a queue already exists' do
-      it 'should update the the queue' do
+      it 'updates the queue' do
         queue_url = subject.create_queue(queue)
         expect(queue_url).not_to be_nil
 
         update_url = subject.get_queue(queue)
 
         expect(update_url).to eq(queue_url)
+      end
+    end
+
+    context 'when a queue has a dead letter queue' do
+      let(:dlq) do
+        EventQ::Queue.new.tap do |queue|
+          queue.name = SecureRandom.uuid.gsub('-','')
+          queue.allow_retry = true
+          queue.max_retry_attempts = 5
+          queue.retry_delay = 30
+        end
+      end
+
+      context 'and the dead letter queue does not exist' do
+        it 'creates the dead letter queue' do
+          expect(subject).to receive(:create_queue).with(dlq).and_call_original
+          expect(subject).to receive(:create_queue).with(queue).and_call_original
+          queue_url = subject.get_queue(queue)
+          expect(queue_url).not_to be_nil
+        end
+      end
+
+      context 'and the dead letter queue exists' do
+        it 'updates the dead letter queue' do
+          queue_url = subject.create_queue(dlq)
+          expect(queue_url).not_to be_nil
+
+          expect(subject).to receive(:update_queue).with(dlq).and_call_original
+          queue_url = subject.get_queue(queue)
+          expect(queue_url).not_to be_nil
+        end
       end
     end
   end
