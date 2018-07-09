@@ -6,25 +6,44 @@ EventQ is an event service bus framework for decoupling services and application
 
 Events are raised through the EventQ client and subscribers of the event types will be broadcast the event via a persistent queue for guaranteed delivery.
 
-EventQ has a base layer which allows different queue implementations to be created abstracting the specific queue implementation details away from your application code. (E.g RabbitMq / AWS SQS etc.)
+EventQ has a base layer which allows different queue implementations to be created abstracting the specific queue implementation details away from your application code.
+EventQ comes with two default adapter that support RabbitMq and AWS SNS/SQS
+
+[AWS README](./lib/eventq/eventq_aws/README.md)
+
+[RabbitMq README](./lib/eventq/eventq_rabbitmq/README.md)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'eventq_base'
+gem 'eventq'
 ```
 
 And then execute:
 
-    $ bundle
+    $ bundle install
 
 Or install it yourself as:
 
-    $ gem install eventq_base
+    $ gem install eventq
 
 ## Usage
+
+### Queue adapters
+There are two adapters built into EventQ.  One support AWS SNS/SQS and the other supports RabbitMq
+In order to use the appropriate adapter you simply need to require the necessary file.
+
+AWS
+```ruby
+require 'eventq/aws'
+```
+
+RabbitMq
+```ruby
+require 'eventq/rabbitmq'
+```
 
 ### Queue
 
@@ -311,4 +330,3 @@ EventQ is available as open source under the terms of the
 [MIT licence](https://github.com/Sage/eventq/blob/master/LICENSE).
 
 Copyright (c) 2018 Sage Group Plc. All rights reserved.
-

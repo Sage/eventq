@@ -1,0 +1,2 @@
+require_relative 'exceptions/invalid_signature_exception'
+require_relative 'exceptions/worker_thread_error'
