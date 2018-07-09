@@ -1,13 +1,29 @@
+# frozen_string_literal: true
+
 require 'pry'
-require_relative '../lib/eventq'
-require_relative '../lib/eventq/rabbitmq'
-require_relative '../lib/eventq/aws'
 
 module EventQ
   def self.AWS_ACCOUNT_NUMBER
     ENV.fetch('AWS_ACCOUNT_NUMBER')
   end
 end
+
+require 'simplecov'
+SimpleCov.start do
+  add_filter ['spec/']
+end
+puts 'required simplecov'
+require 'shoulda-matchers'
+
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+  end
+end
+
+require_relative '../lib/eventq'
+require_relative '../lib/eventq/rabbitmq'
+require_relative '../lib/eventq/aws'
 
 RSpec.configure do |config|
 

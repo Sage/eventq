@@ -6,15 +6,16 @@ gemspec
 
 gem 'json', '1.8.3'
 gem 'redlock'
-gem 'bunny'
 
 platforms :ruby do
   gem 'oj', '2.15.0'
   gem 'pry'
   gem 'openssl', '2.0.4'
+  gem 'bunny'
 end
 
 platforms :jruby do
   gem 'pry-debugger-jruby'
   gem 'jruby-openssl'
+  gem 'march_hare'
 end
