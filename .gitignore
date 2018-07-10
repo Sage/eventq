@@ -8,5 +8,5 @@
 /spec/reports/
 /tmp/
 
-.idea
+.idea/
 .aws.env
