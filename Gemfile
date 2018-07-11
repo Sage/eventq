@@ -9,9 +9,10 @@ gem 'redlock'
 
 platforms :ruby do
   gem 'oj', '2.16.1'
-  gem 'pry'
   gem 'openssl', '2.0.4'
   gem 'bunny'
+  gem 'pry-byebug'
+  gem 'byebug', '10.0.2'
 end
 
 platforms :jruby do
