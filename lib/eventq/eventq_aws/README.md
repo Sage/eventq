@@ -25,7 +25,9 @@ Run the setup script of eventq_aws to build the environment. This will create th
 
 ### Running the tests
 
-To run the full test suite, you need an AWS account. Put your credentials into the `.aws.env` file in the parent directory.
+By default, the full test suite will run against the mock AWS services defined in the docker-compose.yml file.
+
+If you want to run the tests with AWS directly, you will need an AWS account. Put your credentials into the `.aws.env` file in the parent directory.
 
     $ cp ../.aws.env.template ../.aws.env
     $ vi ../.aws.env

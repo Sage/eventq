@@ -41,6 +41,7 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
       e.array_test_item = [item1.dup, item2.dup]
     end
   end
+
   describe '#dump' do
     let(:json) { subject.dump(item3) }
     unless RUBY_PLATFORM =~ /java/
@@ -55,12 +56,12 @@ RSpec.describe EventQ::SerializationProviders::JRuby::Oj::Serializer do
         expect(itm.date).to eq item3.date
         expect(itm.datetime).to eq item3.datetime
 
-        # This fails because it is off by a ten of a millionth of a decimal. 1×10−7
-        # expect(itm.time.to_f.to_s).to eq item3.time.to_f.to_s
+        # Had to round to millionth otherwise off by a ten of a millionth of a decimal. 1×10−7
+        expect(itm.time.to_f.round(6)).to eq item3.time.to_f.round(6)
         expect(itm.hash).to be_a(Hash)
         expect(itm.hash['string']).to eq hash1[:string]
-        # This fails because it is off by a ten of a millionth of a decimal. 1×10−7
-        # expect(itm.hash['time'].to_f).to eq hash1[:time].to_f
+        # Had to round to millionth otherwise off by a ten of a millionth of a decimal. 1×10−7
+        expect(itm.hash['time'].to_f.round(6)).to eq hash1[:time].to_f.round(6)
         expect(itm.array_hash).to be_a(Array)
         expect(itm.array_hash.length).to eq 2
         expect(itm.test_item).to be_a(TestItem)

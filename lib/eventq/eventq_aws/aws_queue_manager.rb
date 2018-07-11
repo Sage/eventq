@@ -61,23 +61,21 @@ module EventQ
       end
 
       def topic_exists?(event_type)
-        topic_arn = @client.get_topic_arn(event_type)
-
-        begin
-        @client.sns.get_topic_attributes({ topic_arn: topic_arn })
-        rescue
-          return false
-        end
-        return true
+        _event_type = EventQ.create_event_type(event_type)
+        topics = @client.sns.list_topics
+        !!topics.topics.detect { |topic| topic.topic_arn.end_with?(_event_type) }
       end
 
       def queue_exists?(queue)
+        # _queue_name = EventQ.create_queue_name(queue.name)
+        # response = @client.sqs.list_queues
+        # !!response.queue_urls.detect { |queue| queue.end_with?(_queue_name) }
         _queue_name = EventQ.create_queue_name(queue.name)
         return @client.sqs.list_queues({ queue_name_prefix: _queue_name }).queue_urls.length > 0
       end
 
       def update_queue(queue)
-        url = @client.get_queue_url(queue)
+        url, _ = @client.get_queue_url(queue)
         @client.sqs.set_queue_attributes({
           queue_url: url, # required
           attributes: queue_attributes(queue)

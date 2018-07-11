@@ -32,7 +32,7 @@ Or install it yourself as:
 ## Usage
 
 ### Queue adapters
-There are two adapters built into EventQ.  One support AWS SNS/SQS and the other supports RabbitMq
+There are two adapters built into EventQ.  One supports AWS SNS/SQS and the other supports RabbitMq
 In order to use the appropriate adapter you simply need to require the necessary file.
 
 AWS

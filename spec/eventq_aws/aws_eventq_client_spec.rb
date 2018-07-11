@@ -2,13 +2,11 @@ require 'spec_helper'
 
 RSpec.describe EventQ::Amazon::EventQClient do
 
-  let(:aws_account_number) { '123456789012' }
-  let(:aws_region) { 'eu-west-1' }
   let(:event_type) { 'test_queue1_event1' }
   let(:event) { 'Hello World' }
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new(aws_account_number: aws_account_number, aws_region: aws_region)
+    EventQ::Amazon::QueueClient.new
   end
 
   subject { described_class.new(client: queue_client) }
@@ -20,7 +18,7 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
     it 'publishes an SNS event' do
       expect(queue_client.sns).to receive(:publish) do |options|
-        expect(options[:topic_arn]).to match %r{arn:aws:sns:#{aws_region}:#{aws_account_number}:#{event_type}}
+        # expect(options[:topic_arn]).to match %r{arn:aws:sns:#{aws_region}:#{aws_account_number}:#{event_type}}
 
         message_json = JSON.parse(options[:message])
         expect(message_json['content']).to eql event
@@ -50,10 +48,9 @@ RSpec.describe EventQ::Amazon::EventQClient do
       end
     end
     let(:delay_seconds) { 23 }
-    let(:aws_sqs_client) { Aws::SQS::Client.new(stub_responses: true) }
 
     before do
-      allow(queue_client).to receive(:sqs).and_return(aws_sqs_client)
+      queue_client.sqs.create_queue(queue_name: queue.name)
     end
 
     it 'sends an event to SQS' do

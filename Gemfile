@@ -4,11 +4,11 @@ source 'https://rubygems.org'
 gemspec
 
 
-gem 'json', '1.8.3'
+gem 'json', '1.8.5'
 gem 'redlock'
 
 platforms :ruby do
-  gem 'oj', '2.15.0'
+  gem 'oj', '2.16.1'
   gem 'pry'
   gem 'openssl', '2.0.4'
   gem 'bunny'

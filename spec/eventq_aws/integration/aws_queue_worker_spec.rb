@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
+    EventQ::Amazon::QueueClient.new
   end
 
   let(:queue_manager) do
@@ -24,8 +24,8 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     end
   end
 
-  let(:event_type) { 'queue_worker_event1' }
-  let(:event_type2) { 'queue_worker_event2' }
+  let(:event_type) { "queue_worker_event1_#{SecureRandom.hex(2)}" }
+  let(:event_type2) { "queue_worker_event2_#{SecureRandom.hex(2)}" }
   let(:message) { 'Hello World' }
   let(:message_context) { { 'foo' => 'bar' } }
 
@@ -50,9 +50,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     sleep(2)
 
     subject.stop
-
-    expect(subject.worker_pids)
-
     expect(received).to eq(true)
     expect(context).to eq message_context
 
@@ -136,7 +133,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     received = false
     received_count = 0
-    received_attribute = 0;
+    received_attribute = 0
 
     #wait 1 second to allow the message to be sent and broadcast to the queue
     sleep(1)

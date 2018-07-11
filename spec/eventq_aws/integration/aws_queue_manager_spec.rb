@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::QueueManager, integration: true do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
+    EventQ::Amazon::QueueClient.new
   end
 
   subject do
