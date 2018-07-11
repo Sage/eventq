@@ -10,7 +10,7 @@ services:
       - rabbitmq
     volumes:
       - ./container_loop.sh:/scripts/container_loop.sh
-      - ../:/gem_src
+      - ../:/src
     environment:
       - AWS_ACCESS_KEY_ID=mock_id
       - AWS_SECRET_ACCESS_KEY=mock_password

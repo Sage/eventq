@@ -140,7 +140,7 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
 
     xit 'should send a message to SQS with a delay' do
       queue_manager.create_queue(queue)
-      queue_client.sqs.purge_queue(queue_url: queue_client.get_queue_url(queue)[0])
+      queue_client.sqs.purge_queue(queue_url: queue_client.sqs_helper.get_queue_url(queue)[0])
 
       id = eventq_client.raise_event_in_queue(event_type, message, queue, delay_seconds)
       EventQ.logger.debug {  "Message ID: #{id}" }
@@ -148,7 +148,7 @@ RSpec.describe EventQ::Amazon::EventQClient, integration: true do
       EventQ.logger.debug {  '[QUEUE] waiting for message...' }
 
       #request a message from the queue
-      queue_url, _ = queue_client.get_queue_url(queue)
+      queue_url = queue_client.sqs_helper.get_queue_url(queue)
       response = queue_client.sqs.receive_message(
                                                       queue_url: queue_url,
                                                       max_number_of_messages: 1,

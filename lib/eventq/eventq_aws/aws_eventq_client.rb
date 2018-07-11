@@ -29,7 +29,7 @@ module EventQ
           return true
         end
 
-        @client.create_topic_arn(event_type)
+        @client.sns_helper.create_topic_arn(event_type)
         @known_event_types << event_type
         true
       end
@@ -42,8 +42,6 @@ module EventQ
         register_event(event_type)
 
         with_prepared_message(event_type, event, context) do |message|
-          # TODO: Would be nice to not have to make an API call to get the topic ARN.  Two calls for every publish.
-          # Should cache the ARN's into a mutex class variable collection.
           topic_arn = topic_arn(event_type)
           response = @client.sns.publish(
             topic_arn: topic_arn,
@@ -60,7 +58,7 @@ module EventQ
       end
 
       def raise_event_in_queue(event_type, event, queue, delay, context = {})
-        queue_url, _ = @client.get_queue_url(queue)
+        queue_url = @client.sqs_helper.get_queue_url(queue)
         with_prepared_message(event_type, event, context) do |message|
 
           response = @client.sqs.send_message(
@@ -111,7 +109,7 @@ module EventQ
       end
 
       def topic_arn(event_type)
-        @client.get_topic_arn(event_type)
+        @client.sns_helper.get_topic_arn(event_type)
       end
 
       def sqs_message_body_for(payload_message)

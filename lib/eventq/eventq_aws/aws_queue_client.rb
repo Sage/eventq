@@ -1,7 +1,8 @@
+# frozen_string_literal: true
+
 module EventQ
   module Amazon
     class QueueClient
-
       def initialize(options = {})
         invalid_keys = options.keys - [:sns_keep_alive_timeout, :sns_continue_timeout ]
         raise(OptionParser::InvalidOption, invalid_keys) unless invalid_keys.empty?
@@ -20,35 +21,12 @@ module EventQ
         @sns ||= sns_client
       end
 
-      def get_queue_arn(queue)
-        _, arn = get_queue_url(queue)
-        arn
+      def sqs_helper
+        @sqs_helper ||= Amazon::SQS.new(sqs)
       end
 
-      def create_topic_arn(event_type)
-        _event_type = EventQ.create_event_type(event_type)
-        response = sns.create_topic(name: aws_safe_name(_event_type))
-        return response.topic_arn
-      end
-      alias :get_topic_arn :create_topic_arn
-
-      # Returns the URL and ARN of the queue. The queue will be created when it does
-      #
-      # @param queue [EventQ::Queue]
-      # @return url,arn [Array]
-      def get_queue_url_arn(queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
-        response= sqs.get_queue_url(
-          queue_name: aws_safe_name(_queue_name)
-        )
-        result = sqs.get_queue_attributes({queue_url: response.queue_url, attribute_names: ['QueueArn']})
-
-        return response.queue_url, result.attributes['QueueArn']
-      end
-      alias :get_queue_url :get_queue_url_arn
-
-      def aws_safe_name(name)
-        return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
+      def sns_helper
+        @sns_helper ||= Amazon::SNS.new(sns)
       end
 
       private

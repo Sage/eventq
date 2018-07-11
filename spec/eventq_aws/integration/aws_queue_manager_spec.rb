@@ -80,7 +80,7 @@ RSpec.describe EventQ::Amazon::QueueManager, integration: true do
     context 'when a topic exists' do
       let(:event_type) { 'test-event' }
       before do
-        queue_client.create_topic_arn(event_type)
+        queue_client.sns_helper.create_topic_arn(event_type)
       end
       it 'should return true' do
         expect(subject.topic_exists?(event_type)).to be true

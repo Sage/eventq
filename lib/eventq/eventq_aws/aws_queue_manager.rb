@@ -1,27 +1,20 @@
+# frozen_string_literal: true
+
 module EventQ
   module Amazon
     class QueueManager
 
-      VISIBILITY_TIMEOUT = 'VisibilityTimeout'.freeze
-      MESSAGE_RETENTION_PERIOD = 'MessageRetentionPeriod'.freeze
+      VISIBILITY_TIMEOUT = 'VisibilityTimeout'
+      MESSAGE_RETENTION_PERIOD = 'MessageRetentionPeriod'
 
       def initialize(options)
-
-        if options[:client] == nil
-          raise ':client (QueueClient) must be specified.'.freeze
-        end
+        mandatory = [:client]
+        missing = mandatory - options.keys
+        raise "[#{self.class}] - Missing options #{missing} must be specified." unless missing.empty?
 
         @client = options[:client]
-
-        @visibility_timeout = 300 #5 minutes
-        if options.key?(:visibility_timeout)
-          @visibility_timeout = options[:visibility_timeout]
-        end
-
-        @message_retention_period = 1209600 #14 days (max aws value)
-        if options.key?(:message_retention_period)
-          @message_retention_period = options[:message_retention_period]
-        end
+        @visibility_timeout = options[:visibility_timeout] || 300 #5 minutes
+        @message_retention_period = options[:message_retention_period] || 1209600 #14 days (max aws value)
 
       end
 
@@ -34,53 +27,27 @@ module EventQ
       end
 
       def create_queue(queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
-        response = @client.sqs.create_queue({
-          queue_name: _queue_name,
-          attributes: queue_attributes(queue)
-        })
-
-        return response.queue_url
+        @client.sqs_helper.create_queue(queue, queue_attributes(queue))
       end
 
       def drop_queue(queue)
-
-        q = get_queue(queue)
-
-        @client.sqs.delete_queue({ queue_url: q})
-
-        return true
-
+        @client.sqs_helper.drop_queue(queue)
       end
 
       def drop_topic(event_type)
-        topic_arn = @client.get_topic_arn(event_type)
-        @client.sns.delete_topic({ topic_arn: topic_arn})
-
-        return true
+        @client.sns_helper.drop_topic(event_type)
       end
 
       def topic_exists?(event_type)
-        _event_type = EventQ.create_event_type(event_type)
-        topics = @client.sns.list_topics
-        !!topics.topics.detect { |topic| topic.topic_arn.end_with?(_event_type) }
+        !!@client.sns_helper.get_topic_arn(event_type)
       end
 
       def queue_exists?(queue)
-        # _queue_name = EventQ.create_queue_name(queue.name)
-        # response = @client.sqs.list_queues
-        # !!response.queue_urls.detect { |queue| queue.end_with?(_queue_name) }
-        _queue_name = EventQ.create_queue_name(queue.name)
-        return @client.sqs.list_queues({ queue_name_prefix: _queue_name }).queue_urls.length > 0
+        !!@client.sqs_helper.get_queue_url(queue)
       end
 
       def update_queue(queue)
-        url, _ = @client.get_queue_url(queue)
-        @client.sqs.set_queue_attributes({
-          queue_url: url, # required
-          attributes: queue_attributes(queue)
-        })
-        return url
+        @client.sqs_helper.update_queue(queue, queue_attributes(queue))
       end
 
       def queue_attributes(queue)
@@ -90,7 +57,7 @@ module EventQ
         }
 
         if queue.dlq
-          dlq_arn = @client.get_queue_arn(queue.dlq)
+          dlq_arn = @client.sqs_helper.get_queue_arn(queue.dlq)
           attributes['RedrivePolicy'] = %Q({"maxReceiveCount":"#{queue.max_receive_count}","deadLetterTargetArn":"#{dlq_arn}"})
         end
 

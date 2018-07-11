@@ -72,7 +72,7 @@ RSpec.describe EventQ::Amazon::EventQClient do
     let(:event_type) { 'event_type' }
     context 'when an event is NOT already registered' do
       it 'should register the event, create the topic and return true' do
-        expect(queue_client).to receive(:create_topic_arn).with(event_type).once
+        expect(queue_client.sns_helper).to receive(:create_topic_arn).with(event_type).once
         expect(subject.register_event(event_type)).to be true
         known_types = subject.instance_variable_get(:@known_event_types)
         expect(known_types.include?(event_type)).to be true
@@ -84,7 +84,7 @@ RSpec.describe EventQ::Amazon::EventQClient do
         known_types << event_type
       end
       it 'should return true' do
-        expect(queue_client).not_to receive(:create_topic_arn)
+        expect(queue_client.sns_helper).not_to receive(:create_topic_arn)
         expect(subject.register_event(event_type)).to be true
       end
     end
