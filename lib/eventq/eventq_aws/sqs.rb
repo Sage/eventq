@@ -21,7 +21,7 @@ module EventQ
         unless url
           response = sqs.create_queue(
             {
-              queue_name: _queue_name,
+              queue_name: aws_safe_name(_queue_name),
               attributes: attributes
             }
           )
@@ -56,7 +56,12 @@ module EventQ
         unless arn
           url = get_queue_url(queue)
           if url
-            response = sqs.get_queue_attributes({queue_url: url, attribute_names: ['QueueArn']})
+            response = sqs.get_queue_attributes(
+              {
+                queue_url: url,
+                attribute_names: ['QueueArn']
+              }
+            )
             arn = response.attributes['QueueArn']
           end
         end
@@ -79,7 +84,7 @@ module EventQ
             )
             url = response.queue_url
           rescue Aws::SQS::Errors::NonExistentQueue
-
+            # Only want to return nil for this method when not found.
           end
 
           @@queue_urls[_queue_name] = url if url
