@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::StatusChecker, integration: true do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
+    EventQ::Amazon::QueueClient.new
   end
 
   let(:queue_manager) do
@@ -41,7 +41,7 @@ RSpec.describe EventQ::Amazon::StatusChecker, integration: true do
     let(:event_type) { SecureRandom.uuid }
     context 'when an event_type can be connected to' do
       before do
-        queue_client.create_topic_arn(event_type)
+        queue_client.sns_helper.create_topic_arn(event_type)
       end
       it 'should return true' do
         expect(subject.event_type?(event_type)).to be true

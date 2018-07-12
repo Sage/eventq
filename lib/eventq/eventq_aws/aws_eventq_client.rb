@@ -29,7 +29,7 @@ module EventQ
           return true
         end
 
-        @client.create_topic_arn(event_type)
+        @client.sns_helper.create_topic_arn(event_type)
         @known_event_types << event_type
         true
       end
@@ -42,15 +42,15 @@ module EventQ
         register_event(event_type)
 
         with_prepared_message(event_type, event, context) do |message|
-
+          topic_arn = topic_arn(event_type)
           response = @client.sns.publish(
-            topic_arn: topic_arn(event_type),
+            topic_arn: topic_arn,
             message: message,
             subject: event_type
           )
 
           EventQ.logger.debug do
-            "[#{self.class} #raise_event] - Published to SNS with topic_arn: #{topic_arn(event_type)} | event_type: #{event_type} | Message: #{message}"
+            "[#{self.class} #raise_event] - Published to SNS with topic_arn: #{topic_arn} | event_type: #{event_type} | Message: #{message}"
           end
 
           response
@@ -58,7 +58,7 @@ module EventQ
       end
 
       def raise_event_in_queue(event_type, event, queue, delay, context = {})
-        queue_url = @client.get_queue_url(queue)
+        queue_url = @client.sqs_helper.get_queue_url(queue)
         with_prepared_message(event_type, event, context) do |message|
 
           response = @client.sqs.send_message(
@@ -109,7 +109,7 @@ module EventQ
       end
 
       def topic_arn(event_type)
-        @client.get_topic_arn(event_type)
+        @client.sns_helper.get_topic_arn(event_type)
       end
 
       def sqs_message_body_for(payload_message)

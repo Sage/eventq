@@ -2,12 +2,6 @@
 
 require 'pry'
 
-module EventQ
-  def self.AWS_ACCOUNT_NUMBER
-    ENV.fetch('AWS_ACCOUNT_NUMBER')
-  end
-end
-
 require 'simplecov'
 SimpleCov.start do
   add_filter ['spec/']

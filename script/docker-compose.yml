@@ -10,14 +10,15 @@ services:
       - rabbitmq
     volumes:
       - ./container_loop.sh:/scripts/container_loop.sh
-      - ../:/gem_src
-#    environment:
-#      - AWS_ACCESS_KEY_ID
-#      - AWS_SECRET_ACCESS_KEY
-#      - AWS_REGION
-#      - AWS_ACCOUNT_NUMBER
-    env_file:
-      - ../.aws.env
+      - ../:/src
+    environment:
+      - AWS_ACCESS_KEY_ID=mock_id
+      - AWS_SECRET_ACCESS_KEY=mock_password
+      - AWS_REGION=eu-west-1
+      - AWS_SQS_ENDPOINT=http://goaws:4576
+      - AWS_SNS_ENDPOINT=http://goaws:4575
+#    env_file:
+#      - ../.aws.env
 
   rabbitmq:
     image: rabbitmq:3.6.5
@@ -45,3 +46,17 @@ services:
     container_name: eventq_redis
     ports:
       - "6379:6379"
+#  goaws:
+#    image: pafortin/goaws
+#    container_name: goaws
+#    ports:
+#      - "4100:4100"
+  goaws:
+    image: localstack/localstack
+    container_name: goaws
+    environment:
+      - SERVICES=sqs:4576,sns:4575
+      - HOSTNAME=goaws
+      - HOSTNAME_EXTERNAL=goaws
+    ports:
+      - "8085:8080"

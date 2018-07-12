@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::QueueManager, integration: true do
 
   let(:queue_client) do
-    EventQ::Amazon::QueueClient.new({ aws_account_number: EventQ.AWS_ACCOUNT_NUMBER, aws_region: 'eu-west-1' })
+    EventQ::Amazon::QueueClient.new
   end
 
   subject do
@@ -80,7 +80,7 @@ RSpec.describe EventQ::Amazon::QueueManager, integration: true do
     context 'when a topic exists' do
       let(:event_type) { 'test-event' }
       before do
-        queue_client.create_topic_arn(event_type)
+        queue_client.sns_helper.create_topic_arn(event_type)
       end
       it 'should return true' do
         expect(subject.topic_exists?(event_type)).to be true
