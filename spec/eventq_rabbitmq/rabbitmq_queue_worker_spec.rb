@@ -2,10 +2,9 @@ require 'spec_helper'
 
 unless RUBY_PLATFORM =~ /java/
   RSpec.describe EventQ::RabbitMq::QueueWorker do
+    let(:queue_worker) { EventQ::QueueWorker.new }
 
-    let(:client) do
-      return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
-    end
+    let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
 
     let(:connection) { client.get_connection }
 
@@ -22,47 +21,47 @@ unless RUBY_PLATFORM =~ /java/
 
     describe '#deserialize_message' do
       context 'when serialization provider is OJ_PROVIDER' do
-          before do
-            EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
-          end
-          context 'when payload is for a known type' do
-            let(:a) do
-              A.new.tap do |a|
-                a.text = 'ABC'
-              end
-            end
-            let(:payload) { Oj.dump(a) }
-            it 'should deserialize the message into an object of the known type' do
-              message = subject.deserialize_message(payload)
-              expect(message).to be_a(A)
-              expect(message.text).to eq('ABC')
+        before do
+          EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::OJ_PROVIDER
+        end
+        context 'when payload is for a known type' do
+          let(:a) do
+            A.new.tap do |a|
+              a.text = 'ABC'
             end
           end
-          context 'when payload is for an unknown type' do
-            let(:a) do
-              A.new.tap do |a|
-                a.text = 'ABC'
-              end
-            end
-            let(:payload) do
-              string = Oj.dump(a)
-              JSON.load(string.sub('"^o":"A"', '"^o":"B"'))
-            end
-            let(:message) do
-              EventQ::QueueMessage.new.tap do |m|
-                m.content = payload
-              end
-            end
-            let(:json) do
-              Oj.dump(message)
-            end
-            it 'should deserialize the message into a Hash' do
-              message = subject.deserialize_message(json)
-              expect(message.content).to be_a(Hash)
-              expect(message.content[:text]).to eq('ABC')
-            end
+          let(:payload) { Oj.dump(a) }
+          it 'should deserialize the message into an object of the known type' do
+            message = subject.deserialize_message(payload)
+            expect(message).to be_a(A)
+            expect(message.text).to eq('ABC')
           end
         end
+        context 'when payload is for an unknown type' do
+          let(:a) do
+            A.new.tap do |a|
+              a.text = 'ABC'
+            end
+          end
+          let(:payload) do
+            string = Oj.dump(a)
+            JSON.load(string.sub('"^o":"A"', '"^o":"B"'))
+          end
+          let(:message) do
+            EventQ::QueueMessage.new.tap do |m|
+              m.content = payload
+            end
+          end
+          let(:json) do
+            Oj.dump(message)
+          end
+          it 'should deserialize the message into a Hash' do
+            message = subject.deserialize_message(json)
+            expect(message.content).to be_a(Hash)
+            expect(message.content[:text]).to eq('ABC')
+          end
+        end
+      end
       context 'when serialization provider is JSON_PROVIDER' do
         before do
           EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
@@ -92,16 +91,16 @@ unless RUBY_PLATFORM =~ /java/
     describe '#gc_flush' do
       context 'when the last gc_flush was made more than the gc_flush_interval length ago' do
         it 'should execute a GC flush' do
-          allow(subject).to receive(:last_gc_flush).and_return(Time.now - 15)
+          allow(queue_worker).to receive(:last_gc_flush).and_return(Time.now - 15)
           expect(GC).to receive(:start).once
-          subject.gc_flush
+          queue_worker.gc_flush
         end
       end
       context 'when the last gc_flush was made NOT more than the gc_flush_interval length ago' do
         it 'should NOT execute a GC flush' do
-          allow(subject).to receive(:last_gc_flush).and_return(Time.now - 5)
+          allow(queue_worker).to receive(:last_gc_flush).and_return(Time.now - 5)
           expect(GC).not_to receive(:start)
-          subject.gc_flush
+          queue_worker.gc_flush
         end
       end
     end
@@ -138,17 +137,17 @@ unless RUBY_PLATFORM =~ /java/
           eqclient.raise_event(event_type, message)
           eqclient.raise_event(event_type, message)
 
-          subject.configure(subscriber_queue, { sleep: 0 })
+          queue_worker.configure(sleep: 0)
 
           received_count = 0
 
-          subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+          queue_worker.start(subscriber_queue, { worker_adapter: subject, client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
             received_count += 1
           end
 
           sleep(2)
 
-          subject.stop
+          queue_worker.stop
 
           expect(received_count).to eq 1
         end
@@ -165,22 +164,22 @@ unless RUBY_PLATFORM =~ /java/
       context 'when a block is specified' do
         let(:block) { double }
         before do
-          subject.instance_variable_set(:@on_error_block, block)
+          queue_worker.instance_variable_set(:@on_error_block, block)
           allow(block).to receive(:call)
         end
         it 'should execute the block' do
           expect(block).to receive(:call).with(error, message).once
-          subject.call_on_error_block(error: error, message: message)
+          queue_worker.call_on_error_block(error: error, message: message)
         end
       end
       context 'when a block is NOT specified' do
         let(:block) { nil }
         before do
-          subject.instance_variable_set(:@on_error_block, block)
+          queue_worker.instance_variable_set(:@on_error_block, block)
         end
         it 'should NOT execute the block' do
           expect(block).not_to receive(:call)
-          subject.call_on_error_block(error: error, message: message)
+          queue_worker.call_on_error_block(error: error, message: message)
         end
       end
     end
@@ -252,7 +251,7 @@ unless RUBY_PLATFORM =~ /java/
       eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
       eqclient.raise_event(event_type, message, message_context)
 
-      subject.start(subscriber_queue, {:sleep => 1, client: client, thread_count: 1 }) do |event, args|
+      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client, thread_count: 1 }) do |event, args|
         expect(event).to eq(message)
         expect(args.type).to eq(event_type)
         expect(args.content_type).to eq message.class.to_s
@@ -262,7 +261,7 @@ unless RUBY_PLATFORM =~ /java/
 
       sleep(1)
 
-      subject.stop
+      queue_worker.stop
 
       expect(subject.is_running).to eq(false)
     end
@@ -290,7 +289,7 @@ unless RUBY_PLATFORM =~ /java/
 
           received = false
 
-          subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
             expect(event).to eq(message)
             expect(args.type).to eq(event_type)
             received = true
@@ -301,7 +300,7 @@ unless RUBY_PLATFORM =~ /java/
 
           expect(received).to eq(true)
 
-          subject.stop
+          queue_worker.stop
 
           expect(subject.is_running).to eq(false)
 
@@ -329,7 +328,7 @@ unless RUBY_PLATFORM =~ /java/
 
           received = false
 
-          subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
             expect(event).to eq(message)
             expect(args.type).to eq(event_type)
             received = true
@@ -340,7 +339,7 @@ unless RUBY_PLATFORM =~ /java/
 
           expect(received).to eq(false)
 
-          subject.stop
+          queue_worker.stop
 
           expect(subject.is_running).to eq(false)
 
@@ -377,7 +376,7 @@ unless RUBY_PLATFORM =~ /java/
 
       mutex = Mutex.new
 
-      subject.start(subscriber_queue, {:sleep => 0.5, :thread_count => 5, client: client}) do |event, args|
+      queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, :sleep => 0.5, :thread_count => 5, client: client) do |event, args|
         expect(event).to eq(message)
         expect(args.type).to eq(event_type)
 
@@ -400,7 +399,7 @@ unless RUBY_PLATFORM =~ /java/
       expect(received_messages[3][:events]).to eq(2)
       expect(received_messages[4][:events]).to eq(2)
 
-      subject.stop
+      queue_worker.stop
 
       expect(subject.is_running).to eq(false)
 
@@ -429,7 +428,7 @@ unless RUBY_PLATFORM =~ /java/
 
       retry_attempt_count = 0
 
-      subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
 
         if args.retry_attempts == 0
           raise 'Fail on purpose to send event to retry queue.'
@@ -443,7 +442,7 @@ unless RUBY_PLATFORM =~ /java/
 
       expect(retry_attempt_count).to eq(1)
 
-      subject.stop
+      queue_worker.stop
 
       expect(subject.is_running).to eq(false)
 
@@ -476,11 +475,9 @@ unless RUBY_PLATFORM =~ /java/
 
         retry_attempt_count = 0
 
-        subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
-
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
-
         end
 
         sleep(0.8)
@@ -499,7 +496,7 @@ unless RUBY_PLATFORM =~ /java/
 
         expect(retry_attempt_count).to eq(4)
 
-        subject.stop
+        queue_worker.stop
 
         expect(subject.is_running).to eq(false)
 
@@ -537,7 +534,7 @@ unless RUBY_PLATFORM =~ /java/
           failed_message = message
         end
 
-        subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
@@ -551,7 +548,7 @@ unless RUBY_PLATFORM =~ /java/
         expect(failed_message.retry_attempts).to eq(1)
         expect(failed_message.type).to eq(event_type)
 
-        subject.stop
+        queue_worker.stop
 
         expect(subject.is_running).to eq(false)
 
@@ -589,7 +586,7 @@ unless RUBY_PLATFORM =~ /java/
           is_abort = abort
         end
 
-        subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
@@ -598,7 +595,7 @@ unless RUBY_PLATFORM =~ /java/
 
         sleep(1)
 
-        subject.stop
+        queue_worker.stop
 
         expect(retry_attempt_count).to eq(1)
         expect(failed_message.content).to eq(message)
