@@ -6,7 +6,6 @@ module EventQ
       MESSAGE_RETENTION_PERIOD = 'MessageRetentionPeriod'.freeze
 
       def initialize(options)
-
         if options[:client] == nil
           raise ':client (QueueClient) must be specified.'.freeze
         end
@@ -22,7 +21,6 @@ module EventQ
         if options.key?(:message_retention_period)
           @message_retention_period = options[:message_retention_period]
         end
-
       end
 
       def get_queue(queue)
@@ -40,24 +38,22 @@ module EventQ
           attributes: queue_attributes(queue)
         })
 
-        return response.queue_url
+        response.queue_url
       end
 
       def drop_queue(queue)
-
         q = get_queue(queue)
 
         @client.sqs.delete_queue({ queue_url: q})
 
-        return true
-
+        true
       end
 
       def drop_topic(event_type)
         topic_arn = @client.get_topic_arn(event_type)
         @client.sns.delete_topic({ topic_arn: topic_arn})
 
-        return true
+        true
       end
 
       def topic_exists?(event_type)
@@ -68,12 +64,15 @@ module EventQ
         rescue
           return false
         end
-        return true
+
+        true
       end
 
       def queue_exists?(queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
-        return @client.sqs.list_queues({ queue_name_prefix: _queue_name }).queue_urls.length > 0
+        @client.get_queue_url(queue)
+        true
+      rescue Aws::SQS::Errors::NonExistentQueue
+        false
       end
 
       def update_queue(queue)
@@ -82,7 +81,8 @@ module EventQ
           queue_url: url, # required
           attributes: queue_attributes(queue)
         })
-        return url
+
+        url
       end
 
       def queue_attributes(queue)
