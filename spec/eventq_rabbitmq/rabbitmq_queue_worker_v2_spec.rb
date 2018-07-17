@@ -1,10 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
-
-  let(:client) do
-    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
-  end
+  let(:queue_worker) { EventQ::QueueWorker.new }
+  
+  let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
 
   let(:connection) { client.get_connection }
 
@@ -122,17 +121,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         eqclient.raise_event(event_type, message)
         eqclient.raise_event(event_type, message)
 
-        subject.configure(subscriber_queue, { sleep: 0 })
+        subject.configure(sleep: 1)
 
         received_count = 0
 
-        subject.start(subscriber_queue, { client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
           received_count += 1
         end
 
         sleep(2)
 
-        subject.stop
+        queue_worker.stop
 
         expect(received_count).to eq 1
       end
@@ -149,22 +148,22 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
     context 'when a block is specified' do
       let(:block) { double }
       before do
-        subject.instance_variable_set(:@on_error_block, block)
+        queue_worker.instance_variable_set(:@on_error_block, block)
         allow(block).to receive(:call)
       end
       it 'should execute the block' do
         expect(block).to receive(:call).with(error, message).once
-        subject.call_on_error_block(error: error, message: message)
+        queue_worker.call_on_error_block(error: error, message: message)
       end
     end
     context 'when a block is NOT specified' do
       let(:block) { nil }
       before do
-        subject.instance_variable_set(:@on_error_block, block)
+        queue_worker.instance_variable_set(:@on_error_block, block)
       end
       it 'should NOT execute the block' do
         expect(block).not_to receive(:call)
-        subject.call_on_error_block(error: error, message: message)
+        queue_worker.call_on_error_block(error: error, message: message)
       end
     end
   end
@@ -235,7 +234,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
     eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
     eqclient.raise_event(event_type, message, message_context)
 
-    subject.start(subscriber_queue, {:sleep => 1, client: client, thread_count: 1 }) do |event, args|
+    queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client, thread_count: 1 }) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
       expect(args.content_type).to eq message.class.to_s
@@ -245,16 +244,18 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     sleep(1)
 
-    subject.stop
+    queue_worker.stop
 
     expect(subject.is_running).to eq(false)
   end
 
   context 'when queue requires a signature' do
     let(:secret) { 'secret' }
+
     before do
       EventQ::Configuration.signature_secret = secret
     end
+
     context 'and the received message contains a valid signature' do
       it 'should process the message' do
 
@@ -272,8 +273,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         eqclient.raise_event(event_type, message)
 
         received = false
-
-        subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+        queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
@@ -284,12 +284,13 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
         expect(received).to eq(true)
 
-        subject.stop
+        queue_worker.stop
 
         expect(subject.is_running).to eq(false)
 
       end
     end
+
     context 'and the received message contains an invalid signature' do
       it 'should NOT process the message' do
 
@@ -312,7 +313,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
         received = false
 
-        subject.start(subscriber_queue, {:sleep => 1, client: client}) do |event, args|
+        queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
           expect(event).to eq(message)
           expect(args.type).to eq(event_type)
           received = true
@@ -323,7 +324,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
         expect(received).to eq(false)
 
-        subject.stop
+        queue_worker.stop
 
         expect(subject.is_running).to eq(false)
 
@@ -353,7 +354,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     mutex = Mutex.new
 
-    subject.start(subscriber_queue, {client: client.dup}) do |event, args|
+    queue_worker.start(subscriber_queue, {worker_adapter: subject, thread_count: 1, client: client.dup}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
 
@@ -364,13 +365,17 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         EventQ.logger.debug { 'message processed.' }
         sleep 0.2
       end
+
+      if message_count == 10
+        # pausing to kick a delayed event
+        sleep(1)
+        eqclient.raise_event(event_type, message)
+        sleep(5)
+        queue_worker.stop
+      end
     end
 
-    sleep(2)
-
-    expect(message_count).to eq(10)
-
-    subject.stop
+    expect(message_count).to eq(11)
 
     expect(subject.is_running).to eq(false)
 
@@ -399,7 +404,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     retry_attempt_count = 0
 
-    subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+    queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
 
       if args.retry_attempts == 0
         raise 'Fail on purpose to send event to retry queue.'
@@ -413,7 +418,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     expect(retry_attempt_count).to eq(1)
 
-    subject.stop
+    queue_worker.stop
 
     expect(subject.is_running).to eq(false)
 
@@ -446,7 +451,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
       retry_attempt_count = 0
 
-      subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+      queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
 
         retry_attempt_count = args.retry_attempts
         raise 'Fail on purpose to send event to retry queue.'
@@ -469,7 +474,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
       expect(retry_attempt_count).to eq(4)
 
-      subject.stop
+      queue_worker.stop
 
       expect(subject.is_running).to eq(false)
 
@@ -507,7 +512,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         failed_message = message
       end
 
-      subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+      queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
         retry_attempt_count = args.retry_attempts
         raise 'Fail on purpose to send event to retry queue.'
@@ -521,7 +526,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
       expect(failed_message.retry_attempts).to eq(1)
       expect(failed_message.type).to eq(event_type)
 
-      subject.stop
+      queue_worker.stop
 
       expect(subject.is_running).to eq(false)
 
@@ -559,7 +564,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         is_abort = abort
       end
 
-      subject.start(subscriber_queue, { :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+      queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
         retry_attempt_count = args.retry_attempts
         raise 'Fail on purpose to send event to retry queue.'
@@ -568,7 +573,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
       sleep(1)
 
-      subject.stop
+      queue_worker.stop
 
       expect(retry_attempt_count).to eq(1)
       expect(failed_message.content).to eq(message)
