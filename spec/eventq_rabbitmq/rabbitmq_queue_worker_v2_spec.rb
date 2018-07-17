@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
+RSpec.describe EventQ::RabbitMq::QueueWorker do
   let(:queue_worker) { EventQ::QueueWorker.new }
   
   let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
@@ -354,7 +354,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
 
     mutex = Mutex.new
 
-    queue_worker.start(subscriber_queue, {worker_adapter: subject, thread_count: 1, client: client.dup}) do |event, args|
+    queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, thread_count: 1, client: client.dup}) do |event, args|
       expect(event).to eq(message)
       expect(args.type).to eq(event_type)
 
@@ -363,17 +363,16 @@ RSpec.describe EventQ::RabbitMq::QueueWorkerV2 do
         message_count += 1
         add_to_received_list(received_messages)
         EventQ.logger.debug { 'message processed.' }
-        sleep 0.2
-      end
-
-      if message_count == 10
-        # pausing to kick a delayed event
-        sleep(1)
-        eqclient.raise_event(event_type, message)
-        sleep(5)
-        queue_worker.stop
+        sleep 0.1
       end
     end
+
+    sleep(5)
+    expect(message_count).to eq(10)
+
+    eqclient.raise_event(event_type, message)
+    sleep(2)
+    queue_worker.stop
 
     expect(message_count).to eq(11)
 

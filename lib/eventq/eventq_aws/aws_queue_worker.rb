@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'aws-sdk'
+
 module EventQ
   module Amazon
     class QueueWorker
@@ -15,52 +17,37 @@ module EventQ
         @signature_provider_manager = EventQ::SignatureProviders::Manager.new
       end
 
-
-
       def pre_process(context, options)
         # don't do anything specific to set up the process before threads are fired off.
       end
 
       def thread_process_iteration(queue, options, block)
         client = options[:client]
-
-        unless options[:manager]
-          manager = EventQ::Amazon::QueueManager.new({ client: client })
-        end
+        manager = options[:manager] || EventQ::Amazon::QueueManager.new({ client: client })
 
         # get the queue
         queue_url = manager.get_queue(queue)
+        poller = Aws::SQS::QueuePoller.new(queue_url, attribute_names: [APPROXIMATE_RECEIVE_COUNT])
 
-        received = false
-        begin
-          # request a message from the queue
-          response = client.sqs.receive_message(
-              {
-                  queue_url: queue_url,
-                  max_number_of_messages: 1,
-                  wait_time_seconds: @queue_poll_wait,
-                  attribute_names: [APPROXIMATE_RECEIVE_COUNT]
-              })
+        # Polling will block indefinitely unless we force it to stop
+        poller.before_request do |stats|
+          throw :stop_polling unless context.running?
+        end
 
-          # check that a message was received
+        poller.poll(skip_delete: true, wait_time_seconds: options[:queue_poll_wait]) do |msg, stats|
           begin
             tag_processing_thread
-            response.messages.each do |msg|
-              received = true
-              process_message(msg, client, queue, block)
+            process_message(msg, poller, queue, block)
+          rescue => e
+            EventQ.logger.error do
+              "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}"
             end
+            context.call_on_error_block(error: e)
           ensure
             untag_processing_thread
           end
-        rescue => e
-          EventQ.log(:error, "[#{self.class}] - An unhandled error occurred. Error: #{e} | Backtrace: #{e.backtrace}")
-          call_on_error_block(error: e)
         end
-
-        received
       end
-
-      def stop; end
 
       def deserialize_message(payload)
         provider = @serialization_provider_manager.get_provider(EventQ::Configuration.serialization_provider)
@@ -73,16 +60,15 @@ module EventQ
       end
 
       def configure(options = {})
-        @queue_poll_wait = options[:queue_poll_wait] || 15
+        options[:queue_poll_wait] ||= 10
 
-        EventQ.logger.info("[#{self.class}] - Configuring. Queue Poll Wait: #{@queue_poll_wait}")
+        EventQ.logger.info("[#{self.class}] - Configuring. Queue Poll Wait: #{options[:queue_poll_wait]}")
       end
 
       private
 
-      def process_message(msg, client, queue, block)
+      def process_message(msg, poller, queue, block)
         retry_attempts = msg.attributes[APPROXIMATE_RECEIVE_COUNT].to_i - 1
-        queue_url = client.sqs_helper.get_queue_url(queue)
 
         # deserialize the message payload
         payload = JSON.load(msg.body)
@@ -114,7 +100,7 @@ module EventQ
             EventQ.logger.info("[#{self.class}] - Message aborted.")
           else
             # accept the message as processed
-            client.sqs.delete_message({ queue_url: queue_url, receipt_handle: msg.receipt_handle })
+            poller.delete_message(msg)
             EventQ.logger.info("[#{self.class}] - Message acknowledged.")
           end
 
@@ -126,28 +112,20 @@ module EventQ
 
         if message_args.abort || error
           EventQ::NonceManager.failed(message.id)
-          reject_message(queue, client, msg, retry_attempts, message_args.abort)
+          reject_message(queue, poller, msg, retry_attempts, message, message_args.abort)
         else
           EventQ::NonceManager.complete(message.id)
         end
 
-        return true
+        true
       end
 
-      def reject_message(queue, client, msg, retry_attempts, abort)
-        queue_url = client.sqs_helper.get_queue_url(queue)
-
-        # deserialize the message payload
-        payload = JSON.load(msg.body)
-        message = deserialize_message(payload[MESSAGE])
-
+      def reject_message(queue, poller, msg, retry_attempts, message, abort)
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
-          EventQ.logger.info("[#{self.class}] - Message rejected removing from queue. Message: #{payload[MESSAGE]}")
+          EventQ.logger.info("[#{self.class}] - Message rejected removing from queue. Message: #{serialize_message(message)}")
 
           # remove the message from the queue so that it does not get retried again
-          client.sqs.delete_message({ queue_url: queue_url, receipt_handle: msg.receipt_handle })
-          # Preferable way is to use the sqs poller
-          # poller.delete_message(msg)
+          poller.delete_message(msg)
 
           if retry_attempts >= queue.max_retry_attempts
             EventQ.logger.info("[#{self.class}] - Message retry attempt limit exceeded.")
@@ -158,7 +136,7 @@ module EventQ
 
           EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
 
-          if queue.allow_retry_back_off
+          if queue.allow_retry_back_off == true
             EventQ.logger.debug { "[#{self.class}] - Calculating message back off retry delay. Attempts: #{retry_attempts} * Delay: #{queue.retry_delay}" }
             visibility_timeout = (queue.retry_delay * retry_attempts) / 1000
             if visibility_timeout > (queue.max_retry_delay / 1000)
@@ -176,16 +154,10 @@ module EventQ
           end
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}" }
-          client.sqs.change_message_visibility({
-                                                   queue_url: queue_url, # required
-                                                   receipt_handle: msg.receipt_handle, # required
-                                                   visibility_timeout: visibility_timeout.to_s, # required
-                                               })
+          poller.change_message_visibility_timeout(msg, visibility_timeout)
 
           context.call_on_retry_block(message)
-
         end
-
       end
     end
   end

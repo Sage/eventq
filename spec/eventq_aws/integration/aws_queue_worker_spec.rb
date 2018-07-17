@@ -31,6 +31,44 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   let(:message) { 'Hello World' }
   let(:message_context) { { 'foo' => 'bar' } }
 
+  describe 'block_process option' do
+    let(:filename) { 'process_file.txt' }
+
+    before do
+      File.delete(filename) if File.exist?(filename)
+    end
+
+    context 'when the option `block_process` is true' do
+      it 'blocks calling process' do
+        fork do
+          queue_worker.start(subscriber_queue,
+                             worker_adapter: subject,
+                             client: queue_client,
+                             block_process: true) { |event, args| }
+          File.new(filename, 'w')
+        end
+        sleep 2
+        expect(File.exist?(filename)).to eq false
+        queue_worker.stop
+      end
+    end
+
+    context 'when the option `block_process` is false' do
+      it 'does not block the calling process' do
+        fork do
+          queue_worker.start(subscriber_queue,
+                             worker_adapter: subject,
+                             client: queue_client,
+                             block_process: false) { |event, args| }
+          File.new(filename, 'w')
+        end
+        sleep 2
+        expect(File.exist?(filename)).to eq true
+        queue_worker.stop
+      end
+    end
+  end
+
   it 'should receive an event from the subscriber queue' do
     subscription_manager.subscribe(event_type, subscriber_queue)
     eventq_client.raise_event(event_type, message, message_context)

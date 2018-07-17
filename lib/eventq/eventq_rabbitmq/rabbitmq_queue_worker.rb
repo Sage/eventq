@@ -19,57 +19,38 @@ module EventQ
         options[:connection] = connection
       end
 
+      # This method should not be called iteratively and will sit in a loop
+      # The reason is because this uses a push notification from the subscribe mechanism to trigger the
+      # block and will exit if you do not block.
       def thread_process_iteration(queue, options, block)
-        manager = options[:manager]# || EventQ::RabbitMq::QueueManager.new
-        manager.durable = options[:durable]
-        channel = (options[:connection] || options[:client].get_connection).create_channel
+        manager = options[:manager]
+        channel = options[:connection].create_channel
+        channel.prefetch(1)
 
-        # get the queue
         q = manager.get_queue(channel, queue)
         retry_exchange = manager.get_retry_exchange(channel, queue)
-        received = false
 
-        begin
-          delivery_info, payload = manager.pop_message(queue: q)
-
-          #check that message was received
-          if payload != nil
-            received = true
-            begin
-              tag_processing_thread
-              process_message(payload, queue, channel, retry_exchange, delivery_info, block)
-            ensure
-              untag_processing_thread
-            end
-
+        q.subscribe(:manual_ack => true, :block => false, :exclusive => false) do |delivery_info, properties, payload|
+          begin
+            tag_processing_thread
+            process_message(payload, queue, channel, retry_exchange, delivery_info.delivery_tag, block)
+          rescue => e
+            EventQ.logger.error(
+                "[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | "\
+"Backtrace: #{e.backtrace}"
+            )
+            context.call_on_error_block(error: e)
+          ensure
+            untag_processing_thread
           end
-
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - An error occurred attempting to process a message. Error: #{e} | Backtrace: #{e.backtrace}")
-          context.call_on_error_block(error: e)
         end
+
+        # we don't want to stop the subscribe process as it will not block.
+        sleep 5 while context.running?
 
         if channel != nil && channel.open?
           channel.close
         end
-
-        return received
-      end
-
-      def stop
-        EventQ.logger.info { "[#{self.class}] - Stopping..." }
-        @is_running = false
-        if @connection != nil
-          begin
-            @connection.close if @connection.open?
-          rescue Timeout::Error
-            EventQ.logger.error { 'Timeout occurred closing connection.' }
-          end
-        end
-      end
-
-      def running?
-        return @is_running
       end
 
       def deserialize_message(payload)

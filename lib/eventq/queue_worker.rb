@@ -33,6 +33,16 @@ module EventQ
       queue_name = EventQ.create_queue_name(queue.name)
       EventQ.logger.info("[#{self.class}] - Listening for messages on queue: #{queue_name}}")
 
+      # Allow the worker to be started on a thread or on the main process.
+      # Using the thread won't block the parent process, whereas starting on the main process will.
+      if @block_process
+        start_worker(block, options, queue)
+      else
+        Thread.new { start_worker(block, options, queue) }
+      end
+    end
+
+    def start_worker(block, options, queue)
       if @fork_count > 0
         @fork_count.times do
           fork do
@@ -44,8 +54,6 @@ module EventQ
       else
         start_process(options, queue, block)
       end
-
-      true
     end
 
     def start_process(options, queue, block)
@@ -83,24 +91,7 @@ module EventQ
     end
 
     def start_thread(queue, options, block)
-      if worker_adapter.is_a?(EventQ::RabbitMq::QueueWorkerV2)
-        worker_adapter.thread_process_iteration(queue, options, block)
-      else
-        # begin the queue loop for this thread
-        while @is_running do
-          # has_message_received = thread_process_iteration(client, manager, queue, block)
-          has_message_received = worker_adapter.thread_process_iteration(queue, options, block)
-          gc_flush
-
-          if has_message_received == false
-            EventQ.logger.debug { "[#{self.class}] - No message received." }
-            if @sleep > 0
-              EventQ.logger.debug { "[#{self.class}] - Sleeping for #{@sleep} seconds" }
-              sleep(@sleep)
-            end
-          end
-        end
-      end
+      worker_adapter.thread_process_iteration(queue, options, block)
     rescue Exception => e # rubocop:disable Lint/RescueException
       EventQ.logger.error(e)
       call_on_error_block(error: e, message: e.message)
@@ -110,8 +101,7 @@ module EventQ
     def stop
       EventQ.logger.info("[#{self.class}] - Stopping.")
       @is_running = false
-      worker_adapter.stop
-      # worker_status.threads.each { |thr| thr.thread.join }
+      worker_status.threads.each { |thr| thr.thread.join }
     end
 
     def running?
@@ -161,9 +151,12 @@ module EventQ
         @gc_flush_interval = options[:gc_flush_interval]
       end
 
-      @queue_poll_wait = 15
-      if options.key?(:queue_poll_wait)
-        @queue_poll_wait = options[:queue_poll_wait]
+      # The default is to block the process where the worker starts.
+      # You may not want it to block if an application needs to run multiple things at the same time.
+      # Example:  Running a background worker and a web service on the same application.
+      @block_process = true
+      if options.key?(:block_process)
+        @block_process = options[:block_process]
       end
 
       message_list = [
@@ -171,63 +164,49 @@ module EventQ
           "Thread Count: #{@thread_count}",
           "Interval Sleep: #{@sleep}",
           "GC Flush Interval: #{@gc_flush_interval}",
-          "Queue Poll Wait: #{@queue_poll_wait}"
+          "Block worker: #{@block_worker}"
       ]
       EventQ.logger.info("[#{self.class}] - Configuring. #{message_list.join(' | ')}")
     end
 
-    def call_on_error_block(error:, message: nil)
-      if @on_error_block
-        EventQ.logger.debug { "[#{self.class}] - Executing on_error block." }
-        begin
-          @on_error_block.call(error, message)
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - An error occurred executing the on_error block. Error: #{e}")
-        end
-      else
-        EventQ.logger.debug { "[#{self.class}] - No on_error block specified to execute." }
-      end
-    end
-
-    def call_on_retry_exceeded_block(message)
-      if @on_retry_exceeded_block != nil
-        EventQ.logger.debug { "[#{self.class}] - Executing on_retry_exceeded block." }
-        begin
-          @on_retry_exceeded_block.call(message)
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - An error occurred executing the on_retry_exceeded block. Error: #{e}")
-        end
-      else
-        EventQ.logger.debug { "[#{self.class}] - No on_retry_exceeded block specified." }
-      end
-    end
-
-    def call_on_retry_block(message)
-      if @on_retry_block
-        EventQ.logger.debug { "[#{self.class}] - Executing on_retry block." }
-        begin
-          @on_retry_block.call(message, abort)
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - An error occurred executing the on_retry block. Error: #{e}")
-        end
-      else
-        EventQ.logger.debug { "[#{self.class}] - No on_retry block specified." }
-      end
-    end
-
-    private
-
     def on_retry_exceeded(&block)
-      @retry_exceeded_block = block
+      @on_retry_exceeded_block = block
     end
 
     def on_retry(&block)
       @on_retry_block = block
-      return nil
     end
 
     def on_error(&block)
       @on_error_block = block
+    end
+
+    def call_on_error_block(error:, message: nil)
+      call_block(:on_error_block, error, message)
+    end
+
+    def call_on_retry_exceeded_block(message)
+      call_block(:on_retry_exceeded_block, message)
+    end
+
+    def call_on_retry_block(message)
+      call_block(:on_retry_block, message)
+    end
+
+    private
+
+    def call_block(block_name, *args)
+      block_variable = "@#{block_name}"
+      if instance_variable_get(block_variable)
+        EventQ.logger.debug { "[#{self.class}] - Executing #{block_variable}." }
+        begin
+          instance_variable_get(block_variable).call(*args)
+        rescue => e
+          EventQ.logger.error("[#{self.class}] - An error occurred executing the #{block_variable}. Error: #{e}")
+        end
+      else
+        EventQ.logger.debug { "[#{self.class}] - No #{block_variable} specified." }
+      end
     end
 
     def track_process(pid)
