@@ -69,6 +69,44 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     end
   end
 
+  describe '#worker_status' do
+    after do
+      queue_worker.stop
+    end
+
+    context 'when defining a number of forks' do
+      it 'keeps track of the PIDS' do
+        queue_worker.start(subscriber_queue,
+                           fork_count: 3,
+                           worker_adapter: subject,
+                           client: queue_client,
+                           block_process: false) { |event, args|
+        }
+
+        sleep 4
+        expect(queue_worker.worker_status.processes.count).to eq 3
+        expect(queue_worker.worker_status.processes.map(&:pid)).to_not include Process.pid
+        expect(queue_worker.worker_status.threads.count).to eq 3
+      end
+    end
+
+    context 'when no forks are defined' do
+      it 'tracks against the owning process PID' do
+        queue_worker.start(subscriber_queue,
+                           fork_count: 0,
+                           worker_adapter: subject,
+                           client: queue_client,
+                           block_process: false) { |event, args|
+        }
+
+        sleep 4
+        expect(queue_worker.worker_status.processes.count).to eq 1
+        expect(queue_worker.worker_status.processes[0].pid).to eq Process.pid
+        expect(queue_worker.worker_status.threads.count).to eq 1
+      end
+    end
+  end
+
   it 'should receive an event from the subscriber queue' do
     subscription_manager.subscribe(event_type, subscriber_queue)
     eventq_client.raise_event(event_type, message, message_context)

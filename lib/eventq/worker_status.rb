@@ -31,6 +31,8 @@ module EventQ
   end
 
   class WorkerThread
+    # This could be a string or a Thread object.
+    # When spawning forked workers, threads cannot be marshalled back to another process.
     attr_reader :thread
 
     def initialize(thread)

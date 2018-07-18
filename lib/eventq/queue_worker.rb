@@ -5,7 +5,7 @@ require 'eventq/worker_status'
 module EventQ
   class QueueWorker
     attr_accessor :is_running
-    attr_reader :worker_status, :worker_adapter
+    attr_reader :worker_status, :worker_adapter, :reader, :writer
 
     def initialize
       @worker_status = EventQ::WorkerStatus.new
@@ -33,6 +33,9 @@ module EventQ
       queue_name = EventQ.create_queue_name(queue.name)
       EventQ.logger.info("[#{self.class}] - Listening for messages on queue: #{queue_name}}")
 
+      # Initialize the pipes for inter-process communication when using forks
+      @reader, @writer = IO.pipe
+
       # Allow the worker to be started on a thread or on the main process.
       # Using the thread won't block the parent process, whereas starting on the main process will.
       if @block_process
@@ -49,7 +52,7 @@ module EventQ
             start_process(options, queue, block)
           end
         end
-
+        build_worker_status
         Process.waitall
       else
         start_process(options, queue, block)
@@ -85,6 +88,8 @@ module EventQ
         start_thread(queue, options, block)
       end
 
+      marshal_worker_status(tracker) if @fork_count > 0
+
       unless options[:wait] == false
         worker_status.threads.each { |thr| thr.thread.join }
       end
@@ -101,7 +106,6 @@ module EventQ
     def stop
       EventQ.logger.info("[#{self.class}] - Stopping.")
       @is_running = false
-      worker_status.threads.each { |thr| thr.thread.join }
     end
 
     def running?
@@ -139,7 +143,7 @@ module EventQ
       # default sleep time in seconds
       @sleep = 0
       if options.key?(:sleep)
-        @sleep = options[:sleep]
+        EventQ.logger.warn("[#{self.class}] - :sleep is deprecated.")
       end
 
       @fork_count = 0
@@ -164,7 +168,7 @@ module EventQ
           "Thread Count: #{@thread_count}",
           "Interval Sleep: #{@sleep}",
           "GC Flush Interval: #{@gc_flush_interval}",
-          "Block worker: #{@block_worker}"
+          "Block process: #{@block_process}"
       ]
       EventQ.logger.info("[#{self.class}] - Configuring. #{message_list.join(' | ')}")
     end
@@ -194,6 +198,23 @@ module EventQ
     end
 
     private
+
+    # This method is only used when forks need to communicate info about the fork to the main process.
+    def build_worker_status
+      writer.close
+      while raw_data = reader.gets
+        data = Marshal.load(raw_data)
+        worker_status.processes.push data
+      end
+      reader.close
+    end
+
+    def marshal_worker_status(tracker)
+      x = tracker.class.new(tracker.pid)
+      tracker.threads.each { |thr| x.threads.push thr.to_s }
+      reader.close
+      writer.puts Marshal.dump(x)
+    end
 
     def call_block(block_name, *args)
       block_variable = "@#{block_name}"
