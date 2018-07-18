@@ -31,7 +31,10 @@ module EventQ
 
         # Polling will block indefinitely unless we force it to stop
         poller.before_request do |stats|
-          throw :stop_polling unless context.running?
+          unless context.running?
+            EventQ.logger.info("AWS Poller shutting down")
+            throw :stop_polling
+          end
         end
 
         poller.poll(skip_delete: true, wait_time_seconds: options[:queue_poll_wait]) do |msg, stats|
@@ -105,7 +108,8 @@ module EventQ
           end
 
         rescue => e
-          EventQ.logger.error("[#{self.class}] - An unhandled error happened while attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
+          EventQ.logger.error("[#{self.class}] - unhandled error while attempting to process a queue message")
+          EventQ.logger.error(e)
           error = true
           context.call_on_error_block(error: e, message: message)
         end

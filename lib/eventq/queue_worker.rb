@@ -43,6 +43,7 @@ module EventQ
       else
         Thread.new { start_worker(block, options, queue) }
       end
+      @is_running = true
     end
 
     def start_worker(block, options, queue)
@@ -67,6 +68,7 @@ module EventQ
         }
       end
 
+      # need to set it again since we might be in a fork.
       @is_running = true
       tracker = track_process(Process.pid)
 
@@ -90,7 +92,9 @@ module EventQ
 
       marshal_worker_status(tracker) if @fork_count > 0
 
-      unless options[:wait] == false
+      # Only on the main process should you be able to not wait on a thread, otherwise
+      # any forked process will just immediately quit
+      unless options[:wait] == false && options[:fork_count] == 0
         worker_status.threads.each { |thr| thr.thread.join }
       end
     end
@@ -106,6 +110,8 @@ module EventQ
     def stop
       EventQ.logger.info("[#{self.class}] - Stopping.")
       @is_running = false
+      # Need to notify all processes(forks) to stop as well.
+      worker_status.processes.each { |process| Process.kill('TERM', process.pid) if Process.pid != process.pid }
     end
 
     def running?

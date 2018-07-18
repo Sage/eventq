@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'class_kit'
   spec.add_dependency 'redlock'
   spec.add_dependency 'openssl'
+  spec.add_dependency 'concurrent-ruby'
 
   if RUBY_PLATFORM =~ /java/
     spec.platform = 'java'
