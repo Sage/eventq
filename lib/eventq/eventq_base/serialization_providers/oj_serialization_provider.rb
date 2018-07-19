@@ -8,15 +8,16 @@ module EventQ
       end
 
       def serialize(object)
-        return Oj.dump(object, mode: :object)
+        Oj.dump(object, mode: :object)
       end
 
       def deserialize(json)
         begin
-          return Oj.load(json)
+          Oj.load(json)
         rescue Oj::ParseError
+        rescue ArgumentError
           EventQ.log(:debug, "[#{self.class}] - Failed to deserialize using Oj, falling back to JsonSerializationProvider.")
-          return @json_serializer.deserialize(json)
+          @json_serializer.deserialize(json)
         end
       end
     end

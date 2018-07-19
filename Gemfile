@@ -8,7 +8,7 @@ gem 'json', '1.8.5'
 gem 'redlock'
 
 platforms :ruby do
-  gem 'oj', '2.16.1'
+  gem 'oj', '3.4.0'
   gem 'openssl', '2.0.4'
   gem 'bunny'
   gem 'pry-byebug'

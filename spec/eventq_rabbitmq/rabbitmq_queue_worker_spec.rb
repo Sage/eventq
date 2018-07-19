@@ -141,7 +141,7 @@ unless RUBY_PLATFORM =~ /java/
 
           received_count = 0
 
-          queue_worker.start(subscriber_queue, { worker_adapter: subject, client: client, wait: false, sleep: 0, thread_count: 1 }) do |content, args|
+          queue_worker.start(subscriber_queue, { worker_adapter: subject, client: client, wait: false, block_process: false, sleep: 0, thread_count: 1 }) do |content, args|
             received_count += 1
           end
 
@@ -251,7 +251,7 @@ unless RUBY_PLATFORM =~ /java/
       eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
       eqclient.raise_event(event_type, message, message_context)
 
-      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client, thread_count: 1 }) do |event, args|
+      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, block_process: false, :sleep => 1, client: client, thread_count: 1 }) do |event, args|
         expect(event).to eq(message)
         expect(args.type).to eq(event_type)
         expect(args.content_type).to eq message.class.to_s
@@ -263,7 +263,7 @@ unless RUBY_PLATFORM =~ /java/
 
       queue_worker.stop
 
-      expect(subject.is_running).to eq(false)
+      expect(queue_worker.running?).to eq(false)
     end
 
     context 'when queue requires a signature' do
@@ -289,7 +289,7 @@ unless RUBY_PLATFORM =~ /java/
 
           received = false
 
-          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
+          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, block_process: false, :sleep => 1, client: client}) do |event, args|
             expect(event).to eq(message)
             expect(args.type).to eq(event_type)
             received = true
@@ -302,7 +302,7 @@ unless RUBY_PLATFORM =~ /java/
 
           queue_worker.stop
 
-          expect(subject.is_running).to eq(false)
+          expect(queue_worker.running?).to eq(false)
 
         end
       end
@@ -328,7 +328,7 @@ unless RUBY_PLATFORM =~ /java/
 
           received = false
 
-          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :sleep => 1, client: client}) do |event, args|
+          queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, block_process: false, :sleep => 1, client: client}) do |event, args|
             expect(event).to eq(message)
             expect(args.type).to eq(event_type)
             received = true
@@ -341,7 +341,7 @@ unless RUBY_PLATFORM =~ /java/
 
           queue_worker.stop
 
-          expect(subject.is_running).to eq(false)
+          expect(queue_worker.running?).to eq(false)
 
         end
       end
@@ -364,7 +364,7 @@ unless RUBY_PLATFORM =~ /java/
 
       mutex = Mutex.new
 
-      queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, :sleep => 0.5, :thread_count => 5, client: client) do |event, args|
+      queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, :sleep => 0.5, :thread_count => 5, client: client) do |event, args|
         expect(event).to eq(message)
         expect(args.type).to eq(event_type)
 
@@ -401,7 +401,7 @@ unless RUBY_PLATFORM =~ /java/
 
       queue_worker.stop
 
-      expect(subject.is_running).to eq(false)
+      expect(queue_worker.running?).to eq(false)
 
     end
 
@@ -428,7 +428,7 @@ unless RUBY_PLATFORM =~ /java/
 
       retry_attempt_count = 0
 
-      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+      queue_worker.start(subscriber_queue, {worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
 
         if args.retry_attempts == 0
           raise 'Fail on purpose to send event to retry queue.'
@@ -444,7 +444,7 @@ unless RUBY_PLATFORM =~ /java/
 
       queue_worker.stop
 
-      expect(subject.is_running).to eq(false)
+      expect(queue_worker.running?).to eq(false)
 
     end
 
@@ -475,7 +475,7 @@ unless RUBY_PLATFORM =~ /java/
 
         retry_attempt_count = 0
 
-        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
         end
@@ -498,7 +498,7 @@ unless RUBY_PLATFORM =~ /java/
 
         queue_worker.stop
 
-        expect(subject.is_running).to eq(false)
+        expect(queue_worker.running?).to eq(false)
 
       end
     end
@@ -534,7 +534,7 @@ unless RUBY_PLATFORM =~ /java/
           failed_message = message
         end
 
-        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
@@ -550,7 +550,7 @@ unless RUBY_PLATFORM =~ /java/
 
         queue_worker.stop
 
-        expect(subject.is_running).to eq(false)
+        expect(queue_worker.running?).to eq(false)
 
       end
 
@@ -586,7 +586,7 @@ unless RUBY_PLATFORM =~ /java/
           is_abort = abort
         end
 
-        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client }) do |event, args|
 
           retry_attempt_count = args.retry_attempts
           raise 'Fail on purpose to send event to retry queue.'
@@ -602,7 +602,7 @@ unless RUBY_PLATFORM =~ /java/
         expect(failed_message.retry_attempts).to eq(1)
         expect(failed_message.type).to eq(event_type)
 
-        expect(subject.is_running).to eq(false)
+        expect(queue_worker.running?).to eq(false)
 
       end
     end
