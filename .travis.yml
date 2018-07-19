@@ -1,13 +1,19 @@
 language: ruby
-
 services:
   - docker
-
 before_install:
-- cd script
-- docker-compose build
-- docker-compose up -d
-- docker ps
-
+  - cd script
+  - docker-compose build
+  - docker-compose up -d
+  - docker ps
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 script:
-- ./test.sh
+  - "./test.sh"
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT"
+env:
+  global:
+    secure: qbhS98biwrQRcLXTTMZjVbCn3NyNR0MtGrAvTj4H+QQNbDMjLS2TXD1Fjd6iUrvjSyKPThsxafZFRWF56WXxkPhpL2VIO3fM1o4BoWR5uVprq2uCSz3qqFvoFF1/JWLKXTtiNHSv6xfgocPOClWVPOZ0sfH2Q2RnlyOuNFSu7EXVFFUD8FK0+S8BbuwDr8VK7Hs/TGlf8yS8tmVa+f2LNzxS1Se4PLrsyr2q9fhlMMEq37otJJ53fuOmb6pSA4kbn0o64UXN5Oqo56PoaVszHpe8zqwsnbrKHijbEcEF4CDamr78OM5HIET6ACWbPOseyf2cleuAXMc7ofqHYBkJ/ZITU544016vnnSNRMqa1hQ5iBCBe3bZElA0A56rWU5X4Cvx9MmAD8arX1Ai5cY9ANLEL+KSNsaG08TioaV8t31yFEPVILW7hFX+kcodx1WSUIbwOXDdR1+oc3fwGKKS8ItPwlntvOGc7U+0JzvsTPIJzRqpT/cNx+wV33KkndzmOObEjtURjwGJbnYQqz1lv25IWDiALDe/ozDX7rgsSWTsQev754JBac3wU0jyUrhao4QLTNWEwHHVbMsxnnceWnKz/AHQS0bl4VOgf0y8mEQWLS+fGGm0SwB7I4gls8ehgOxTGXtXtWdeNOKsVLBFPq0ZPd0nKjDJDj6RebgM7Fc=
