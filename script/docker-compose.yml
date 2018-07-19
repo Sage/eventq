@@ -2,6 +2,9 @@ version: '2.1'
 
 services:
   testrunner:
+    build:
+      context: ./
+      dockerfile: Dockerfile
     image: eventq
     container_name: testrunner
     command: bash -c "./scripts/container_loop.sh"

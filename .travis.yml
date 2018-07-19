@@ -1,0 +1,13 @@
+language: ruby
+
+services:
+  - docker
+
+before_install:
+- cd script
+- docker-compose build
+- docker-compose up -d
+- docker ps
+
+script:
+- ./test.sh
