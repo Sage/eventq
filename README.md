@@ -1,5 +1,9 @@
 # EventQ
 
+[![Build Status](https://travis-ci.org/Sage/eventq.svg?branch=master)](https://travis-ci.org/Sage/eventq)
+[![Maintainability](https://api.codeclimate.com/v1/badges/87205b497059e2733bdc/maintainability)](https://codeclimate.com/github/Sage/eventq/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/87205b497059e2733bdc/test_coverage)](https://codeclimate.com/github/Sage/eventq/test_coverage)
+
 Welcome to EventQ. 
 
 EventQ is an event service bus framework for decoupling services and application processes.
