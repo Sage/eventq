@@ -40,7 +40,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     context 'when the option `block_process` is true' do
       it 'blocks calling process' do
-        fork do
+        p = fork do
           queue_worker.start(subscriber_queue,
                              worker_adapter: subject,
                              client: queue_client,
@@ -49,7 +49,9 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         end
         sleep 2
         expect(File.exist?(filename)).to eq false
-        queue_worker.stop
+        # since we started a manual fork to test we need to kill it since the `queue_worker` in the fork is a copy
+        # of the one in this spec
+        Process.kill(15, p)
       end
     end
 
@@ -83,7 +85,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
                            block_process: false) { |event, args|
         }
 
-        sleep 5
+        sleep 3
         expect(queue_worker.worker_status.processes.count).to eq 3
         expect(queue_worker.worker_status.processes.map(&:pid)).to_not include Process.pid
         expect(queue_worker.worker_status.threads.count).to eq 3
