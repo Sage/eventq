@@ -85,7 +85,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
                            block_process: false) { |event, args|
         }
 
-        sleep 5
+        sleep 3
         expect(queue_worker.worker_status.processes.count).to eq 3
         expect(queue_worker.worker_status.processes.map(&:pid)).to_not include Process.pid
         expect(queue_worker.worker_status.threads.count).to eq 3

@@ -215,10 +215,16 @@ module EventQ
       reader.close
     end
 
+    # Sends the tracker info via IO::Pipe.  This is needed when using forks and need to communicate information
+    # between processes.
     def marshal_worker_status(tracker)
       x = tracker.class.new(tracker.pid)
       tracker.threads.each { |thr| x.threads.push thr.to_s }
       reader.close
+      # There "seems" to be a concurrency issue around using Pipes. On occasion, not getting newline character
+      # when expected, so will have each fork wait a bit when starting up.
+      # Sleep for a random decimal between 0 and 1.
+      sleep rand
       writer.puts Marshal.dump(x)
     end
 
