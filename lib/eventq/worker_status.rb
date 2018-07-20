@@ -19,6 +19,15 @@ module EventQ
       @processes = Concurrent::Array.new
     end
 
+    # Retrieve a simple list of all PIDS.
+    def pids
+      list = []
+      @processes.each do |p|
+        list.push(p.pid)
+      end
+      list
+    end
+
     # Retrieve a simple list of all threads.
     # Important Note:  The list of threads is only relevant to the current process.
     def threads
