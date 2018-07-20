@@ -13,7 +13,9 @@ before_script:
 - "./cc-test-reporter before-build"
 script:
 - "./test.sh"
+- cd ..
 after_script:
+- cd script
 - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT"
 env:
   global:
