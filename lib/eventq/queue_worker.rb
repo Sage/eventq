@@ -112,7 +112,13 @@ module EventQ
       EventQ.logger.info("[#{self.class}] - Stopping.")
       @is_running = false
       # Need to notify all processes(forks) to stop as well.
-      worker_status.processes.each { |process| Process.kill('TERM', process.pid) if Process.pid != process.pid }
+      worker_status.processes.each do |process|
+        begin
+          Process.kill('TERM', process.pid) if Process.pid != process.pid
+        rescue Errno::ESRCH
+          # Continue on stopping if the process already died and can't be found.
+        end
+      end
     end
 
     def running?

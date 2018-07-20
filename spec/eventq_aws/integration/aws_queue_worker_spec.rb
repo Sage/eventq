@@ -88,7 +88,8 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         sleep 3
         expect(queue_worker.worker_status.processes.count).to eq 3
         expect(queue_worker.worker_status.processes.map(&:pid)).to_not include Process.pid
-        # expect(queue_worker.worker_status.threads.count).to eq 3
+        # when using forks we can't track threads from main parent worker process
+        expect(queue_worker.worker_status.threads.count).to eq 0
       end
     end
 
