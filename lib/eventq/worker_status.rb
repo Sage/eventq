@@ -3,12 +3,24 @@
 require 'concurrent'
 
 module EventQ
+  # Class used to represent the main worker status and the collection of forked worker processes.
+  # The main worker process will not have access to a forks collection of processes and threads.
+  # This is due to forks getting a copy of the process memory space and there is no such thing as shared resources
+  # between child processes and the parent process.  Without implementing a need using inter process communication with
+  # IO::Pipe, only the PID is of any use for the parent process.
+  # To summarize, if using forks, the parent process will only have a collection of PIDS and not any threads
+  # associated with those PIDS.
   class WorkerStatus
+
+    # List of WorkerProcess
     attr_reader :processes
+
     def initialize
       @processes = Concurrent::Array.new
     end
 
+    # Retrieve a simple list of all threads.
+    # Important Note:  The list of threads is only relevant to the current process.
     def threads
       list = []
       @processes.each do |p|
@@ -21,6 +33,7 @@ module EventQ
     end
   end
 
+  # Class that is used to represent a process and its associated threads.
   class WorkerProcess
     attr_accessor :pid
     attr_reader :threads
