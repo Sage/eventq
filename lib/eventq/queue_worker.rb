@@ -5,7 +5,7 @@ require 'eventq/worker_status'
 module EventQ
   class QueueWorker
     attr_accessor :is_running
-    attr_reader :worker_status, :worker_adapter, :reader, :writer
+    attr_reader :worker_status, :worker_adapter
 
     def initialize
       @worker_status = EventQ::WorkerStatus.new
@@ -33,9 +33,6 @@ module EventQ
       queue_name = EventQ.create_queue_name(queue.name)
       EventQ.logger.info("[#{self.class}] - Listening for messages on queue: #{queue_name}}")
 
-      # Initialize the pipes for inter-process communication when using forks
-      @reader, @writer = IO.pipe
-
       # Allow the worker to be started on a thread or on the main process.
       # Using the thread won't block the parent process, whereas starting on the main process will.
       if @block_process
@@ -49,13 +46,19 @@ module EventQ
     def start_worker(block, options, queue)
       if @fork_count > 0
         @fork_count.times do
-          fork do
+          pid = fork do
             start_process(options, queue, block)
           end
+          # For the parent worker to know about the list of PIDS of the forks, we have to track them after the fork
+          # is created. In a fork the collection would be copied and there is no shared reference between processes.
+          # So each fork gets its own copy of the @worker_status variable.
+          track_process(pid)
         end
-        build_worker_status
+        
         Process.waitall
       else
+        # No need to track process/threads separately as we are in the main parent process,
+        # and the logic inside start_process will handle it correctly.
         start_process(options, queue, block)
       end
     end
@@ -89,8 +92,6 @@ module EventQ
       else
         start_thread(queue, options, block)
       end
-
-      marshal_worker_status(tracker) if @fork_count > 0
 
       # Only on the main process should you be able to not wait on a thread, otherwise
       # any forked process will just immediately quit
@@ -204,29 +205,6 @@ module EventQ
     end
 
     private
-
-    # This method is only used when forks need to communicate info about the fork to the main process.
-    def build_worker_status
-      writer.close
-      while raw_data = reader.gets
-        data = Marshal.load(raw_data)
-        worker_status.processes.push data
-      end
-      reader.close
-    end
-
-    # Sends the tracker info via IO::Pipe.  This is needed when using forks and need to communicate information
-    # between processes.
-    def marshal_worker_status(tracker)
-      x = tracker.class.new(tracker.pid)
-      tracker.threads.each { |thr| x.threads.push thr.to_s }
-      reader.close
-      # There "seems" to be a concurrency issue around using Pipes. On occasion, not getting newline character
-      # when expected, so will have each fork wait a bit when starting up.
-      # Sleep for a random decimal between 0 and 1.
-      sleep rand
-      writer.puts Marshal.dump(x)
-    end
 
     def call_block(block_name, *args)
       block_variable = "@#{block_name}"
