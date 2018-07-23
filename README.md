@@ -9,13 +9,11 @@ Welcome to EventQ.
 EventQ is an event service bus framework for decoupling services and application processes.
 
 Events are raised through the EventQ client and subscribers of the event types will be broadcast the event via a persistent queue for guaranteed delivery.
+Existing solutions like ActiveJob work by assuming it posts directly to the queue provider.  EventQ takes advantage of systems that fanout notifications.
+This allows a notification to have multiple subscribers of which one is a message that EventQ can directly process.
 
 EventQ has a base layer which allows different queue implementations to be created abstracting the specific queue implementation details away from your application code.
-EventQ comes with two default adapter that support RabbitMq and AWS SNS/SQS
-
-[AWS README](./lib/eventq/eventq_aws/README.md)
-
-[RabbitMq README](./lib/eventq/eventq_rabbitmq/README.md)
+EventQ comes with two default adapters, one for AWS SNS/SQS and another for RabbitMq (Fanout/Queue).
 
 ## Installation
 
@@ -321,7 +319,35 @@ This method is called to verify connection to an event_type (topic/exchange).
 
 After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in  the file, `EVENTQ_VERSION`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+
+### Preparing the Docker images
+
+Run the setup script of eventq to build the environment. This will create the `eventq` image.
+
+    $ cd script
+    $ ./setup.sh
+
+### Running the tests
+
+By default, the full test suite will run against the mock AWS services defined in the docker-compose.yml file.  It also will run the tests for RabbitMq.
+
+If you want to run the tests with AWS directly, you will need an AWS account. Put your credentials into the `.aws.env` file in the parent directory.
+You will also need to comment out the AWS_* environment variables in the `docker-compose.yml` file
+
+    $ cp ../.aws.env.template ../.aws.env
+    $ vi ../.aws.env 
+
+Run the whole test suite:
+
+    $ cd script
+    $ ./test.sh
+
+You can run the specs that don't depend on an AWS account with:
+
+    $ cd script
+    $ ./test.sh --tag ~integration
 
 ## Contributing
 
