@@ -27,23 +27,6 @@ services:
     image: rabbitmq:3.6.5
     container_name: rabbitmq
 
-  #testrunner_jruby:
-  #  image: 522104923602.dkr.ecr.eu-west-1.amazonaws.com/sageone/jruby:20170623
-  #  container_name: testrunner_jruby
-  #  command: bash -c "./scripts/container_loop.sh"
-  #  links:
-  #    - redis
-  #  volumes:
-  #    - ./container_loop.sh:/scripts/container_loop.sh
-  #    - ../:/gem_src
-  #  environment:
-  #    - AWS_ACCESS_KEY_ID
-  #    - AWS_SECRET_ACCESS_KEY
-  #    - AWS_REGION
-  #    - AWS_ACCOUNT_NUMBER
-  ##  env_file:
-  ##    - ../../.aws.env
-
   redis:
     image: redis:alpine
     container_name: eventq_redis

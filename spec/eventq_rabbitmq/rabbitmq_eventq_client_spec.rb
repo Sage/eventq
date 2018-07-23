@@ -35,17 +35,10 @@ RSpec.describe EventQ::RabbitMq::EventQClient do
     if payload == nil
       return nil
     end
-    if RUBY_PLATFORM =~ /java/
-      hash = JSON.load(payload.to_s)
-      if hash == nil
-        return nil
-      end
-      qm = class_kit.from_hash(hash: hash, klass: EventQ::QueueMessage)
-    else
-      qm = Oj.load(payload.to_s)
-      if qm == nil
-        return nil
-      end
+
+    qm = Oj.load(payload.to_s)
+    if qm == nil
+      return nil
     end
 
     EventQ.logger.debug { "[QUEUE] - received message: #{qm.content}" }
