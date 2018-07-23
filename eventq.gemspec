@@ -31,12 +31,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'redlock'
   spec.add_dependency 'openssl'
   spec.add_dependency 'concurrent-ruby'
-
-  if RUBY_PLATFORM =~ /java/
-    spec.platform = 'java'
-    spec.add_dependency 'march_hare'
-  else
-    spec.add_dependency 'oj'
-    spec.add_dependency 'bunny'
-  end
+  spec.add_dependency 'oj'
+  spec.add_dependency 'bunny'
 end

@@ -8,12 +8,7 @@ require_relative './eventq_aws/aws_queue_client'
 require_relative './eventq_aws/aws_queue_manager'
 require_relative './eventq_aws/aws_subscription_manager'
 require_relative './eventq_aws/aws_status_checker'
-
-if RUBY_PLATFORM =~ /java/
-  require_relative './eventq_aws/jruby/aws_queue_worker'
-else
-  require_relative './eventq_aws/aws_queue_worker'
-end
+require_relative './eventq_aws/aws_queue_worker'
 
 module EventQ
   def self.namespace

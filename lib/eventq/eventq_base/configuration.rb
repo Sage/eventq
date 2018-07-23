@@ -6,11 +6,7 @@ module EventQ
     end
 
     def self.serialization_provider
-      if RUBY_PLATFORM =~ /java/
-        @serialization_provider ||= EventQ::SerializationProviders::JSON_PROVIDER
-      else
-        @serialization_provider ||= EventQ::SerializationProviders::OJ_PROVIDER
-      end
+      @serialization_provider ||= EventQ::SerializationProviders::OJ_PROVIDER
     end
 
     def self.signature_provider=(value)
