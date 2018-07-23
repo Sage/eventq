@@ -110,56 +110,30 @@ module EventQ
         options[:durable] ||= true
       end
 
+      # Logic for the RabbitMq adapter when a message is accepted
+      def acknowledge_message(channel, delivery_tag)
+        channel.acknowledge(delivery_tag, false)
+      end
+
       private
 
       def process_message(payload, queue, channel, retry_exchange, delivery_tag, block)
-        abort = false
-        error = false
         message = deserialize_message(payload)
-
-        EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{message.retry_attempts}")
+        retry_attempts = message.retry_attempts
 
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
-        message_args = EventQ::MessageArgs.new(
-          type: message.type,
-          retry_attempts: message.retry_attempts,
-          context: message.context,
-          content_type: message.content_type,
-          id: message.id,
-          sent: message.created
-        )
+        status, message_args = context.process_message(block, message, retry_attempts, [channel, delivery_tag])
 
-        if(!EventQ::NonceManager.is_allowed?(message.id))
-          EventQ.logger.info("[#{self.class}] - Duplicate Message received. Dropping message.")
-          channel.acknowledge(delivery_tag, false)
-          return false
-        end
-
-        # begin worker block for queue message
-        begin
-          block.call(message.content, message_args)
-
-          if message_args.abort == true
-            abort = true
-            EventQ.logger.info("[#{self.class}] - Message aborted.")
-          else
-            # accept the message as processed
+        case status
+          when :duplicate
             channel.acknowledge(delivery_tag, false)
-            EventQ.logger.info("[#{self.class}] - Message acknowledged.")
-          end
-
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - An unhandled error happened attempting to process a queue message. Error: #{e} | Backtrace: #{e.backtrace}")
-          error = true
-          context.call_on_error_block(error: e, message: message)
-        end
-
-        if error || abort
-          EventQ::NonceManager.failed(message.id)
-          reject_message(channel, message, delivery_tag, retry_exchange, queue, abort)
-        else
-          EventQ::NonceManager.complete(message.id)
+          when :accepted
+            # Acceptance was handled directly when QueueWorker#process_message was called
+          when :reject
+            reject_message(channel, message, delivery_tag, retry_exchange, queue, message_args.abort)
+          else
+            raise "Unrecognized status: #{status}"
         end
       end
     end

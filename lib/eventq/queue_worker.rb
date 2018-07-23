@@ -108,6 +108,61 @@ module EventQ
       raise Exceptions::WorkerThreadError, e.message, e.backtrace
     end
 
+    # Method to be called by an adapter.  This defines the common logic for processing a message.
+    # @param [Array] acceptance_args list of arguments that would be used to accept a message by an adapter.
+    # @return [Symbol, MessageArgs] :accepted, :duplicate, :reject
+    def process_message(block, message, retry_attempts, acceptance_args)
+      abort = false
+      error = false
+      status = nil
+
+      message_args = EventQ::MessageArgs.new(
+          type: message.type,
+          retry_attempts: retry_attempts,
+          context: message.context,
+          content_type: message.content_type,
+          id: message.id,
+          sent: message.created
+      )
+
+      EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+
+      if (!EventQ::NonceManager.is_allowed?(message.id))
+        EventQ.logger.info("[#{self.class}] - Duplicate Message received. Ignoring message.")
+        status = :duplicate
+        return status, message_args
+      end
+
+      # begin worker block for queue message
+      begin
+        block.call(message.content, message_args)
+
+        if message_args.abort == true
+          abort = true
+          EventQ.logger.info("[#{self.class}] - Message aborted.")
+        else
+          # accept the message as processed
+          status = :accepted
+          worker_adapter.acknowledge_message(*acceptance_args)
+          EventQ.logger.info("[#{self.class}] - Message acknowledged.")
+        end
+      rescue => e
+        EventQ.logger.error("[#{self.class}] - unhandled error while attempting to process a queue message")
+        EventQ.logger.error(e)
+        error = true
+        call_on_error_block(error: e, message: message)
+      end
+
+      if error || abort
+        EventQ::NonceManager.failed(message.id)
+        status = :reject
+      else
+        EventQ::NonceManager.complete(message.id)
+      end
+
+      [status, message_args]
+    end
+
     def stop
       EventQ.logger.info("[#{self.class}] - Stopping.")
       @is_running = false
