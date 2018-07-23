@@ -12,8 +12,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["SageOne"]
   spec.email         = ["sageone@sage.com"]
 
-  spec.summary       = 'This is EventQ system'
-  spec.description   = 'This is EventQ system'
+  spec.description = spec.summary = 'EventQ is a pub/sub system that uses async notifications and message queues'
   spec.homepage      = "https://github.com/sage/eventq"
   spec.license       = "MIT"
 
@@ -25,13 +24,13 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'shoulda-matchers'
+  spec.add_development_dependency 'activesupport', '~> 4'
 
   spec.add_dependency 'aws-sdk', '~> 2.0'
   spec.add_dependency 'class_kit'
   spec.add_dependency 'redlock'
   spec.add_dependency 'openssl'
   spec.add_dependency 'concurrent-ruby'
-  spec.add_dependency 'activesupport', '~> 4'
 
   if RUBY_PLATFORM =~ /java/
     spec.platform = 'java'
