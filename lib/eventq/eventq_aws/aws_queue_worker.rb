@@ -68,6 +68,11 @@ module EventQ
         EventQ.logger.info("[#{self.class}] - Configuring. Queue Poll Wait: #{options[:queue_poll_wait]}")
       end
 
+      # Logic for the RabbitMq adapter when a message is accepted
+      def acknowledge_message(poller, msg)
+        poller.delete_message(msg)
+      end
+
       private
 
       def process_message(msg, poller, queue, block)
@@ -77,51 +82,20 @@ module EventQ
         payload = JSON.load(msg.body)
         message = deserialize_message(payload[MESSAGE])
 
-        message_args = EventQ::MessageArgs.new(
-            type: message.type,
-            retry_attempts: retry_attempts,
-            context: message.context,
-            content_type: message.content_type,
-            id: message.id,
-            sent: message.created
-        )
-
-        EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
-
         @signature_provider_manager.validate_signature(message: message, queue: queue)
 
-        if(!EventQ::NonceManager.is_allowed?(message.id))
-          EventQ.logger.info("[#{self.class}] - Duplicate Message received. Ignoring message.")
-          return false
-        end
+        status, message_args = context.process_message(block, message, retry_attempts, [poller, msg])
 
-        # begin worker block for queue message
-        begin
-          block.call(message.content, message_args)
-
-          if message_args.abort == true
-            EventQ.logger.info("[#{self.class}] - Message aborted.")
+        case status
+          when :duplicate
+            # don't do anything, this is previous logic.  Not sure it is correct
+          when :accepted
+            # Acceptance was handled directly when QueueWorker#process_message was called
+          when :reject
+            reject_message(queue, poller, msg, retry_attempts, message, message_args.abort)
           else
-            # accept the message as processed
-            poller.delete_message(msg)
-            EventQ.logger.info("[#{self.class}] - Message acknowledged.")
-          end
-
-        rescue => e
-          EventQ.logger.error("[#{self.class}] - unhandled error while attempting to process a queue message")
-          EventQ.logger.error(e)
-          error = true
-          context.call_on_error_block(error: e, message: message)
+            raise "Unrecognized status: #{status}"
         end
-
-        if message_args.abort || error
-          EventQ::NonceManager.failed(message.id)
-          reject_message(queue, poller, msg, retry_attempts, message, message_args.abort)
-        else
-          EventQ::NonceManager.complete(message.id)
-        end
-
-        true
       end
 
       def reject_message(queue, poller, msg, retry_attempts, message, abort)
