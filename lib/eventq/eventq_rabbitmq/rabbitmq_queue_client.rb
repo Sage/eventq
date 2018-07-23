@@ -39,12 +39,7 @@ module EventQ
       end
 
       def get_connection
-        if RUBY_PLATFORM =~ /java/
-          conn = MarchHare.connect(connection_options)
-        else
-          conn = Bunny.new(connection_options)
-        end
-
+        conn = Bunny.new(connection_options)
         conn.start
         return conn
       end

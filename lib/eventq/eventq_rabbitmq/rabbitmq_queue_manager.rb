@@ -33,19 +33,11 @@ module EventQ
       end
 
       def pop_message(queue:)
-        if RUBY_PLATFORM =~ /java/
-          headers, payload = queue.pop({ :ack => true, :block => true })
-          if headers == nil
-            return [nil,nil]
-          end
-          [headers.delivery_tag, payload]
-        else
-          headers, properties, payload = queue.pop({ :manual_ack => true, :block => true })
-          if headers == nil
-            return [nil,nil]
-          end
-          [headers.delivery_tag, payload]
+        headers, properties, payload = queue.pop({ :manual_ack => true, :block => true })
+        if headers == nil
+          return [nil,nil]
         end
+        [headers.delivery_tag, payload]
       end
 
       def get_queue_exchange(channel, queue)

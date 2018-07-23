@@ -14,9 +14,3 @@ platforms :ruby do
   gem 'pry-byebug'
   gem 'byebug', '10.0.2'
 end
-
-platforms :jruby do
-  gem 'pry-debugger-jruby'
-  gem 'jruby-openssl'
-  gem 'march_hare'
-end
