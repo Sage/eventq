@@ -2,7 +2,7 @@ require 'spec_helper'
 
 RSpec.describe EventQ::RabbitMq::QueueWorker do
   let(:queue_worker) { EventQ::QueueWorker.new }
-  
+
   let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
 
   let(:connection) { client.get_connection }
@@ -470,6 +470,77 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       sleep(2.3)
 
       expect(retry_attempt_count).to eq(4)
+
+      queue_worker.stop
+
+      expect(queue_worker.running?).to eq(false)
+
+    end
+  end
+
+  context 'queue.allow_retry_back_off = true && queue.retry_back_off_grace = 4' do
+    it 'should send messages that fail to process to the retry queue and then receive them again after the retry delay' do
+
+      event_type = SecureRandom.uuid
+      subscriber_queue = EventQ::Queue.new
+      subscriber_queue.name = SecureRandom.uuid
+      #set queue retry delay to 0.9 seconds
+      subscriber_queue.retry_delay = 900
+      subscriber_queue.allow_retry = true
+      subscriber_queue.allow_retry_back_off = true
+      #set to max retry delay to 5 seconds
+      subscriber_queue.max_retry_delay = 5000
+      subscriber_queue.retry_back_off_grace = 4
+      subscriber_queue.max_retry_attempts = 10
+
+      qm = EventQ::RabbitMq::QueueManager.new
+      q = qm.get_queue(channel, subscriber_queue)
+      q.delete
+
+      subscription_manager = EventQ::RabbitMq::SubscriptionManager.new({client: client})
+      subscription_manager.subscribe(event_type, subscriber_queue)
+
+      message = 'Hello World'
+
+      eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
+      eqclient.raise_event(event_type, message)
+
+      retry_attempt_count = 0
+
+      queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, client: client}) do |event, args|
+
+        retry_attempt_count = args.retry_attempts
+        raise 'Fail on purpose to send event to retry queue.'
+
+      end
+
+      sleep(1)
+
+      expect(retry_attempt_count).to eq(1)
+
+      sleep(1)
+
+      expect(retry_attempt_count).to eq(2)
+
+      sleep(1)
+
+      expect(retry_attempt_count).to eq(3)
+
+      sleep(1)
+
+      expect(retry_attempt_count).to eq(4)
+
+      sleep(1)
+
+      expect(retry_attempt_count).to eq(5)
+
+      sleep(2)
+
+      expect(retry_attempt_count).to eq(6)
+
+      sleep(3)
+
+      expect(retry_attempt_count).to eq(7)
 
       queue_worker.stop
 

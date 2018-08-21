@@ -64,46 +64,38 @@ module EventQ
       end
 
       def reject_message(channel, message, delivery_tag, retry_exchange, queue, abort)
-
         EventQ.logger.info("[#{self.class}] - Message rejected removing from queue.")
-        #reject the message to remove from queue
+        # reject the message to remove from queue
         channel.reject(delivery_tag, false)
 
-        #check if the message retry limit has been exceeded
+        # check if the message retry limit has been exceeded
         if message.retry_attempts >= queue.max_retry_attempts
-
           EventQ.logger.info("[#{self.class}] - Message retry attempt limit exceeded. Msg: #{serialize_message(message)}")
 
           context.call_on_retry_exceeded_block(message)
-
-        #check if the message is allowed to be retried
+        # check if the message is allowed to be retried
         elsif queue.allow_retry
-
-          EventQ.logger.debug { "[#{self.class}] - Incrementing retry attempts count." }
           message.retry_attempts += 1
+          retry_attempts = message.retry_attempts - queue.retry_back_off_grace
+          retry_attempts = 1 if retry_attempts < 1
 
           if queue.allow_retry_back_off == true
-            EventQ.logger.debug { "[#{self.class}] - Calculating message back off retry delay. Attempts: #{message.retry_attempts} * Retry Delay: #{queue.retry_delay}" }
-            message_ttl = message.retry_attempts * queue.retry_delay
-            if (message.retry_attempts * queue.retry_delay) > queue.max_retry_delay
+            message_ttl = retry_attempts * queue.retry_delay
+            if (retry_attempts * queue.retry_delay) > queue.max_retry_delay
               EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
               message_ttl = queue.max_retry_delay
             end
           else
-            EventQ.logger.debug { "[#{self.class}] - Setting fixed retry delay for message." }
             message_ttl = queue.retry_delay
           end
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}" }
           retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
-          EventQ.logger.debug { "[#{self.class}] - Published message to retry exchange." }
 
           context.call_on_retry_block(message)
-
         end
 
         return true
-
       end
 
       def configure(options = {})

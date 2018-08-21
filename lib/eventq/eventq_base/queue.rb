@@ -9,6 +9,7 @@ module EventQ
     attr_accessor :max_receive_count
     attr_accessor :require_signature
     attr_accessor :retry_delay
+    attr_accessor :retry_back_off_grace
 
     def initialize
       @allow_retry = false
@@ -22,6 +23,8 @@ module EventQ
       @require_signature = false
       # Default retry delay is 30 seconds
       @retry_delay = 30000
+      # This is the amount of times to allow retry to occurr before back off is implemented
+      @retry_back_off_grace = 0
     end
   end
 end

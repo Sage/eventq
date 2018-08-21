@@ -114,15 +114,16 @@ module EventQ
 
           EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
 
+          retry_attempts = retry_attempts - queue.retry_back_off_grace
+          retry_attempts = 1 if retry_attempts < 1
+
           if queue.allow_retry_back_off == true
-            EventQ.logger.debug { "[#{self.class}] - Calculating message back off retry delay. Attempts: #{retry_attempts} * Delay: #{queue.retry_delay}" }
             visibility_timeout = (queue.retry_delay * retry_attempts) / 1000
             if visibility_timeout > (queue.max_retry_delay / 1000)
               EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
               visibility_timeout = queue.max_retry_delay / 1000
             end
           else
-            EventQ.logger.debug { "[#{self.class}] - Setting fixed retry delay for message." }
             visibility_timeout = queue.retry_delay / 1000
           end
 

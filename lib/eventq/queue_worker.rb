@@ -54,7 +54,7 @@ module EventQ
           # So each fork gets its own copy of the @worker_status variable.
           track_process(pid)
         end
-        
+
         Process.waitall
       else
         # No need to track process/threads separately as we are in the main parent process,
@@ -147,7 +147,7 @@ module EventQ
           EventQ.logger.info("[#{self.class}] - Message acknowledged.")
         end
       rescue => e
-        EventQ.logger.error("[#{self.class}] - unhandled error while attempting to process a queue message")
+        EventQ.logger.error("[#{self.class}] - Unhandled error while attempting to process a queue message.")
         EventQ.logger.error(e)
         error = true
         call_on_error_block(error: e, message: message)
