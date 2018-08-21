@@ -4,7 +4,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/87205b497059e2733bdc/maintainability)](https://codeclimate.com/github/Sage/eventq/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/87205b497059e2733bdc/test_coverage)](https://codeclimate.com/github/Sage/eventq/test_coverage)
 
-Welcome to EventQ. 
+Welcome to EventQ.
 
 EventQ is an event service bus framework for decoupling services and application processes.
 
@@ -54,14 +54,15 @@ A subscription queue should be defined to receive any events raised for the subs
 **Attributes**
 
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
- - **allow_retry_backoff** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff. 
+ - **allow_retry_backoff** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff.
+ - **retry_back_off_grace** [Int] [Optional] [Default=0] This is the number of times to allow retries without applying retry back off if enabled.
  - **dlq** [EventQ::Queue] [Optional] [Default=nil] A queue that will receive the messages which were not successfully processed after maximum number of receives by consumers. This is created at the same time as the parent queue.
  - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
  - **max_receive_count** [Int] [Optional] [Default=30] The maximum number of times that a message can be received by consumers. When this value is exceeded for a message the message will be automatically sent to the Dead Letter Queue.
  - **max_retry_delay** [Int] [Optional] This is used to specify the max retry delay that should apply when allowing incremental back off.
  - **name** [String] [Required] This is the name of the queue, it must be unique.
  - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
- - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue. 
+ - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue.
 
 **Example**
 
@@ -94,7 +95,7 @@ This method is called to subscribe a queue to an event type.
 
 	#create an instant of the queue definition
 	queue = DateChangeAddressQueue.new
-	
+
     #subscribe the queue definition to an event type
     subscription_manager.subscribe('Data:Change:Address', queue)
 
@@ -110,7 +111,7 @@ This method is called to unsubscribe a queue.
 
     #create an instant of the queue definition
 	queue = DateChangeAddressQueue.new
-	
+
     #subscribe the queue definition to an event type
     subscription_manager.unsubscribe(queue)
 
@@ -130,7 +131,7 @@ The on_retry_exceeded method allows you to specify a block that should execute w
 		#Do something with the failed event
 		....
 	end
-	
+
 #### #on_retry
 
 The on_retry method allows you to specify a block that should execute whenever an event fails to process and is retried. The event object passed to the block is a **[QueueMessage]** object, and the abort arg is a Boolean that specifies if the message was aborted (true or false).
@@ -145,7 +146,7 @@ The on_retry method allows you to specify a block that should execute whenever a
 		#Do something with the failed event
 		....
 	end
-	
+
 #### #on_error
 
 The on_error method allows you to specify a block that should execute whenever an unhandled error occurs with the worker. The could be communication failures with the queue etc.
@@ -176,7 +177,7 @@ The start method is used to specify a block to process received events and start
 > - **:sleep** [Number] [Optional] [Default=15] This is the number of seconds a thread should sleep before attempting to request another event from the subscription queue when no event has been received.
 >
 > - **:wait** [Bool] [Optional] This is used to specify that the start method should block the calling thread and wait until all parallel threads have finished. (This can be used to ensure that the background process running the worker does not exit).
-> 
+>
 > **Block arguments:**
 > - **content** [Object] This is the content of the received event.
 >
@@ -214,11 +215,11 @@ The **[QueueMessage]** is used internally to represent an event within the vario
  - **content** [Object] This is the event content.
  - **retry_attempts** [Int] This is the number of times this event message has been retried.
  - **created** [DateTime] this is when the event was initial raised.
- 
+
 ### Configuration
- 
+
 The `EventQ::Configuration` class allows global configuration options to be specified.
- 
+
 #### serialization_provider
 
 This is used to specify the serialization provider that should be used for event serialization & deserialization.
@@ -234,7 +235,7 @@ This is used to specify the serialization provider that should be used for event
 
     #set the serialization provider configuration to the JSON_PROVIDER
     EventQ::Configuration.serialization_provider = EventQ::SerializationProviders::JSON_PROVIDER
-    
+
 #### signature_provider
 
 This is used to specify the signature provider that should be used for message signing.
@@ -242,7 +243,7 @@ This is used to specify the signature provider that should be used for message s
 > **Options:**
 >
 > - **SHA256** [Default] This is provider uses SHA256 to create message signatures.
-    
+
 #### signature_secret
 
 This is used to specify the signature secret that should be used for message signing.
@@ -250,7 +251,7 @@ This is used to specify the signature secret that should be used for message sig
     #set the signature secret
     EventQ::Configuration.signature_secret = 'secret key'
 
-    
+
 ### NonceManager
 
 The NonceManager is used to prevent duplicate messages from being processed. Each event message that is raised is given a unique identifier, most message queue providers guarantee at least once delivery which may result in the message being delivered more than once. If your use case needs to enforce once only processing then 
@@ -269,7 +270,7 @@ This method is called to configure the NonceManager, and must be called before s
 **Example**
 
     EventQ::NonceManager.configure(server: 'redis://127.0.0.1:6379')
-    
+
 
 ### Namespace
 
@@ -290,14 +291,14 @@ This method is called to verify connection to a queue.
 **Params:**
 
  - **queue** [EventQ::Queue] [Required] This is a queue definition object.
- 
+
 **Return** [Boolean] (True or False)
 
 
 **Example**
 
     available = status_checker.queue?(queue)
-    
+
 ####event_type?
 
 This method is called to verify connection to an event_type (topic/exchange).
@@ -312,8 +313,11 @@ This method is called to verify connection to an event_type (topic/exchange).
 **Example**
 
     available = status_checker.event_type?(event_type)
-    
 
+## AWS Environment Variables
+
+- **AWS_SQS_ENDPOINT** [String] [Optional] This is used to specify the endpoint of the SQS service to use.
+- **AWS_SNS_ENDPOINT** [String] [Optional] This is used to specify the endpoint of the SNS service to use.
 
 ## Development
 
@@ -337,7 +341,7 @@ If you want to run the tests with AWS directly, you will need an AWS account. Pu
 You will also need to comment out the AWS_* environment variables in the `docker-compose.yml` file
 
     $ cp ../.aws.env.template ../.aws.env
-    $ vi ../.aws.env 
+    $ vi ../.aws.env
 
 Run the whole test suite:
 
