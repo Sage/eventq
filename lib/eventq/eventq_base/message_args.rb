@@ -14,7 +14,7 @@ module EventQ
       @retry_attempts = retry_attempts
       @abort = false
       @drop = false
-      @context = context
+      @context = context || {}
       @content_type = content_type
       @id = id
       @sent = sent
