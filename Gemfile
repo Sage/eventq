@@ -4,12 +4,12 @@ source 'https://rubygems.org'
 gemspec
 
 
-gem 'json', '1.8.5'
+gem 'json', '2.1.0'
 gem 'redlock'
 
 platforms :ruby do
-  gem 'oj', '3.4.0'
-  gem 'openssl', '2.0.4'
+  gem 'oj', '3.6.10'
+  gem 'openssl', '2.1.1'
   gem 'bunny'
   gem 'pry-byebug'
   gem 'byebug', '10.0.2'

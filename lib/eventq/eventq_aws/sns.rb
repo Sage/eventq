@@ -38,7 +38,7 @@ module EventQ
         arn = @@topic_arns[_event_type]
         unless arn
           response = sns.list_topics
-          arn = response.topics.detect { |topic| topic.topic_arn.end_with?(_event_type) }&.topic_arn
+          arn = response.topics.detect { |topic| topic.topic_arn.end_with?(":#{_event_type}") }&.topic_arn
 
           @@topic_arns[_event_type] = arn if arn
         end
