@@ -147,8 +147,11 @@ module EventQ
           EventQ.logger.info("[#{self.class}] - Message acknowledged.")
         end
       rescue => e
-        EventQ.logger.error("[#{self.class}] - Unhandled error while attempting to process a queue message.")
-        EventQ.logger.error(e)
+        EventQ.logger.error do
+          "[#{self.class}] - Unhandled error while attempting to process a queue message. - #{e.message}" \
+          "#{e.backtrace.join("\n")}"
+        end
+
         error = true
         call_on_error_block(error: e, message: message)
       end
