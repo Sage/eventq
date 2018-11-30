@@ -2,6 +2,7 @@
 
 module EventQ
   module Amazon
+    # Class responsible to know how to calculate message Visibility Timeout for Amazon SQS
     class CalculateVisibilityTimeout
       def initialize(max_timeout:, logger: EventQ.logger)
         @max_timeout = max_timeout
