@@ -43,7 +43,7 @@ module EventQ
       attr_reader :logger
 
       def retry_past_grace_period?
-        @retry_attempts >= @retry_back_off_grace
+        @retry_attempts > @retry_back_off_grace
       end
 
       def timeout_without_back_off
