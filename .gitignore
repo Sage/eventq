@@ -1,3 +1,4 @@
+.DS_Store
 /.bundle/
 /.yardoc
 /Gemfile.lock
@@ -10,3 +11,6 @@
 
 .idea/
 .aws.env
+
+process_file.txt
+/utilities/plot_results
