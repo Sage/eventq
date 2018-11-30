@@ -3,18 +3,31 @@
 module EventQ
   module Amazon
     class CalculateVisibilityTimeout
-      def initialize(max_timeout:)
+      def initialize(max_timeout:, logger: EventQ.logger)
         @max_timeout = max_timeout
+        @logger      = logger
       end
 
+      # Calculate Visibility Timeout
+      #
+      # @param retry_attempts [Integer] Current retry
+      # @param retry_delay [Integer] Amount of time to wait until retry in ms
+      # @param retry_back_off_grace [Integer] Amount of retries to wait before starting to backoff
+      # @param max_retry_delay [Integer] Maximum amount of time a retry will take in ms
+      # @param allow_retry_back_off [Bool] Enables/Disables backoff strategy
+      # @return [Integer] the calculated visibility timeout in seconds
       def call(retry_attempts:, retry_delay:, retry_back_off_grace:, max_retry_delay:, allow_retry_back_off:)
-        retry_attempts = apply_back_off_grace(retry_attempts, retry_back_off_grace)
+        @retry_attempts       = retry_attempts
+        @retry_delay          = retry_delay
+        @retry_back_off_grace = retry_back_off_grace
+        @max_retry_delay      = max_retry_delay
+        @allow_retry_back_off = allow_retry_back_off
 
-        if allow_retry_back_off
-          visibility_timeout = timeout_with_back_off(retry_delay, retry_attempts, max_retry_delay)
+        if allow_retry_back_off && retry_past_grace_period?
+          visibility_timeout = timeout_with_back_off
           visibility_timeout = check_for_max_timeout(visibility_timeout)
         else
-          visibility_timeout = timeout_without_back_off(retry_delay)
+          visibility_timeout = timeout_without_back_off
         end
 
         visibility_timeout
@@ -22,22 +35,25 @@ module EventQ
 
       private
 
-      def timeout_without_back_off(retry_delay)
-        ms_to_seconds(retry_delay)
+      attr_reader :logger
+
+      def retry_past_grace_period?
+        @retry_attempts >= @retry_back_off_grace
       end
 
-      def apply_back_off_grace(retry_attempts, retry_back_off_grace)
-        retry_attempts = retry_attempts - retry_back_off_grace
-        retry_attempts = 1 if retry_attempts < 1
-        retry_attempts
+      def timeout_without_back_off
+        ms_to_seconds(@retry_delay)
       end
 
-      def timeout_with_back_off(retry_delay, retry_attempts, max_retry_delay)
-        visibility_timeout = ms_to_seconds(retry_delay * retry_attempts)
+      def timeout_with_back_off
+        factor = @retry_attempts - @retry_back_off_grace
 
-        if visibility_timeout > ms_to_seconds(max_retry_delay)
-          EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
-          visibility_timeout = ms_to_seconds(max_retry_delay)
+        visibility_timeout = ms_to_seconds(@retry_delay * factor)
+        max_retry_delay = ms_to_seconds(@max_retry_delay)
+
+        if visibility_timeout > max_retry_delay
+          logger.debug { "[#{self.class}] - Max message back off retry delay reached: #{max_retry_delay}" }
+          visibility_timeout = max_retry_delay
         end
 
         visibility_timeout
@@ -49,7 +65,7 @@ module EventQ
 
       def check_for_max_timeout(visibility_timeout)
         if visibility_timeout > @max_timeout
-          EventQ.logger.debug { "[#{self.class}] - AWS max visibility timeout of 12 hours has been exceeded. Setting message retry delay to 12 hours." }
+          logger.debug { "[#{self.class}] - AWS max visibility timeout of 12 hours has been exceeded. Setting message retry delay to 12 hours." }
           visibility_timeout = @max_timeout
         end
         visibility_timeout
