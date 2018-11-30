@@ -119,11 +119,14 @@ module EventQ
           EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
 
           visibility_timeout = @calculate_visibility_timeout.call(
-            retry_delay:          queue.retry_delay,
             retry_attempts:       retry_attempts,
-            max_retry_delay:      queue.max_retry_delay,
-            retry_back_off_grace: queue.retry_back_off_grace,
-            allow_retry_back_off: queue.allow_retry_back_off
+            queue_settings: {
+              allow_retry_back_off: queue.allow_retry_back_off,
+              back_off_weight:      queue.back_off_weight,
+              max_retry_delay:      queue.max_retry_delay,
+              retry_back_off_grace: queue.retry_back_off_grace,
+              retry_delay:          queue.retry_delay
+            }
           )
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}" }
