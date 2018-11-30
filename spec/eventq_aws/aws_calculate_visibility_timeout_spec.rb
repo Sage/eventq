@@ -14,6 +14,17 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
     it 'does not introduces backoff' do
       result = subject.call(
         retry_delay:          retry_delay,
+        retry_attempts:       1,
+        max_retry_delay:      max_retry_delay,
+        retry_back_off_grace: retry_back_off_grace,
+        allow_retry_back_off: allow_retry_back_off
+      )
+
+      expect(result).to eq(30)
+
+
+      result = subject.call(
+        retry_delay:          retry_delay,
         retry_attempts:       retry_back_off_grace + 100,
         max_retry_delay:      max_retry_delay,
         retry_back_off_grace: retry_back_off_grace,
@@ -27,16 +38,32 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
   context 'when retry backoff is enabled' do
     let(:allow_retry_back_off) { true }
 
-    it 'it introduce backoff' do
-      result = subject.call(
-        retry_delay:          retry_delay,
-        retry_attempts:       retry_back_off_grace + 100,
-        max_retry_delay:      max_retry_delay,
-        retry_back_off_grace: retry_back_off_grace,
-        allow_retry_back_off: allow_retry_back_off
-      )
+    context 'when the retry_attempts is lower than the retry_back_off_grace' do
+      it 'does not introduce backoff' do
+        result = subject.call(
+          retry_delay:          retry_delay,
+          retry_attempts:       retry_back_off_grace - 1,
+          max_retry_delay:      max_retry_delay,
+          retry_back_off_grace: retry_back_off_grace,
+          allow_retry_back_off: allow_retry_back_off
+        )
 
-      expect(result).to eq(100)
+        expect(result).to eq(30)
+      end
+    end
+
+    context 'when the retry_attempts exceeds the retry_back_off_grace' do
+      it 'it introduce backoff' do
+        result = subject.call(
+          retry_delay:          retry_delay,
+          retry_attempts:       retry_back_off_grace + 2,
+          max_retry_delay:      max_retry_delay,
+          retry_back_off_grace: retry_back_off_grace,
+          allow_retry_back_off: allow_retry_back_off
+        )
+
+        expect(result).to eq(60)
+      end
     end
   end
 end
