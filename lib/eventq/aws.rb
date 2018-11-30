@@ -1,6 +1,7 @@
 require 'aws-sdk-core'
 require 'eventq'
 
+require_relative './eventq_aws/aws_calculate_visibility_timeout'
 require_relative './eventq_aws/aws_eventq_client'
 require_relative './eventq_aws/sns'
 require_relative './eventq_aws/sqs'
