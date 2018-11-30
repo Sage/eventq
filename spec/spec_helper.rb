@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'pry'
+require 'oj'
 
 require 'simplecov'
 SimpleCov.start do

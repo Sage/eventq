@@ -3,7 +3,6 @@ module EventQ
     class OjSerializationProvider
 
       def initialize
-        require 'oj'
         @json_serializer = EventQ::SerializationProviders::JsonSerializationProvider.new
       end
 
