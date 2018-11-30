@@ -3,6 +3,10 @@
 module EventQ
   module Amazon
     class CalculateVisibilityTimeout
+      def initialize(max_timeout:)
+        @max_timeout = max_timeout
+      end
+
       def call(retry_attempts:, retry_delay:, retry_back_off_grace:, max_retry_delay:, allow_retry_back_off:)
         retry_attempts = retry_attempts - retry_back_off_grace
         retry_attempts = 1 if retry_attempts < 1
@@ -17,9 +21,9 @@ module EventQ
           visibility_timeout = retry_delay / 1000
         end
 
-        if visibility_timeout > 43200
+        if visibility_timeout > @max_timeout
           EventQ.logger.debug { "[#{self.class}] - AWS max visibility timeout of 12 hours has been exceeded. Setting message retry delay to 12 hours." }
-          visibility_timeout = 43200
+          visibility_timeout = @max_timeout
         end
 
         visibility_timeout

@@ -9,13 +9,16 @@ module EventQ
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'
       MESSAGE = 'Message'
+      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 72h
 
       attr_accessor :context
 
       def initialize
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
         @signature_provider_manager = EventQ::SignatureProviders::Manager.new
-        @calculate_visibility_timeout = Amazon::CalculateVisibilityTimeout.new
+        @calculate_visibility_timeout = Amazon::CalculateVisibilityTimeout.new(
+          max_timeout: AWS_MAX_VISIBILITY_TIMEOUT
+        )
       end
 
       def pre_process(context, options)
