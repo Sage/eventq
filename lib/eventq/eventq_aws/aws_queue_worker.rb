@@ -9,7 +9,7 @@ module EventQ
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'
       MESSAGE = 'Message'
-      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 72h
+      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 12h
 
       attr_accessor :context
 
