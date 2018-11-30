@@ -96,6 +96,6 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
   end
 
   def ms_to_seconds(value)
-    value/1000
+    value / 1000
   end
 end
