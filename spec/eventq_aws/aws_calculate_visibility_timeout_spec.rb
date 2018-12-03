@@ -5,7 +5,7 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
   let(:retry_delay) { 30_000 }        # 30s
   let(:max_retry_delay) { 100_000 }   # 100s
   let(:retry_back_off_grace) { 1000 } # iterations before the backoff grace quicks in
-  let(:back_off_weight) { 1 }         # backoff multiplier
+  let(:retry_back_off_weight) { 1 }         # backoff multiplier
 
   subject { described_class.new(max_timeout: max_timeout) }
 
@@ -16,11 +16,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
       result = subject.call(
         retry_attempts:       1,
         queue_settings: {
-          allow_retry_back_off: allow_retry_back_off,
-          back_off_weight:      back_off_weight,
-          max_retry_delay:      max_retry_delay,
-          retry_back_off_grace: retry_back_off_grace,
-          retry_delay:          retry_delay
+          allow_retry_back_off:  allow_retry_back_off,
+          max_retry_delay:       max_retry_delay,
+          retry_back_off_grace:  retry_back_off_grace,
+          retry_delay:           retry_delay,
+          retry_back_off_weight: retry_back_off_weight
         }
       )
 
@@ -30,11 +30,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
       result = subject.call(
         retry_attempts:       retry_back_off_grace + 100,
         queue_settings: {
-          allow_retry_back_off: allow_retry_back_off,
-          back_off_weight:      back_off_weight,
-          max_retry_delay:      max_retry_delay,
-          retry_back_off_grace: retry_back_off_grace,
-          retry_delay:          retry_delay
+          allow_retry_back_off:  allow_retry_back_off,
+          max_retry_delay:       max_retry_delay,
+          retry_back_off_grace:  retry_back_off_grace,
+          retry_delay:           retry_delay,
+          retry_back_off_weight: retry_back_off_weight
         }
       )
 
@@ -50,11 +50,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         result = subject.call(
           retry_attempts:       retry_back_off_grace - 1,
           queue_settings: {
-            allow_retry_back_off: allow_retry_back_off,
-            back_off_weight:      back_off_weight,
-            max_retry_delay:      max_retry_delay,
-            retry_back_off_grace: retry_back_off_grace,
-            retry_delay:          retry_delay
+            allow_retry_back_off:  allow_retry_back_off,
+            max_retry_delay:       max_retry_delay,
+            retry_back_off_grace:  retry_back_off_grace,
+            retry_delay:           retry_delay,
+            retry_back_off_weight: retry_back_off_weight
           }
         )
 
@@ -69,11 +69,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         result = subject.call(
           retry_attempts:       retry_back_off_grace + retries_past_grace_period,
           queue_settings: {
-            allow_retry_back_off: allow_retry_back_off,
-            back_off_weight:      back_off_weight,
-            max_retry_delay:      max_retry_delay,
-            retry_back_off_grace: retry_back_off_grace,
-            retry_delay:          retry_delay
+            allow_retry_back_off:  allow_retry_back_off,
+            max_retry_delay:       max_retry_delay,
+            retry_back_off_grace:  retry_back_off_grace,
+            retry_delay:           retry_delay,
+            retry_back_off_weight: retry_back_off_weight
           }
         )
 
@@ -86,11 +86,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         result = subject.call(
           retry_attempts:       retry_back_off_grace + 100_000,
           queue_settings: {
-            allow_retry_back_off: allow_retry_back_off,
-            back_off_weight:      back_off_weight,
-            max_retry_delay:      max_retry_delay,
-            retry_back_off_grace: retry_back_off_grace,
-            retry_delay:          retry_delay
+            allow_retry_back_off:  allow_retry_back_off,
+            max_retry_delay:       max_retry_delay,
+            retry_back_off_grace:  retry_back_off_grace,
+            retry_delay:           retry_delay,
+            retry_back_off_weight: retry_back_off_weight
           }
         )
 
@@ -103,11 +103,11 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         result = subject.call(
           retry_attempts:       retry_back_off_grace + 100_000,
           queue_settings: {
-            allow_retry_back_off: allow_retry_back_off,
-            back_off_weight:      back_off_weight,
-            max_retry_delay:      50_000_000,
-            retry_back_off_grace: retry_back_off_grace,
-            retry_delay:          retry_delay
+            allow_retry_back_off:  allow_retry_back_off,
+            max_retry_delay:       50_000_000,
+            retry_back_off_grace:  retry_back_off_grace,
+            retry_delay:           retry_delay,
+            retry_back_off_weight: retry_back_off_weight
           }
         )
 
@@ -115,23 +115,23 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
       end
     end
 
-    context 'when back_off_weight is added' do
+    context 'when retry_back_off_weight is added' do
       it 'the backoff is multiplied' do
         retries_past_grace_period = 2
-        back_off_weight = 2
+        retry_back_off_weight = 2
 
         result = subject.call(
           retry_attempts:       retry_back_off_grace + retries_past_grace_period,
           queue_settings: {
-            allow_retry_back_off: allow_retry_back_off,
-            back_off_weight:      back_off_weight,
-            max_retry_delay:      1_000_000,
-            retry_back_off_grace: retry_back_off_grace,
-            retry_delay:          retry_delay
+            allow_retry_back_off:  allow_retry_back_off,
+            max_retry_delay:       1_000_000,
+            retry_back_off_grace:  retry_back_off_grace,
+            retry_delay:           retry_delay,
+            retry_back_off_weight: retry_back_off_weight
           }
         )
 
-        expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period * back_off_weight)
+        expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period * retry_back_off_weight)
       end
     end
   end
