@@ -14,18 +14,18 @@ module EventQ
       # @param retry_attempts [Integer] Current retry
       # @param queue_settings [Hash] Queue settings
       # @option allow_retry_back_off [Bool] Enables/Disables backoff strategy
-      # @option back_off_weight [Integer] Multiplier for the backoff retry
       # @option max_retry_delay [Integer] Maximum amount of time a retry will take in ms
       # @option retry_back_off_grace [Integer] Amount of retries to wait before starting to backoff
+      # @option retry_back_off_weight [Integer] Multiplier for the backoff retry
       # @option retry_delay [Integer] Amount of time to wait until retry in ms
       # @return [Integer] the calculated visibility timeout in seconds
       def call(retry_attempts:, queue_settings:)
         @retry_attempts       = retry_attempts
 
         @allow_retry_back_off = queue_settings.fetch(:allow_retry_back_off)
-        @back_off_weight      = queue_settings.fetch(:back_off_weight)
         @max_retry_delay      = queue_settings.fetch(:max_retry_delay)
         @retry_back_off_grace = queue_settings.fetch(:retry_back_off_grace)
+        @retry_back_off_weight= queue_settings.fetch(:retry_back_off_weight)
         @retry_delay          = queue_settings.fetch(:retry_delay)
 
         if @allow_retry_back_off && retry_past_grace_period?
@@ -53,7 +53,7 @@ module EventQ
       def timeout_with_back_off
         factor = @retry_attempts - @retry_back_off_grace
 
-        visibility_timeout = ms_to_seconds(@retry_delay * factor * @back_off_weight)
+        visibility_timeout = ms_to_seconds(@retry_delay * factor * @retry_back_off_weight)
         max_retry_delay = ms_to_seconds(@max_retry_delay)
 
         if visibility_timeout > max_retry_delay
