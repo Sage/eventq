@@ -10,6 +10,7 @@ module EventQ
     attr_accessor :require_signature
     attr_accessor :retry_delay
     attr_accessor :retry_back_off_grace
+    attr_accessor :retry_back_off_weight
 
     def initialize
       @allow_retry = false
@@ -25,6 +26,8 @@ module EventQ
       @retry_delay = 30000
       # This is the amount of times to allow retry to occurr before back off is implemented
       @retry_back_off_grace = 0
+      # Multiplier for the backoff retry in case retry_delay is too small
+      @retry_back_off_weight = 1
     end
   end
 end

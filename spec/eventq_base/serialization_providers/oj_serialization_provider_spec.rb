@@ -5,7 +5,6 @@ class TestObject
   attr_accessor :age
 end
 
-require 'oj'
 RSpec.describe EventQ::SerializationProviders::OjSerializationProvider do
   describe '#serialize' do
     context 'when passing a general object' do

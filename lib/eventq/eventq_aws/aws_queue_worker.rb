@@ -9,12 +9,16 @@ module EventQ
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'
       MESSAGE = 'Message'
+      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 12h
 
       attr_accessor :context
 
       def initialize
         @serialization_provider_manager = EventQ::SerializationProviders::Manager.new
         @signature_provider_manager = EventQ::SignatureProviders::Manager.new
+        @calculate_visibility_timeout = Amazon::CalculateVisibilityTimeout.new(
+          max_timeout: AWS_MAX_VISIBILITY_TIMEOUT
+        )
       end
 
       def pre_process(context, options)
@@ -114,23 +118,16 @@ module EventQ
 
           EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
 
-          retry_attempts = retry_attempts - queue.retry_back_off_grace
-          retry_attempts = 1 if retry_attempts < 1
-
-          if queue.allow_retry_back_off == true
-            visibility_timeout = (queue.retry_delay * retry_attempts) / 1000
-            if visibility_timeout > (queue.max_retry_delay / 1000)
-              EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
-              visibility_timeout = queue.max_retry_delay / 1000
-            end
-          else
-            visibility_timeout = queue.retry_delay / 1000
-          end
-
-          if visibility_timeout > 43200
-            EventQ.logger.debug { "[#{self.class}] - AWS max visibility timeout of 12 hours has been exceeded. Setting message retry delay to 12 hours." }
-            visibility_timeout = 43200
-          end
+          visibility_timeout = @calculate_visibility_timeout.call(
+            retry_attempts:       retry_attempts,
+            queue_settings: {
+              allow_retry_back_off:  queue.allow_retry_back_off,
+              max_retry_delay:       queue.max_retry_delay,
+              retry_back_off_grace:  queue.retry_back_off_grace,
+              retry_back_off_weight: queue.retry_back_off_weight,
+              retry_delay:           queue.retry_delay
+            }
+          )
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}" }
           poller.change_message_visibility_timeout(msg, visibility_timeout)

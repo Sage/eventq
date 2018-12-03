@@ -54,7 +54,7 @@ A subscription queue should be defined to receive any events raised for the subs
 **Attributes**
 
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
- - **allow_retry_backoff** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff.
+ - **allow_retry_back_off** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff.
  - **retry_back_off_grace** [Int] [Optional] [Default=0] This is the number of times to allow retries without applying retry back off if enabled.
  - **dlq** [EventQ::Queue] [Optional] [Default=nil] A queue that will receive the messages which were not successfully processed after maximum number of receives by consumers. This is created at the same time as the parent queue.
  - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
@@ -63,6 +63,7 @@ A subscription queue should be defined to receive any events raised for the subs
  - **name** [String] [Required] This is the name of the queue, it must be unique.
  - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
  - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue.
+ - **retry_back_off_weight** [Int] [Optional] [Default=1] Additional multiplier for the timeout backoff. Normally used when `retry_delay` is too small (eg: 30ms) in order to get meaningful backoff values.
 
 **Example**
 
@@ -254,7 +255,7 @@ This is used to specify the signature secret that should be used for message sig
 
 ### NonceManager
 
-The NonceManager is used to prevent duplicate messages from being processed. Each event message that is raised is given a unique identifier, most message queue providers guarantee at least once delivery which may result in the message being delivered more than once. If your use case needs to enforce once only processing then 
+The NonceManager is used to prevent duplicate messages from being processed. Each event message that is raised is given a unique identifier, most message queue providers guarantee at least once delivery which may result in the message being delivered more than once. If your use case needs to enforce once only processing then
 the NonceManager can be configured to prevent duplicate messages from being processed. (It is a distributed store that currently uses redis locks to ensure accuracy between scaled out workers)
 
 #### configure
