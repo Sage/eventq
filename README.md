@@ -55,7 +55,6 @@ A subscription queue should be defined to receive any events raised for the subs
 
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
  - **allow_retry_back_off** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff.
- - **back_off_weight** [Int] [Optional] [Default=1] Additional multiplier for the timeout backoff. Normally used when `retry_delay` is too small (eg: 30ms) in order to get meaningful backoff values.
  - **retry_back_off_grace** [Int] [Optional] [Default=0] This is the number of times to allow retries without applying retry back off if enabled.
  - **dlq** [EventQ::Queue] [Optional] [Default=nil] A queue that will receive the messages which were not successfully processed after maximum number of receives by consumers. This is created at the same time as the parent queue.
  - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
@@ -64,6 +63,7 @@ A subscription queue should be defined to receive any events raised for the subs
  - **name** [String] [Required] This is the name of the queue, it must be unique.
  - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
  - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue.
+ - **retry_back_off_weight** [Int] [Optional] [Default=1] Additional multiplier for the timeout backoff. Normally used when `retry_delay` is too small (eg: 30ms) in order to get meaningful backoff values.
 
 **Example**
 
