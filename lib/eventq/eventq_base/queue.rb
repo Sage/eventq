@@ -20,6 +20,8 @@ module EventQ
       @max_receive_count = 30
       # Default max retry attempts is 5
       @max_retry_attempts = 5
+      # Default max retry_delay is 5000 (5seconds)
+      @max_retry_delay = 5000
       # Default require signature to false
       @require_signature = false
       # Default retry delay is 30 seconds
