@@ -149,13 +149,7 @@ module EventQ
       rescue => e
         EventQ.logger.error do
           "[#{self.class}] - Unhandled error while attempting to process a queue message. - #{e.message}" \
-          " - message.id: #{message.id}" \
-          " - message.created: #{message.created}" \
-          " - message.type: #{message.type}" \
-          " - message.content: #{message.content}" \
-          " - message.content_type: #{message.content_type}" \
-          " - message.context: #{message.context}" \
-          " - backtrace: #{e.backtrace.join("\n")}"
+          "#{e.backtrace.join("\n")}"
         end
 
         error = true
