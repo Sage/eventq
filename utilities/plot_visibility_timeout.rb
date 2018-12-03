@@ -38,16 +38,7 @@ class PlotVisibilityTimeout
       while(total_elapsed_time <= @plot_seconds) do
         retry_counter += 1
 
-        visibility_timeout = calculator.call(
-          retry_attempts:       retry_counter,
-          queue_settings: {
-            allow_retry_back_off: @queue_allow_retry_back_off,
-            max_retry_delay:      @queue_max_retry_delay,
-            retry_back_off_grace: @queue_retry_back_off_grace,
-            retry_back_off_weight:      @queue_retry_back_off_weight,
-            retry_delay:          @queue_retry_delay,
-          }
-        )
+        visibility_timeout = calculate(retry_counter)
 
         if (visibility_timeout == 0)
           visibility_timeout = @plot_min_timeout
@@ -62,6 +53,19 @@ class PlotVisibilityTimeout
 
       print_output(retry_counter, max_visibility_timeout,total_elapsed_time)
     end
+  end
+
+  def calculate(retry_counter)
+    calculator.call(
+      retry_attempts:       retry_counter,
+      queue_settings: {
+        allow_retry_back_off:  @queue_allow_retry_back_off,
+        max_retry_delay:       @queue_max_retry_delay,
+        retry_back_off_grace:  @queue_retry_back_off_grace,
+        retry_back_off_weight: @queue_retry_back_off_weight,
+        retry_delay:           @queue_retry_delay,
+      }
+    )
   end
 
   def print_settings_list(settings)
