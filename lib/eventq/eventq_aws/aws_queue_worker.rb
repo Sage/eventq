@@ -9,7 +9,7 @@ module EventQ
 
       APPROXIMATE_RECEIVE_COUNT = 'ApproximateReceiveCount'
       MESSAGE = 'Message'
-      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 12h
+      AWS_MAX_VISIBILITY_TIMEOUT = 43_200 # 12h
 
       attr_accessor :context
 
@@ -96,27 +96,27 @@ module EventQ
           when :accepted
             # Acceptance was handled directly when QueueWorker#process_message was called
           when :reject
-            reject_message(queue, poller, msg, retry_attempts, message, message_args.abort)
+            reject_message(queue, poller, msg, retry_attempts, message, message_args)
           else
             raise "Unrecognized status: #{status}"
         end
       end
 
-      def reject_message(queue, poller, msg, retry_attempts, message, abort)
+      def reject_message(queue, poller, msg, retry_attempts, message, args)
         if !queue.allow_retry || retry_attempts >= queue.max_retry_attempts
-          EventQ.logger.info("[#{self.class}] - Message rejected removing from queue. Message: #{serialize_message(message)}")
+          EventQ.logger.info("[#{self.class}] - Message Id: #{args.Id}. Rejected removing from queue. Message: #{serialize_message(message)}")
 
           # remove the message from the queue so that it does not get retried again
           poller.delete_message(msg)
 
           if retry_attempts >= queue.max_retry_attempts
-            EventQ.logger.info("[#{self.class}] - Message retry attempt limit exceeded.")
+            EventQ.logger.info("[#{self.class}] - Message Id: #{args.Id}. Retry attempt limit exceeded.")
             context.call_on_retry_exceeded_block(message)
           end
         elsif queue.allow_retry
           retry_attempts += 1
 
-          EventQ.logger.info("[#{self.class}] - Message rejected requesting retry. Attempts: #{retry_attempts}")
+          EventQ.logger.info("[#{self.class}] - Message Id: #{args.Id}. Rejected requesting retry. Attempts: #{retry_attempts}")
 
           visibility_timeout = @calculate_visibility_timeout.call(
             retry_attempts:       retry_attempts,
