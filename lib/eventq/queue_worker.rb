@@ -125,10 +125,10 @@ module EventQ
           sent: message.created
       )
 
-      EventQ.logger.info("[#{self.class}] - Message received. Retry Attempts: #{retry_attempts}")
+      EventQ.logger.info("[#{self.class}] - Message received. Id: #{message.id}. Retry Attempts: #{retry_attempts}")
 
       if (!EventQ::NonceManager.is_allowed?(message.id))
-        EventQ.logger.info("[#{self.class}] - Duplicate Message received. Ignoring message.")
+        EventQ.logger.info("[#{self.class}] - Duplicate Message received. Id: #{message.id}. Ignoring message.")
         status = :duplicate
         return status, message_args
       end
@@ -139,17 +139,17 @@ module EventQ
 
         if message_args.abort == true
           abort = true
-          EventQ.logger.info("[#{self.class}] - Message aborted.")
+          EventQ.logger.info("[#{self.class}] - Message aborted. Id: #{message.id}.")
         else
           # accept the message as processed
           status = :accepted
           worker_adapter.acknowledge_message(*acceptance_args)
-          EventQ.logger.info("[#{self.class}] - Message acknowledged.")
+          EventQ.logger.info("[#{self.class}] - Message acknowledged. Id: #{message.id}.")
         end
       rescue => e
         EventQ.logger.error do
-          "[#{self.class}] - Unhandled error while attempting to process a queue message. - #{e.message}" \
-          "#{e.backtrace.join("\n")}"
+          "[#{self.class}] - Unhandled error while attempting to process a queue message. Id: #{message.id}. " \
+          "Error: #{e.message} #{e.backtrace.join("\n")}"
         end
 
         error = true
