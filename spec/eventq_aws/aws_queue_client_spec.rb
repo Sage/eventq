@@ -124,12 +124,14 @@ RSpec.describe EventQ::Amazon::QueueClient do
 
   describe '#create_topic_arn' do
     let(:event_type) { "test_event_#{SecureRandom.hex(2)}" }
+    let(:region) { nil }
+    let(:topic_key) { "#{region}:#{event_type}" }
 
     context 'when topic ARN is stored in cache' do
       it 'does not make a call to AWS to try and create again' do
         subject.sns_helper.create_topic_arn(event_type)
         expect(subject.sns).to_not receive(:create_topic)
-        expect(EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[event_type]).to_not be_empty
+        expect(EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[topic_key]).to_not be_empty
         subject.sns_helper.create_topic_arn(event_type)
       end
     end
@@ -138,13 +140,15 @@ RSpec.describe EventQ::Amazon::QueueClient do
       it 'creates the topic and caches it' do
         expect(subject.sns).to receive(:create_topic).and_call_original
         expect(subject.sns_helper.create_topic_arn(event_type)).to include event_type
-        expect(EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[event_type]).to_not be_empty
+        expect(EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[topic_key]).to_not be_empty
       end
     end
   end
 
   describe '#get_topic_arn' do
     let(:event_type) { "test_event_#{SecureRandom.hex(2)}" }
+    let(:region) { nil }
+    let(:topic_key) { "#{region}:#{event_type}" }
 
     context 'when arn does not exist' do
       it 'returns nil' do
@@ -154,7 +158,7 @@ RSpec.describe EventQ::Amazon::QueueClient do
 
     context 'when arn is cached' do
       before do
-        EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[event_type] = 'something_dummy_arn'
+        EventQ::Amazon::SNS.class_variable_get(:@@topic_arns)[topic_key] = 'something_dummy_arn'
       end
 
       it 'does not call AWS' do

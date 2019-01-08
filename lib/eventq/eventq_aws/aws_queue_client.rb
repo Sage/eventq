@@ -4,7 +4,7 @@ module EventQ
   module Amazon
     class QueueClient
       def initialize(options = {})
-        invalid_keys = options.keys - [:sns_keep_alive_timeout, :sns_continue_timeout ]
+        invalid_keys = options.keys - %i[sns_keep_alive_timeout sns_continue_timeout]
         raise(OptionParser::InvalidOption, invalid_keys) unless invalid_keys.empty?
 
         @sns_keep_alive_timeout = options[:sns_keep_alive_timeout] || 30
@@ -12,21 +12,37 @@ module EventQ
       end
 
       # Returns the AWS SQS Client
-      def sqs
-        @sqs ||= sqs_client
+      def sqs(region = nil)
+        if region.nil?
+          @sqs ||= sqs_client
+        else
+          sqs_client(region)
+        end
       end
 
       # Returns the AWS SNS Client
-      def sns
-        @sns ||= sns_client
+      def sns(region = nil)
+        if region.nil?
+          @sns ||= sns_client
+        else
+          sns_client(region)
+        end
       end
 
-      def sqs_helper
-        @sqs_helper ||= Amazon::SQS.new(sqs)
+      def sqs_helper(region = nil)
+        if region.nil?
+          @sqs_helper ||= Amazon::SQS.new(sqs)
+        else
+          Amazon::SQS.new(sqs_client(region))
+        end
       end
 
-      def sns_helper
-        @sns_helper ||= Amazon::SNS.new(sns)
+      def sns_helper(region = nil)
+        if region.nil?
+          @sns_helper ||= Amazon::SNS.new(sns)
+        else
+          Amazon::SNS.new(sns_client(region))
+        end
       end
 
       private
@@ -37,9 +53,10 @@ module EventQ
         { endpoint: aws_env } unless aws_env.empty?
       end
 
-      def sqs_client
+      def sqs_client(region = nil)
         options = custom_endpoint('sqs')
-        options.merge!(verify_checksums: false) if options
+        options[:verify_checksums] = false if options
+        options[:region] = region if region
 
         if options
           Aws::SQS::Client.new(options)
@@ -48,7 +65,7 @@ module EventQ
         end
       end
 
-      def sns_client
+      def sns_client(region = nil)
         custom_endpoint('sns')
         options = {
           http_idle_timeout: @sns_keep_alive_timeout,
@@ -56,6 +73,7 @@ module EventQ
         }
         endpoint = custom_endpoint('sns')
         options.merge!(endpoint) if endpoint
+        options[:region] = region if region
 
         Aws::SNS::Client.new(options)
       end

@@ -15,35 +15,37 @@ module EventQ
         @serialization_manager = EventQ::SerializationProviders::Manager.new
         @signature_manager = EventQ::SignatureProviders::Manager.new
 
-        #this array is used to record known event types
+        # this array is used to record known event types
         @known_event_types = []
 
       end
 
-      def registered?(event_type)
-        @known_event_types.include?(event_type)
+      def registered?(event_type, region = nil)
+        topic_key = "#{region}:#{event_type}"
+        @known_event_types.include?(topic_key)
       end
 
-      def register_event(event_type)
-        if registered?(event_type)
+      def register_event(event_type, region = nil)
+        if registered?(event_type, region)
           return true
         end
 
-        @client.sns_helper.create_topic_arn(event_type)
-        @known_event_types << event_type
+        topic_key = "#{region}:#{event_type}"
+        @client.sns_helper(region).create_topic_arn(event_type, region)
+        @known_event_types << topic_key
         true
       end
 
-      def publish(topic:, event:, context: {})
-        raise_event(topic, event, context)
+      def publish(topic:, event:, context: {}, region: nil)
+        raise_event(topic, event, context, region)
       end
 
-      def raise_event(event_type, event, context = {})
-        register_event(event_type)
+      def raise_event(event_type, event, context = {}, region = nil)
+        register_event(event_type, region)
 
         with_prepared_message(event_type, event, context) do |message|
-          topic_arn = topic_arn(event_type)
-          response = @client.sns.publish(
+          topic_arn = topic_arn(event_type, region)
+          response = @client.sns(region).publish(
             topic_arn: topic_arn,
             message: message,
             subject: event_type
@@ -60,7 +62,6 @@ module EventQ
       def raise_event_in_queue(event_type, event, queue, delay, context = {})
         queue_url = @client.sqs_helper.get_queue_url(queue)
         with_prepared_message(event_type, event, context) do |message|
-
           response = @client.sqs.send_message(
             queue_url: queue_url,
             message_body: sqs_message_body_for(message),
@@ -108,8 +109,8 @@ module EventQ
         serialization_provider.serialize(queue_message)
       end
 
-      def topic_arn(event_type)
-        @client.sns_helper.get_topic_arn(event_type)
+      def topic_arn(event_type, region = nil)
+        @client.sns_helper(region).get_topic_arn(event_type, region)
       end
 
       def sqs_message_body_for(payload_message)

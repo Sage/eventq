@@ -46,3 +46,5 @@ services:
       - HOSTNAME_EXTERNAL=goaws
     ports:
       - "8085:8080"
+      - "4576:4576"
+      - "4575:4575"
