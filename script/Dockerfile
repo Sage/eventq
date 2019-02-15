@@ -1,4 +1,4 @@
-FROM ruby:2.4-alpine
+FROM ruby:2.4-alpine3.8
 
 RUN apk add --update ca-certificates bash && update-ca-certificates && rm -rf /var/cache/apk/*
 
