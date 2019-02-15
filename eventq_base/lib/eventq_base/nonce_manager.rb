@@ -1,7 +1,7 @@
 module EventQ
   class NonceManager
 
-    def self.configure(server:,timeout:10000,lifespan:3600000)
+    def self.configure(server:,timeout:10000,lifespan:3600)
       @server_url = server
       @timeout = timeout
       @lifespan = lifespan

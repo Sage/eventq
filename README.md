@@ -243,7 +243,7 @@ This method is called to configure the NonceManager, and must be called before s
 
  - **server** [String] [Required] This is redis server url.
  - **timeout** [Integer] [Optional] [Default=10000 (10 seconds)] This is the time in milliseconds that should be used for the initial nonce lock (this value should be low so as to not affect failure retries but long enough to cover the processing of the received message).
- - **lifespan** [Integer] [Optional] [Default=3600000 (60 minutes)] This is the length of time the nonce should be kept for after processing of a message has completed.
+ - **lifespan** [Integer] [Optional] [Default=3600 (60 minutes)] This is the length of time the nonce should be kept for after processing of a message has completed.
 
 **Example**
 
