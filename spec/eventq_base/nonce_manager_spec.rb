@@ -21,7 +21,7 @@ RSpec.describe EventQ::NonceManager do
         described_class.configure(server: server_url)
         expect(described_class.server_url).to eq server_url
         expect(described_class.timeout).to eq 10000
-        expect(described_class.lifespan).to eq 3600000
+        expect(described_class.lifespan).to eq 3600
       end
     end
 
