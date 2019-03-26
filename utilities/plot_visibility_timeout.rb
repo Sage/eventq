@@ -122,7 +122,7 @@ settings = {
 
   # Waiting period before the backoff strategy kicks in.
   # Multiply with query_retry_delay and divide by 60 to see how many minutes it will wait.
-  queue_retry_back_off_grace:  30_000, # wait 15min: (30_000x30)/60
+  queue_retry_back_off_grace:  30_000,     # wait 15min: (queue_retry_back_off_grace * queue_retry_delay)/60
 
   # Delay and retry for each queue iterations. The multiplier is necessary in case the calculated values
   # are insignificant between iterations.
