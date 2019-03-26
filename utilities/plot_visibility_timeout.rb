@@ -3,7 +3,7 @@ require 'csv'
 require 'logger'
 
 class PlotVisibilityTimeout
-  # Folder where the plot resutls are saved
+  # Folder where the plot results are saved
   PLOT_FOLDER = 'plot_results'
 
   def plot(settings)
