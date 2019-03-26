@@ -3,10 +3,15 @@ require 'csv'
 require 'logger'
 
 class PlotVisibilityTimeout
+  # Folder where the plot results are saved
+  PLOT_FOLDER = 'plot_results'
+
   def plot(settings)
+    setup
+
     @plot_seconds                = settings.fetch(:plot_seconds)
     @plot_min_timeout            = settings.fetch(:plot_min_timeout)
-    @plot_file_name              = "plot_results/plot_#{settings.values.join('__')}"
+    @plot_file_name              = "#{PLOT_FOLDER}/plot_#{settings.values.join('__')}"
 
     @queue_allow_retry_back_off  = settings.fetch(:queue_allow_retry_back_off)
     @queue_retry_back_off_weight = settings.fetch(:queue_retry_back_off_weight)
@@ -26,6 +31,12 @@ class PlotVisibilityTimeout
 
   private
   attr_reader :calculator
+
+  def setup
+    unless Dir.exist?(PLOT_FOLDER)
+      Dir.mkdir(PLOT_FOLDER)
+    end
+  end
 
   def execute
     puts "Executing..."
@@ -97,12 +108,24 @@ class PlotVisibilityTimeout
 end
 
 settings = {
-  plot_min_timeout:            0.03,       # in case the returned timeout is zero, default to 30ms which is the average connection time between worker and queue
-  plot_seconds:                72*60*60, # simulate 72h
+  # Sometimes the calculated timeout is zero so we must default to a value
+  # since in real life the is no zero second connections.
+  plot_min_timeout:            0.03,       # 30ms which is the average connection time between worker and queue
+
+  # The amount of time we should plot for.
+  plot_seconds:                72*60*60,    # simulate 72h
   queue_allow_retry_back_off:  true,       # enables backoff strategy
+
+  # The cap value for the queue retry
   queue_max_retry_delay:       1_500_000,  # will wait max 1500s
   queue_max_timeout:           43_200,     # 12h which AWS max message visibility timeout
-  queue_retry_back_off_grace:  20_000,     # will wait 15min before starting to backoff
+
+  # Waiting period before the backoff strategy kicks in.
+  # Multiply with query_retry_delay and divide by 60 to see how many minutes it will wait.
+  queue_retry_back_off_grace:  30_000,     # wait 15min: (queue_retry_back_off_grace * queue_retry_delay)/60
+
+  # Delay and retry for each queue iterations. The multiplier is necessary in case the calculated values
+  # are insignificant between iterations.
   queue_retry_back_off_weight: 100,        # Backoff multiplier
   queue_retry_delay:           30          # 30ms
 }
