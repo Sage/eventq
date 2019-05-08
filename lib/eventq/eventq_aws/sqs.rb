@@ -15,7 +15,7 @@ module EventQ
 
       # Create a new queue.
       def create_queue(queue, attributes = {})
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
 
         url = get_queue_url(queue)
         unless url
@@ -50,7 +50,7 @@ module EventQ
       # @param queue [EventQ::Queue]
       # @return ARN [String]
       def get_queue_arn(queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
 
         arn = @@queue_arns[_queue_name]
         unless arn
@@ -74,7 +74,7 @@ module EventQ
       # @param queue [EventQ::Queue]
       # @return URL [String]
       def get_queue_url(queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
 
         url = @@queue_urls[_queue_name]
         unless url
@@ -97,7 +97,7 @@ module EventQ
         q = get_queue_url(queue)
         sqs.delete_queue(queue_url: q)
 
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
         @@queue_urls.delete(_queue_name)
         @@queue_arns.delete(_queue_name)
 

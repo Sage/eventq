@@ -11,6 +11,7 @@ module EventQ
     attr_accessor :retry_delay
     attr_accessor :retry_back_off_grace
     attr_accessor :retry_back_off_weight
+    attr_accessor :namespace_delimiter
 
     def initialize
       @allow_retry = false

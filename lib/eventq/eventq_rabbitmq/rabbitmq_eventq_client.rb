@@ -81,7 +81,7 @@ module EventQ
           delay_queue = @queue_manager.create_delay_queue(channel, queue, exchange.name, delay)
           delay_queue.bind(delay_exchange, routing_key: _event_type)
 
-          _queue_name = EventQ.create_queue_name(queue.name)
+          _queue_name = EventQ.create_queue_name(queue)
 
           q = channel.queue(_queue_name, durable: @queue_manager.durable)
           q.bind(exchange, routing_key: _event_type)
