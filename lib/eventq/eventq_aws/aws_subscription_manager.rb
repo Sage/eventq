@@ -13,7 +13,13 @@ module EventQ
       end
 
       def subscribe(event_type, queue, topic_region = nil, queue_region = nil)
-        topic_arn = @client.sns_helper(topic_region).create_topic_arn(event_type, topic_region)
+        if queue.isolated
+          method = :get_topic_arn
+        else
+          method = :create_topic_arn
+        end
+
+        topic_arn = @client.sns_helper(topic_region).public_send(method, event_type, topic_region)
 
         q = @manager.get_queue(queue)
         queue_arn = @client.sqs_helper(queue_region).get_queue_arn(queue)
