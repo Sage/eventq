@@ -11,6 +11,7 @@ module EventQ
     attr_accessor :retry_delay
     attr_accessor :retry_back_off_grace
     attr_accessor :retry_back_off_weight
+    attr_accessor :namespace_delimiter
     # Flag to control that the queue runs in isolation of auto creating the topic it belongs to
     attr_accessor :isolated
 
