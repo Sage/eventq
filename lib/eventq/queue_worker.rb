@@ -30,7 +30,7 @@ module EventQ
       configure(queue, options)
       worker_adapter.configure(options)
 
-      queue_name = EventQ.create_queue_name(queue.name)
+      queue_name = EventQ.create_queue_name(queue)
       EventQ.logger.info("[#{self.class}] - Listening for messages on queue: #{queue_name}}")
 
       # Allow the worker to be started on a thread or on the main process.

@@ -4,6 +4,7 @@ require 'class_kit'
 require 'hash_kit'
 require 'oj'
 
+require_relative 'eventq/base'
 require_relative 'eventq/eventq_base/eventq_logger'
 require_relative 'eventq/eventq_base/queue'
 require_relative 'eventq/eventq_base/exchange'

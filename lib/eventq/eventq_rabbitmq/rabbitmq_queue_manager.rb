@@ -14,7 +14,7 @@ module EventQ
 
       def get_queue(channel, queue)
 
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
 
         # get/create the queue
         q = channel.queue(_queue_name, :durable => @durable)
@@ -41,29 +41,29 @@ module EventQ
       end
 
       def get_queue_exchange(channel, queue)
-        _exchange_name = EventQ.create_exchange_name(queue.name)
+        _exchange_name = EventQ.create_exchange_name(queue)
         channel.fanout("#{_exchange_name}.ex")
       end
 
       def get_retry_exchange(channel, queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
         return channel.fanout("#{_queue_name}.r.ex")
       end
 
       def get_subscriber_exchange(channel, queue)
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
         return channel.fanout("#{_queue_name}.ex")
       end
 
       def get_delay_exchange(channel, queue, delay)
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
         channel.direct("#{_queue_name}.#{delay}.d.ex")
       end
 
       def get_retry_queue(channel, queue)
         subscriber_exchange = get_subscriber_exchange(channel, queue)
 
-        _queue_name = EventQ.create_queue_name(queue.name)
+        _queue_name = EventQ.create_queue_name(queue)
 
         if queue.allow_retry_back_off == true
 
@@ -82,13 +82,13 @@ module EventQ
       end
 
       def create_delay_queue(channel, queue, dlx_name, delay=0)
-        queue_name = EventQ.create_queue_name(queue.name)
+        queue_name = EventQ.create_queue_name(queue)
         channel.queue("#{queue_name}.#{delay}.delay", durable: @durable,
                       arguments: { X_DEAD_LETTER_EXCHANGE => dlx_name, X_MESSAGE_TTL => delay * 1000 })
       end
 
       def get_exchange(channel, exchange)
-        _exchange_name = EventQ.create_exchange_name(exchange.name)
+        _exchange_name = EventQ.create_exchange_name(exchange)
         return channel.direct(_exchange_name, :durable => @durable)
       end
     end
