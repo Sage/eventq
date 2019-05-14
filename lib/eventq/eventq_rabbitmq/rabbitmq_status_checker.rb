@@ -27,7 +27,7 @@ module EventQ
         begin
           connection = @client.get_connection
           channel = connection.create_channel
-          _queue_name = EventQ.create_queue_name(queue.name)
+          _queue_name = EventQ.create_queue_name(queue)
           channel.queue(_queue_name, :durable => true)
         rescue
           outcome = false
