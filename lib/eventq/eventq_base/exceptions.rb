@@ -1,2 +1,3 @@
 require_relative 'exceptions/invalid_signature_exception'
 require_relative 'exceptions/worker_thread_error'
+require_relative 'exceptions/event_type_not_found'
