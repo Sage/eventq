@@ -28,6 +28,10 @@ module EventQ
         attributes = default_queue_attributes(q, queue_arn)
         @client.sqs(queue_region).set_queue_attributes(attributes)
 
+        # skip subscribe if subscription for given queue/topic already exists
+        # this fixes a localstack issue: https://github.com/localstack/localstack/issues/933
+        return true if existing_subscription?(queue_arn, topic_arn)
+
         @client.sns(topic_region).subscribe(
           topic_arn: topic_arn,
           protocol: 'sqs',
@@ -71,6 +75,12 @@ module EventQ
             }
           ]
         }'
+      end
+
+      # check if there is an existing subscription for the given queue/topic
+      def existing_subscription?(queue_arn, topic_arn)
+        subscriptions = @client.sns.list_subscriptions.subscriptions
+        subscriptions.any? { |subscription| subscription.topic_arn == topic_arn && subscription.endpoint == queue_arn }
       end
     end
   end
