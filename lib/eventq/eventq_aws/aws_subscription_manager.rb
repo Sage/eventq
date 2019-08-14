@@ -12,7 +12,7 @@ module EventQ
         @manager = options[:queue_manager]
       end
 
-      def subscribe(event_type, queue, topic_region = nil, queue_region = nil)
+      def subscribe(event_type, queue, topic_region = nil, queue_region = nil, topic_namespaces = [EventQ.namespace])
         if queue.isolated
           method = :get_topic_arn
         else
@@ -22,24 +22,28 @@ module EventQ
         topic_arn = @client.sns_helper(topic_region).public_send(method, event_type, topic_region)
         raise Exceptions::EventTypeNotFound, 'SNS topic not found, unable to subscribe' unless topic_arn
 
-        q = @manager.get_queue(queue)
-        queue_arn = @client.sqs_helper(queue_region).get_queue_arn(queue)
+        queue_arn = configure_queue(queue, queue_region)
 
-        attributes = default_queue_attributes(q, queue_arn)
-        @client.sqs(queue_region).set_queue_attributes(attributes)
+        # subscribe the queue to the topic with the namespaces provided
+        topic_namespaces.each do |namespace|
+          namespaced_topic_arn = topic_arn.gsub(":#{EventQ.namespace}-", ":#{namespace}-")
 
-        # skip subscribe if subscription for given queue/topic already exists
-        # this fixes a localstack issue: https://github.com/localstack/localstack/issues/933
-        return true if existing_subscription?(queue_arn, topic_arn)
+          # create the sns topic - this method is idempotent & returns the topic arn if it already exists
+          @client.sns.create_topic(name: "#{namespace}-#{event_type}".delete('.'))
 
-        @client.sns(topic_region).subscribe(
-          topic_arn: topic_arn,
-          protocol: 'sqs',
-          endpoint: queue_arn
-        )
+          # skip subscribe if subscription for given queue/topic already exists
+          # this is a workaround for a localstack issue: https://github.com/localstack/localstack/issues/933
+          return true if existing_subscription?(queue_arn, namespaced_topic_arn)
 
-        EventQ.logger.debug do
-          "[#{self.class} #subscribe] - Subscribing Queue: #{queue.name} to topic_arn: #{topic_arn}, endpoint: #{queue_arn}"
+          EventQ.logger.debug do
+            "[#{self.class} #subscribe] - Subscribing Queue: #{queue.name} to topic_arn: #{namespaced_topic_arn}, endpoint: #{queue_arn}"
+          end
+
+          @client.sns(topic_region).subscribe(
+            topic_arn: namespaced_topic_arn,
+            protocol: 'sqs',
+            endpoint: queue_arn
+          )
         end
 
         true
@@ -50,6 +54,15 @@ module EventQ
       end
 
       private
+
+      def configure_queue(queue, region)
+        q = @manager.get_queue(queue)
+        queue_arn = @client.sqs_helper(region).get_queue_arn(queue)
+
+        attributes = default_queue_attributes(q, queue_arn)
+        @client.sqs(region).set_queue_attributes(attributes)
+        queue_arn
+      end
 
       def default_queue_attributes(queue, queue_arn)
         {
