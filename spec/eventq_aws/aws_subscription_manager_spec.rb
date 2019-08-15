@@ -97,7 +97,21 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
           protocol: 'sqs',
           endpoint: queue_arn
         )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).exactly(3).times
         subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
+      end
+
+      context 'queue is isolated' do
+        before do
+          allow_any_instance_of(EventQ::Amazon::SNS).to receive(:public_send).and_return(topic_arn)
+        end
+
+        it 'does not create the topic' do
+          subscriber_queue.isolated = true
+          expect_any_instance_of(Aws::SNS::Client).not_to receive(:create_topic)
+          expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).exactly(3).times
+          subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
+        end
       end
     end
   end
