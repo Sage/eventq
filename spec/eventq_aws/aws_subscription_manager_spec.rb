@@ -45,7 +45,7 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
 
       context 'does not exist for the current queue/topic' do
         let(:subscriptions) { double(subscriptions: []) }
-        
+
         it 'subscribes to the topic' do
           expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe)
           subject.subscribe(event_type, subscriber_queue)
@@ -64,6 +64,53 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
         it 'does not subscribe to the topic again' do
           expect_any_instance_of(Aws::SNS::Client).not_to receive(:subscribe)
           subject.subscribe(event_type, subscriber_queue)
+        end
+      end
+    end
+
+    context 'topic_namespaces is provided' do
+      let(:namespaces) { ['foo', 'bar', 'baz'] }
+      let(:topic_arn) { 'arn:aws:sns:us-east-1:123456789012:foo-dummy-topic' }
+      let(:queue_arn) { 'dummy_queue_arn' }
+      let(:subscriptions) { double(subscriptions: []) }
+
+      before do
+        allow(EventQ).to receive(:namespace).and_return('foo')
+        allow_any_instance_of(EventQ::Amazon::SNS).to receive(:public_send).and_return(topic_arn)
+        allow_any_instance_of(EventQ::Amazon::SQS).to receive(:get_queue_arn).and_return(queue_arn)
+        allow_any_instance_of(Aws::SNS::Client).to receive(:list_subscriptions).and_return(subscriptions)
+      end
+
+      it 'subscribes the queue to the topics for each namespace provided' do
+        expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).with(
+          topic_arn: topic_arn,
+          protocol: 'sqs',
+          endpoint: queue_arn
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).with(
+          topic_arn: 'arn:aws:sns:us-east-1:123456789012:bar-dummy-topic',
+          protocol: 'sqs',
+          endpoint: queue_arn
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).with(
+          topic_arn: 'arn:aws:sns:us-east-1:123456789012:baz-dummy-topic',
+          protocol: 'sqs',
+          endpoint: queue_arn
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).exactly(3).times
+        subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
+      end
+
+      context 'queue is isolated' do
+        before do
+          allow_any_instance_of(EventQ::Amazon::SNS).to receive(:public_send).and_return(topic_arn)
+        end
+
+        it 'does not create the topic' do
+          subscriber_queue.isolated = true
+          expect_any_instance_of(Aws::SNS::Client).not_to receive(:create_topic)
+          expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).exactly(3).times
+          subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
         end
       end
     end
