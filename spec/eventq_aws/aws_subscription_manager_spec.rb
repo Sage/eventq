@@ -97,7 +97,7 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
           protocol: 'sqs',
           endpoint: queue_arn
         )
-        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).exactly(3).times
+        expect_any_instance_of(EventQ::Amazon::SNS).to receive(:create_topic_arn).exactly(3).times
         subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
       end
 
