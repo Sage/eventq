@@ -29,7 +29,7 @@ module EventQ
           namespaced_topic_arn = topic_arn.gsub(":#{EventQ.namespace}-", ":#{namespace}-")
 
           # create the sns topic - this method is idempotent & returns the topic arn if it already exists
-          @client.sns.create_topic(name: "#{namespace}-#{event_type}".delete('.')) unless queue.isolated
+          @client.sns_helper.create_topic_arn("#{namespace}-#{event_type}".delete('.')) unless queue.isolated
 
           # skip subscribe if subscription for given queue/topic already exists
           # this is a workaround for a localstack issue: https://github.com/localstack/localstack/issues/933
