@@ -20,7 +20,7 @@ module EventQ
         end
 
         topic_arn = @client.sns_helper(topic_region).public_send(method, event_type, topic_region)
-        raise Exceptions::EventTypeNotFound, 'SNS topic not found, unable to subscribe' unless topic_arn
+        raise Exceptions::EventTypeNotFound, "SNS topic not found, unable to subscribe to #{event_type}" unless topic_arn
 
         queue_arn = configure_queue(queue, queue_region)
 
