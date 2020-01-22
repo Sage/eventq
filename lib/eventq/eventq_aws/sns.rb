@@ -70,7 +70,8 @@ module EventQ
       # @note Responses to list_topics can be paged, so to check *all* topics
       # we'll need to request each page of topics using response.next_token for
       # until the response no longer contains a next_token. Requests to
-      # list_topics are throttled to 30 TPS, so we need to play nicely.
+      # list_topics are throttled to 30 TPS, so in the future we may need to
+      # handle 429 responses if this becomes a problem.
       #
       # @param topic_name [String] the name of the topic to find
       # @return [String]
@@ -83,8 +84,6 @@ module EventQ
           response = sns.list_topics(next_token: response.next_token)
           topics = response.topics
           arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{topic_name}") }&.topic_arn
-
-          sleep 0.5
         end
 
         arn
