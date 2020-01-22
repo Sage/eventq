@@ -32,6 +32,12 @@ module EventQ
       end
 
       # Check if a TopicArn exists.  This will check with AWS if necessary and cache the results if one is found
+      #
+      # @note Responses to list_topics can be paged, so to check *all* topics
+      # we'll need to request each page of topics using response.next_token for
+      # until the response no longer contains a next_token. Requests to
+      # list_topics are throttled to 30 TPS, so we need to play nicely.
+      #
       # @return TopicArn [String]
       def get_topic_arn(event_type, region = nil)
         _event_type = EventQ.create_event_type(event_type)
@@ -40,7 +46,13 @@ module EventQ
         arn = @@topic_arns[topic_key]
         unless arn
           response = sns.list_topics
-          arn = response.topics.detect { |topic| topic.topic_arn.end_with?(":#{_event_type}") }&.topic_arn
+          topics = response.topics
+          while response.next_token
+            response = sns.list_topics(next_token: response.next_token)
+            topics << response.topics
+            sleep 0.5
+          end
+          arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{_event_type}") }&.topic_arn
 
           @@topic_arns[topic_key] = arn if arn
         end
