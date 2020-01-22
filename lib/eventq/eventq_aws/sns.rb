@@ -71,7 +71,7 @@ module EventQ
       # we'll need to request each page of topics using response.next_token for
       # until the response no longer contains a next_token. Requests to
       # list_topics are throttled to 30 TPS, so in the future we may need to
-      # handle 429 responses if this becomes a problem.
+      # handle this if it becomes a problem.
       #
       # @param topic_name [String] the name of the topic to find
       # @return [String]
