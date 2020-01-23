@@ -32,6 +32,7 @@ module EventQ
       end
 
       # Check if a TopicArn exists.  This will check with AWS if necessary and cache the results if one is found
+      #
       # @return TopicArn [String]
       def get_topic_arn(event_type, region = nil)
         _event_type = EventQ.create_event_type(event_type)
@@ -39,8 +40,7 @@ module EventQ
 
         arn = @@topic_arns[topic_key]
         unless arn
-          response = sns.list_topics
-          arn = response.topics.detect { |topic| topic.topic_arn.end_with?(":#{_event_type}") }&.topic_arn
+          arn = find_topic(_event_type)
 
           @@topic_arns[topic_key] = arn if arn
         end
@@ -61,6 +61,32 @@ module EventQ
 
       def aws_safe_name(name)
         return name[0..79].gsub(/[^a-zA-Z\d_\-]/,'')
+      end
+
+      private
+
+      # Finds the given topic, or returns nil if the topic could not be found
+      #
+      # @note Responses to list_topics can be paged, so to check *all* topics
+      # we'll need to request each page of topics using response.next_token for
+      # until the response no longer contains a next_token. Requests to
+      # list_topics are throttled to 30 TPS, so in the future we may need to
+      # handle this if it becomes a problem.
+      #
+      # @param topic_name [String] the name of the topic to find
+      # @return [String]
+      def find_topic(topic_name)
+        response = sns.list_topics
+        topics = response.topics
+        arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{topic_name}") }&.topic_arn
+
+        while arn.nil? && response.next_token
+          response = sns.list_topics(next_token: response.next_token)
+          topics = response.topics
+          arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{topic_name}") }&.topic_arn
+        end
+
+        arn
       end
     end
   end
