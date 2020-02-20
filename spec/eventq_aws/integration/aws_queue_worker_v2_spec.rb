@@ -173,7 +173,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     received = false
     received_count = 0
-    received_attribute = 0;
+    received_attribute = 0
 
     # wait 1 second to allow the message to be sent and broadcast to the queue
     sleep(1)
@@ -210,7 +210,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     received = false
     received_count = 0
-    received_attribute = 0;
+    received_attribute = 0
 
     # wait 1 second to allow the message to be sent and broadcast to the queue
     sleep(1)
@@ -222,7 +222,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       received_count += 1
       received_attribute = args.retry_attempts
       EventQ.logger.debug {  "Message Received: #{event}" }
-      if received_count > 1
+      if received_count == 3
         args.kill = true
       end
     end
@@ -232,8 +232,8 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     queue_worker.stop
 
     expect(received).to eq(true)
-    expect(received_count).to eq(2)
-    expect(received_attribute).to eq(1)
+    expect(received_count).to eq(1)
+    expect(received_attribute).to eq(3)
     expect(queue_worker.running?).to eq(false)
   end
 
