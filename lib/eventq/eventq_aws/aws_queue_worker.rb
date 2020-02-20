@@ -113,6 +113,14 @@ module EventQ
             EventQ.logger.error("[#{self.class}] - Message Id: #{args.id}. Retry attempt limit exceeded.")
             context.call_on_retry_exceeded_block(message)
           end
+        elsif args.kill
+          EventQ.logger.error("[#{self.class}] - Message Id: #{args.id}. Rejected without retry. Message: #{serialize_message(message)}")
+
+          # remove the message from the queue so that it does not get retried again
+          poller.delete_message(msg)
+
+          EventQ.logger.error("[#{self.class}] - Message Id: #{args.id}. Message killed.")
+          context.call_on_killed_block(message)
         elsif queue.allow_retry
           retry_attempts += 1
 
