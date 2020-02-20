@@ -224,6 +224,8 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       EventQ.logger.debug {  "Message Received: #{event}" }
       if received_count == 3
         args.kill = true
+      else
+        args.abort = true
       end
     end
 
@@ -232,8 +234,8 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     queue_worker.stop
 
     expect(received).to eq(true)
-    expect(received_count).to eq(1)
-    expect(received_attribute).to eq(3)
+    expect(received_count).to eq(3)
+    expect(received_attribute).to eq(2)
     expect(queue_worker.running?).to eq(false)
   end
 
