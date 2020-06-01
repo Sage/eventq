@@ -10,6 +10,8 @@ require_relative './eventq_aws/aws_queue_manager'
 require_relative './eventq_aws/aws_subscription_manager'
 require_relative './eventq_aws/aws_status_checker'
 require_relative './eventq_aws/aws_queue_worker'
+require_relative './eventq_aws/domain_message'
+require_relative './eventq_aws/aws_domain_queue_client'
 
 module EventQ
 end
