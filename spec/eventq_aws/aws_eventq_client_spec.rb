@@ -70,37 +70,51 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
   describe '#register_event' do
     let(:event_type) { 'event_type' }
+    let(:topic_arn) { 'topic:arn' }
+
     context 'when an event is NOT already registered' do
-      it 'should register the event, create the topic and return true' do
-        expect(queue_client.sns_helper).to receive(:create_topic_arn).with(event_type, nil).once
-        expect(subject.register_event(event_type)).to be true
+      it 'should register the event, create the topic and return the topic arn' do
+        expect(queue_client.sns_helper)
+          .to receive(:create_topic_arn)
+          .with(event_type, nil)
+          .once
+          .and_return(topic_arn)
+
+        expect(subject.register_event(event_type)).to eq topic_arn
+
         known_types = subject.instance_variable_get(:@known_event_types)
-        expect(known_types.include?(":#{event_type}")).to be true
+        expect(known_types[":#{event_type}"]).to eq topic_arn
       end
     end
+
     context 'when an event has already been registered' do
       before do
         known_types = subject.instance_variable_get(:@known_event_types)
-        known_types << ":#{event_type}"
+        known_types[":#{event_type}"] = topic_arn
       end
-      it 'should return true' do
+
+      it 'should return the topic arn' do
         expect(queue_client.sns_helper).not_to receive(:create_topic_arn)
-        expect(subject.register_event(event_type)).to be true
+        expect(subject.register_event(event_type)).to eq topic_arn
       end
     end
   end
 
   describe '#registered?' do
     let(:event_type) { 'event_type' }
+    let(:topic_arn) { 'topic:arn' }
+
     context 'when an event_type is registered' do
       before do
         known_types = subject.instance_variable_get(:@known_event_types)
-        known_types << ":#{event_type}"
+        known_types[":#{event_type}"] = topic_arn
       end
-      it 'should return true' do
-        expect(subject.registered?(event_type)).to be true
+
+      it 'should return the topic arn' do
+        expect(subject.registered?(event_type)).to eq topic_arn
       end
     end
+
     context 'when an event_type is NOT registered' do
       it 'should return false' do
         expect(subject.registered?(event_type)).to be false

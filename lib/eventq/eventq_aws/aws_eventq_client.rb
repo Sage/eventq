@@ -15,25 +15,41 @@ module EventQ
         @serialization_manager = EventQ::SerializationProviders::Manager.new
         @signature_manager = EventQ::SignatureProviders::Manager.new
 
-        # this array is used to record known event types
-        @known_event_types = []
-
+        # this hash is used to record known event types:
+        # key = event_type / name
+        # value = topic arn
+        @known_event_types = {}
       end
 
+      # Returns the topic arn for event_type if it has already been registered,
+      # or false if it hasn't.
+      #
+      # @param [String] event_type
+      # @param [String] region
+      #
+      # @return [String] if the event_type is already registered
+      # @return [Boolean] if the event_type is not registered
       def registered?(event_type, region = nil)
         topic_key = "#{region}:#{event_type}"
-        @known_event_types.include?(topic_key)
+        return false unless @known_event_types.key?(topic_key)
+
+        @known_event_types[topic_key]
       end
 
+      # Registers the event event_type and returns its topic arn.
+      #
+      # @param [String] event_type
+      # @param [String] region
+      #
+      # @return [String]
       def register_event(event_type, region = nil)
-        if registered?(event_type, region)
-          return true
-        end
+        topic_arn = registered?(event_type, region)
+        return topic_arn if topic_arn
 
         topic_key = "#{region}:#{event_type}"
-        @client.sns_helper(region).create_topic_arn(event_type, region)
-        @known_event_types << topic_key
-        true
+        topic_arn = @client.sns_helper(region).create_topic_arn(event_type, region)
+        @known_event_types[topic_key] = topic_arn
+        topic_arn
       end
 
       def publish(topic:, event:, context: {}, region: nil)
