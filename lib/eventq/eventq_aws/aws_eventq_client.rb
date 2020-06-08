@@ -21,19 +21,16 @@ module EventQ
         @known_event_types = {}
       end
 
-      # Returns the topic arn for event_type if it has already been registered,
-      # or false if it hasn't.
+      # Returns true if the event has already been registerd, or false
+      # otherwise.
       #
       # @param [String] event_type
       # @param [String] region
       #
-      # @return [String] if the event_type is already registered
-      # @return [Boolean] if the event_type is not registered
+      # @return [Boolean]
       def registered?(event_type, region = nil)
         topic_key = "#{region}:#{event_type}"
-        return false unless @known_event_types.key?(topic_key)
-
-        @known_event_types[topic_key]
+        @known_event_types.key?(topic_key)
       end
 
       # Registers the event event_type and returns its topic arn.
@@ -43,10 +40,9 @@ module EventQ
       #
       # @return [String]
       def register_event(event_type, region = nil)
-        topic_arn = registered?(event_type, region)
-        return topic_arn if topic_arn
-
         topic_key = "#{region}:#{event_type}"
+        return @known_event_types[topic_key] if registered?(event_type, region)
+
         topic_arn = @client.sns_helper(region).create_topic_arn(event_type, region)
         @known_event_types[topic_key] = topic_arn
         topic_arn

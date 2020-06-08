@@ -110,8 +110,8 @@ RSpec.describe EventQ::Amazon::EventQClient do
         known_types[":#{event_type}"] = topic_arn
       end
 
-      it 'should return the topic arn' do
-        expect(subject.registered?(event_type)).to eq topic_arn
+      it 'should return true' do
+        expect(subject.registered?(event_type)).to be true
       end
     end
 
