@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'activesupport', '~> 4'
   spec.add_development_dependency 'bundler', '~> 1.11'
+  spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'pry-byebug', '~> 3.9'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec'

@@ -11,6 +11,4 @@ platforms :ruby do
   gem 'oj', '3.6.10'
   gem 'openssl', '2.1.1'
   gem 'bunny'
-  gem 'pry-byebug'
-  gem 'byebug', '10.0.2'
 end
