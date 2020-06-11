@@ -19,18 +19,20 @@ Gem::Specification.new do |spec|
   spec.files         = ["README.md"] + Dir.glob("{bin,lib}/**/**/**")
   spec.require_paths = ["lib"]
 
+  spec.add_development_dependency 'activesupport', '~> 4'
   spec.add_development_dependency 'bundler', '~> 1.11'
+  spec.add_development_dependency 'byebug', '~> 11.0'
+  spec.add_development_dependency 'pry-byebug', '~> 3.9'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec'
-  spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'shoulda-matchers'
-  spec.add_development_dependency 'activesupport', '~> 4'
+  spec.add_development_dependency 'simplecov'
 
   spec.add_dependency 'aws-sdk', '~> 2.0'
+  spec.add_dependency 'bunny'
   spec.add_dependency 'class_kit'
-  spec.add_dependency 'redlock'
-  spec.add_dependency 'openssl'
   spec.add_dependency 'concurrent-ruby'
   spec.add_dependency 'oj'
-  spec.add_dependency 'bunny'
+  spec.add_dependency 'openssl'
+  spec.add_dependency 'redlock'
 end
