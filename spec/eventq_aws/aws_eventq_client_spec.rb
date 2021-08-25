@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::EventQClient do
 
   let(:event_type) { 'test_queue1_event1' }
-  let(:correlaton) { { 'Trace' => '12345' } }
+  let(:correlation) { { 'Trace' => '12345' } }
   let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
 
   let(:queue_client) do
