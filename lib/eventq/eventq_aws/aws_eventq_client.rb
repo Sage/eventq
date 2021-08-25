@@ -100,6 +100,7 @@ module EventQ
         qm.type = event_type
         qm.context = context
         qm.content_type = event.class.to_s
+        qm.correlation_trace_id = event.Correlation['Trace']
 
         if EventQ::Configuration.signature_secret != nil
           provider = @signature_manager.get_provider(EventQ::Configuration.signature_provider)
