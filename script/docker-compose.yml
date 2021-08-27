@@ -11,6 +11,7 @@ services:
     depends_on:
       - redis
       - rabbitmq
+      - localstack
     volumes:
       - ./container_loop.sh:/scripts/container_loop.sh
       - ../:/src
@@ -18,8 +19,8 @@ services:
       - AWS_ACCESS_KEY_ID=mock_id
       - AWS_SECRET_ACCESS_KEY=mock_password
       - AWS_REGION=eu-west-1
-      - AWS_SQS_ENDPOINT=http://goaws:4566
-      - AWS_SNS_ENDPOINT=http://goaws:4566
+      - AWS_SQS_ENDPOINT=http://localstack:4566
+      - AWS_SNS_ENDPOINT=http://localstack:4566
 #    env_file:
 #      - ../.aws.env
 
@@ -32,18 +33,14 @@ services:
     container_name: eventq_redis
     ports:
       - "6379:6379"
-#  goaws:
-#    image: pafortin/goaws
-#    container_name: goaws
-#    ports:
-#      - "4100:4100"
-  goaws:
+
+  localstack:
     image: localstack/localstack
-    container_name: goaws
+    container_name: localstack
     environment:
-      - SERVICES=sqs:4566,sns:4566
-      - HOSTNAME=goaws
-      - HOSTNAME_EXTERNAL=goaws
+      - SERVICES=sqs,sns
+      - HOSTNAME=localstack
+      - HOSTNAME_EXTERNAL=localstack
     ports:
       - "8085:8080"
       - "4566:4566"
