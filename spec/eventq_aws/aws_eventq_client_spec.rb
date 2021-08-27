@@ -3,8 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::Amazon::EventQClient do
 
   let(:event_type) { 'test_queue1_event1' }
-  let(:correlation) { { 'Trace' => '12345' } }
-  let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
+  let(:event) { 'Hello World' }
 
   let(:queue_client) do
     EventQ::Amazon::QueueClient.new
@@ -25,7 +24,6 @@ RSpec.describe EventQ::Amazon::EventQClient do
         expect(message_json['content']).to eql event
         expect(message_json['type']).to eql event_type
         expect(message_json['context']).to eql message_context
-        expect(message_json['correlation_trace_id']).to eql correlation['Trace']
 
         expect(options[:subject]).to eql event_type
       end.and_return(response)
@@ -37,6 +35,20 @@ RSpec.describe EventQ::Amazon::EventQClient do
       expect(subject).to receive(:register_event).with(event_type, nil).once.ordered
       expect(subject).to receive(:with_prepared_message).once.ordered
       subject.raise_event(event_type, event)
+    end
+
+    describe 'with event.Correlation object provided' do
+    let(:correlation) { { 'Trace' => '12345' } }
+    let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
+
+      it 'publishes an SNS event with correlation_trace_id set' do
+        expect(queue_client.sns).to receive(:publish) do |options|
+          message_json = JSON.parse(options[:message])
+          expect(message_json['correlation_trace_id']).to eql correlation['Trace']
+        end.and_return(response)
+  
+        expect(subject.raise_event(event_type, event, message_context)).to eql message_id
+      end
     end
   end
 
