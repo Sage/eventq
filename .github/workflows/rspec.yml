@@ -11,8 +11,8 @@ jobs:
 
       - name: Run tests
         run: |
-          cd script
-          ./test.sh
+          docker-compose up -d
+          docker exec testrunner bash -c "cd src && bundle install && bundle exec rspec"
 
       - name: Code Coverage
         uses: paambaati/codeclimate-action@v2.7.5
