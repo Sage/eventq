@@ -1,0 +1,27 @@
+name: RSpec
+on:
+  - push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.4
+          bundler-cache: true
+
+      - name: Run tests
+        run: |
+          cd script
+          ./test.sh
+
+      - name: Code Coverage
+        uses: paambaati/codeclimate-action@v2.7.5
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageLocations: |
+            ${{github.workspace}}/coverage/.resultset.json:simplecov
