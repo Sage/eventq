@@ -11,6 +11,7 @@ jobs:
 
       - name: Run tests
         run: |
+          cd  script
           docker-compose up -d
           docker exec testrunner bash -c "cd src && bundle install && bundle exec rspec"
 
