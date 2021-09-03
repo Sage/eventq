@@ -20,6 +20,7 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
+          prefix: '/src'
           coverageLocations: |
             ${{github.workspace}}/coverage/.resultset.json:simplecov
 
