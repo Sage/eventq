@@ -161,7 +161,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       EventQ.logger.debug { "Message Received: #{event}" }
     end
 
-    sleep(5)
+    sleep(2)
 
     queue_worker.stop
     expect(received).to eq(true)
