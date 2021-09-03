@@ -35,7 +35,8 @@ services:
       - "6379:6379"
 
   localstack:
-    image: localstack/localstack:0.11.6
+    # changes to multi region support after this version break tests
+    image: localstack/localstack:0.12.16
     container_name: localstack
     environment:
       - SERVICES=sqs,sns
