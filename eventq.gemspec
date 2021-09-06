@@ -3,8 +3,6 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 version = File.read(File.expand_path("EVENTQ_VERSION", __dir__)).strip
 
-prerelease = ENV['TRAVIS_TAG'].scan(/rc\d*/)[0] if ENV['TRAVIS']
-
 Gem::Specification.new do |spec|
   spec.name          = "eventq"
   spec.version       = version
