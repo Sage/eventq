@@ -6,7 +6,6 @@ version = File.read(File.expand_path("EVENTQ_VERSION", __dir__)).strip
 Gem::Specification.new do |spec|
   spec.name          = "eventq"
   spec.version       = version
-  spec.version       = "#{spec.version}.#{prerelease}" if prerelease
   spec.authors       = ["SageOne"]
   spec.email         = ["sageone@sage.com"]
 
