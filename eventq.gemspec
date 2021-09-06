@@ -12,7 +12,6 @@ Gem::Specification.new do |spec|
   spec.description = spec.summary = 'EventQ is a pub/sub system that uses async notifications and message queues'
   spec.homepage      = "https://github.com/sage/eventq"
   spec.license       = "MIT"
-
   spec.files         = ["README.md"] + Dir.glob("{bin,lib}/**/**/**")
   spec.require_paths = ["lib"]
 
