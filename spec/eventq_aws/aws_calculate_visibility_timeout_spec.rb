@@ -24,8 +24,8 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         }
       )
 
-      expect(result).to eq(ms_to_seconds(retry_delay))
-
+      # retry_delay / 1000
+      expect(result).to eq(30)
 
       result = subject.call(
         retry_attempts:       retry_back_off_grace + 100,
@@ -38,7 +38,28 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         }
       )
 
-      expect(result).to eq(ms_to_seconds(retry_delay))
+      # retry_delay / 1000
+      expect(result).to eq(30)
+      
+      context 'when retry_delay is less than 1000ms' do
+        let(:retry_delay) { 30 }        # 30ms
+
+        it 'does not introduces backoff' do
+          result = subject.call(
+            retry_attempts: 1,
+            queue_settings: {
+              allow_retry_back_off:  allow_retry_back_off,
+              max_retry_delay:       max_retry_delay,
+              retry_back_off_grace:  retry_back_off_grace,
+              retry_delay:           retry_delay,
+              retry_back_off_weight: retry_back_off_weight
+            }
+          )
+
+          # retry_delay / 1000
+          expect(result).to eq(0.03)
+        end
+      end
     end
   end
 
@@ -58,7 +79,8 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
           }
         )
 
-        expect(result).to eq(ms_to_seconds(retry_delay))
+        # retry_delay / 1000
+        expect(result).to eq(30)
       end
     end
 
@@ -77,7 +99,8 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
           }
         )
 
-        expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period)
+        # (retry_delay / 1000) * retries_past_grace_period
+        expect(result).to eq(60)
       end
     end
 
@@ -93,8 +116,9 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
             retry_back_off_weight: retry_back_off_weight
           }
         )
-
-        expect(result).to eq(ms_to_seconds(max_retry_delay))
+        
+        # max_retry_delay / 1000
+        expect(result).to eq(100)
       end
     end
 
@@ -111,7 +135,8 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
           }
         )
 
-        expect(result).to eq(max_timeout)
+        # max_timeout
+        expect(result).to eq(43_200)
       end
     end
 
@@ -131,12 +156,9 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
           }
         )
 
-        expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period * retry_back_off_weight)
+        # (retry_delay / 1000) * retries_past_grace_period * retry_back_off_weight
+        expect(result).to eq(120)
       end
     end
-  end
-
-  def ms_to_seconds(value)
-    value / 1000
   end
 end
