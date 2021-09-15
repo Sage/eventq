@@ -65,7 +65,7 @@ module EventQ
       end
 
       def ms_to_seconds(value)
-        value / 1000
+        value.to_f / 1000
       end
 
       def check_for_max_timeout(visibility_timeout)
