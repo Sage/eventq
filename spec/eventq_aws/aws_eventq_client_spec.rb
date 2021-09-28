@@ -38,8 +38,8 @@ RSpec.describe EventQ::Amazon::EventQClient do
     end
 
     describe 'with event.Correlation object provided' do
-    let(:correlation) { { 'Trace' => '12345' } }
-    let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
+      let(:correlation) { { 'Trace' => '12345' } }
+      let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
 
       it 'publishes an SNS event with correlation_trace_id set' do
         expect(queue_client.sns).to receive(:publish) do |options|
