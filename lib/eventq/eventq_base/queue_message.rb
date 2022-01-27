@@ -11,6 +11,7 @@ module EventQ
     attr_accessor_type :signature, type: String
     attr_accessor_type :context, type: Hash
     attr_accessor_type :correlation_trace_id, type: String
+    attr_accessor_type :Correlation, type: Hash
 
     def initialize
       @retry_attempts = 0

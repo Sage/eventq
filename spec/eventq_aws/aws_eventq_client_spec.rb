@@ -37,16 +37,49 @@ RSpec.describe EventQ::Amazon::EventQClient do
       subject.raise_event(event_type, event)
     end
 
-    describe 'with event.Correlation object provided' do
-      let(:correlation) { { 'Trace' => '12345' } }
+    context 'when event.Correlation object provided' do
+      let(:correlation_trace_id) { SecureRandom.uuid }
+      let(:correlation) { { 'Trace' => correlation_trace_id } }
       let(:event) { double('Event', content: 'Hello world', Correlation: correlation) }
 
       it 'publishes an SNS event with correlation_trace_id set' do
         expect(queue_client.sns).to receive(:publish) do |options|
           message_json = JSON.parse(options[:message])
-          expect(message_json['correlation_trace_id']).to eql correlation['Trace']
+          expect(message_json['correlation_trace_id']).to eql correlation_trace_id
         end.and_return(response)
-  
+
+        expect(subject.raise_event(event_type, event, message_context)).to eql message_id
+      end
+
+      it 'publishes an SNS event with Correlation set' do
+        expect(queue_client.sns).to receive(:publish) do |options|
+          message_json = JSON.parse(options[:message])
+          expect(message_json['Correlation']).to eql correlation
+          expect(message_json['Correlation']['Trace']).to eql correlation_trace_id
+        end.and_return(response)
+
+        expect(subject.raise_event(event_type, event, message_context)).to eql message_id
+      end
+    end
+
+    context 'when event.Correlation object not provided' do
+      let(:event) { double('Event', content: 'Hello world') }
+
+      it 'publishes an SNS event without correlation_trace_id set' do
+        expect(queue_client.sns).to receive(:publish) do |options|
+          message_json = JSON.parse(options[:message])
+          expect(message_json['correlation_trace_id']).to be nil
+        end.and_return(response)
+
+        expect(subject.raise_event(event_type, event, message_context)).to eql message_id
+      end
+
+      it 'publishes an SNS event without Correlation set' do
+        expect(queue_client.sns).to receive(:publish) do |options|
+          message_json = JSON.parse(options[:message])
+          expect(message_json['Correlation']).to be nil
+        end.and_return(response)
+
         expect(subject.raise_event(event_type, event, message_context)).to eql message_id
       end
     end

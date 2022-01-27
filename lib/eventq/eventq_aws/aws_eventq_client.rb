@@ -102,6 +102,7 @@ module EventQ
         qm.content_type = event.class.to_s
         if event.respond_to? :Correlation
           qm.correlation_trace_id = event.Correlation['Trace']
+          qm.Correlation = event.Correlation
         end
 
         if EventQ::Configuration.signature_secret != nil
