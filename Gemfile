@@ -12,3 +12,7 @@ platforms :ruby do
   gem 'openssl', '2.1.1'
   gem 'bunny'
 end
+
+group :development, :test do
+  gem 'pry-byebug', '< 3.10' # 3.10.0 requires Ruby >= 2.7
+end
