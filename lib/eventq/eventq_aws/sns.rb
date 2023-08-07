@@ -8,10 +8,11 @@ module EventQ
     class SNS
       @@topic_arns = Concurrent::Hash.new
 
-      attr_reader :sns
+      attr_reader :sns, :sns_resource
 
       def initialize(client)
         @sns = client
+        @sns_resource = Aws::SNS::Resource.new(client: client)
       end
 
       # Create a TopicArn. if one already exists, it will return a pre-existing ARN from the cache.
@@ -67,26 +68,10 @@ module EventQ
 
       # Finds the given topic, or returns nil if the topic could not be found
       #
-      # @note Responses to list_topics can be paged, so to check *all* topics
-      # we'll need to request each page of topics using response.next_token for
-      # until the response no longer contains a next_token. Requests to
-      # list_topics are throttled to 30 TPS, so in the future we may need to
-      # handle this if it becomes a problem.
-      #
       # @param topic_name [String] the name of the topic to find
       # @return [String]
       def find_topic(topic_name)
-        response = sns.list_topics
-        topics = response.topics
-        arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{topic_name}") }&.topic_arn
-
-        while arn.nil? && response.next_token
-          response = sns.list_topics(next_token: response.next_token)
-          topics = response.topics
-          arn = topics.detect { |topic| topic.topic_arn.end_with?(":#{topic_name}") }&.topic_arn
-        end
-
-        arn
+        sns_resource.topics.detect { |topic| topic.arn.end_with?(":#{topic_name}") }&.arn
       end
     end
   end
