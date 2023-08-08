@@ -7,7 +7,6 @@ require 'simplecov'
 SimpleCov.start do
   add_filter ['spec/']
 end
-puts 'required simplecov'
 require 'shoulda-matchers'
 
 Shoulda::Matchers.configure do |config|
