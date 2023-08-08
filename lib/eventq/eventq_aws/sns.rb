@@ -8,11 +8,10 @@ module EventQ
     class SNS
       @@topic_arns = Concurrent::Hash.new
 
-      attr_reader :sns, :sns_resource
+      attr_reader :sns
 
       def initialize(client)
         @sns = client
-        @sns_resource = Aws::SNS::Resource.new(client: client)
       end
 
       # Create a TopicArn. if one already exists, it will return a pre-existing ARN from the cache.
@@ -70,7 +69,8 @@ module EventQ
       #
       # @param topic_name [String] the name of the topic to find
       # @return [String]
-      def find_topic(topic_name)
+      def find_topic(topic_name, region = nil)
+        sns_resource = Aws::SNS::Resource.new(client: client.sns(region))
         sns_resource.topics.detect { |topic| topic.arn.end_with?(":#{topic_name}") }&.arn
       end
     end
