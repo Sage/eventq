@@ -14,7 +14,7 @@ jobs:
           docker-compose run --build testrunner bash -c "bundle exec rspec spec"
 
       - name: Code Coverage
-        uses: paambaati/codeclimate-action@v2.7.5
+        uses: paambaati/codeclimate-action@v5.0.0
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
