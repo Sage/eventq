@@ -11,7 +11,8 @@ jobs:
 
       - name: Run tests
         run: |
-          docker-compose run --build testrunner bash -c "bundle exec rspec spec"
+          docker-compose up -d --build
+          docker exec testrunner bash -c "bundle exec rspec && exit"
 
       - name: Code Coverage
         uses: paambaati/codeclimate-action@v5.0.0
