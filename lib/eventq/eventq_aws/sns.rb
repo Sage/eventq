@@ -10,9 +10,9 @@ module EventQ
 
       attr_reader :sns, :sns_resource
 
-      def initialize(client)
+      def initialize(client, resource = nil)
         @sns = client
-        @sns_resource = Aws::SNS::Resource.new(client: client)
+        @sns_resource = resource || Aws::SNS::Resource.new(client: client)
       end
 
       # Create a TopicArn. if one already exists, it will return a pre-existing ARN from the cache.
