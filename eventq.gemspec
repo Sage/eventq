@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_development_dependency 'activesupport', '~> 4'
-  spec.add_development_dependency 'bundler', '~> 1.11'
+  spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'pry-byebug', '~> 3.9'
   spec.add_development_dependency 'rake'
