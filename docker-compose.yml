@@ -31,8 +31,6 @@ services:
   redis:
     image: redis:alpine
     container_name: eventq_redis
-    ports:
-      - "6379:6379"
 
   localstack:
     # changes to multi region support after this version break tests
