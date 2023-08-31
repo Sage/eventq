@@ -7,7 +7,6 @@ require 'simplecov'
 SimpleCov.start do
   add_filter ['spec/']
 end
-puts 'required simplecov'
 require 'shoulda-matchers'
 
 Shoulda::Matchers.configure do |config|
@@ -21,11 +20,6 @@ require_relative '../lib/eventq/rabbitmq'
 require_relative '../lib/eventq/aws'
 
 RSpec.configure do |config|
-
-  config.before(:each) do
-
-  end
-
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
   end

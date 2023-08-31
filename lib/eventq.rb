@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'securerandom'
 require 'redlock'
 require 'class_kit'
@@ -22,6 +24,3 @@ require_relative 'eventq/eventq_base/nonce_manager'
 require_relative 'eventq/eventq_base/signature_providers'
 require_relative 'eventq/eventq_base/exceptions'
 require_relative 'eventq/queue_worker'
-
-
-

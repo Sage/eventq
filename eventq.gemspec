@@ -1,31 +1,34 @@
-# coding: utf-8
+# frozen_string_literal: true
+
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-version = File.read(File.expand_path("EVENTQ_VERSION", __dir__)).strip
+version = File.read(File.expand_path('EVENTQ_VERSION', __dir__)).strip
 
 Gem::Specification.new do |spec|
-  spec.name          = "eventq"
+  spec.name          = 'eventq'
   spec.version       = version
-  spec.authors       = ["SageOne"]
-  spec.email         = ["sageone@sage.com"]
+  spec.authors       = ['SageOne']
+  spec.email         = ['sageone@sage.com']
 
   spec.description = spec.summary = 'EventQ is a pub/sub system that uses async notifications and message queues'
-  spec.homepage      = "https://github.com/sage/eventq"
-  spec.license       = "MIT"
-  spec.files         = ["README.md"] + Dir.glob("{bin,lib}/**/**/**")
-  spec.require_paths = ["lib"]
+  spec.homepage      = 'https://github.com/sage/eventq'
+  spec.license       = 'MIT'
+  spec.files         = ['README.md'] + Dir.glob('{bin,lib}/**/**/**')
+  spec.require_paths = ['lib']
+
+  spec.required_ruby_version = '>= 2.4'
 
   spec.add_development_dependency 'activesupport', '~> 4'
-  spec.add_development_dependency 'bundler', '~> 1.11'
+  spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'pry-byebug', '~> 3.9'
-  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'shoulda-matchers'
   spec.add_development_dependency 'simplecov', '< 0.18.0'
 
-  spec.add_dependency 'aws-sdk-sqs', '~> 1'
   spec.add_dependency 'aws-sdk-sns', '~> 1'
+  spec.add_dependency 'aws-sdk-sqs', '~> 1'
   spec.add_dependency 'bunny'
   spec.add_dependency 'class_kit'
   spec.add_dependency 'concurrent-ruby'

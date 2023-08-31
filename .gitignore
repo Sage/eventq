@@ -15,3 +15,6 @@
 process_file.txt
 spec_run.txt
 /utilities/plot_results
+
+tags
+*.tags
