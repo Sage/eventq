@@ -17,10 +17,10 @@ services:
       - ./:/src
     environment:
       - AWS_ACCESS_KEY_ID=mock_id
-      - AWS_SECRET_ACCESS_KEY=mock_password
       - AWS_REGION=eu-west-1
-      - AWS_SQS_ENDPOINT=http://localstack:4566
+      - AWS_SECRET_ACCESS_KEY=mock_password
       - AWS_SNS_ENDPOINT=http://localstack:4566
+      - AWS_SQS_ENDPOINT=http://localstack:4566
 #    env_file:
 #      - ../.aws.env
 
