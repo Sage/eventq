@@ -87,6 +87,10 @@ module EventQ
         end
 
         arn
+      rescue Aws::SNS::Errors::Throttling => error
+        EventQ.logger.error("[#{self.class}] - #find_topic: #{error.message}} - retrying in 2s")
+        sleep 2
+        find_topic(topic_name)
       end
     end
   end
