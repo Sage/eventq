@@ -53,10 +53,9 @@ module EventQ
       end
 
       def raise_event(event_type, event, context = {}, region = nil)
-        register_event(event_type, region)
+        topic_arn = register_event(event_type, region)
 
         with_prepared_message(event_type, event, context) do |message|
-          topic_arn = topic_arn(event_type, region)
           response = @client.sns(region).publish(
             topic_arn: topic_arn,
             message: message,
@@ -123,10 +122,6 @@ module EventQ
         serialization_provider = @serialization_manager.get_provider(EventQ::Configuration.serialization_provider)
 
         serialization_provider.serialize(queue_message)
-      end
-
-      def topic_arn(event_type, region = nil)
-        @client.sns_helper(region).get_topic_arn(event_type, region)
       end
 
       def sqs_message_body_for(payload_message)

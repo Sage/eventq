@@ -21,7 +21,7 @@ module EventQ
         _event_type = EventQ.create_event_type(event_type)
         topic_key = "#{region}:#{_event_type}"
 
-        arn = get_topic_arn(event_type, region)
+        arn = @@topic_arns[topic_key]
         unless arn
           response = sns.create_topic(name: aws_safe_name(_event_type))
           arn = response.topic_arn
