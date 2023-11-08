@@ -10,5 +10,4 @@ RUN set -ex \
 	&& gem install -N oj --version "3.6.10" \
 	&& gem install -N openssl --version "2.1.1" \
 	&& gem install -N byebug --version "10.0.2" \
-	&& gem install -N pry-byebug \
 	&& apk del .gem-builddeps
