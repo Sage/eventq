@@ -53,7 +53,7 @@ module EventQ
       def timeout_with_back_off
         factor = @retry_attempts - @retry_back_off_grace
 
-        visibility_timeout = ms_to_seconds(@retry_delay * factor * @retry_back_off_weight)
+        visibility_timeout = ms_to_seconds((@retry_delay * factor * @retry_back_off_weight) + random_factor)
         max_retry_delay = ms_to_seconds(@max_retry_delay)
 
         if visibility_timeout > max_retry_delay
@@ -62,6 +62,10 @@ module EventQ
         end
 
         visibility_timeout
+      end
+
+      def random_factor
+        rand(1..1_000)
       end
 
       def ms_to_seconds(value)
