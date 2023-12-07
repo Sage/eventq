@@ -24,8 +24,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'shoulda-matchers'
   spec.add_development_dependency 'simplecov', '< 0.18.0'
 
-  spec.add_dependency 'aws-sdk-sqs', '~> 1'
-  spec.add_dependency 'aws-sdk-sns', '~> 1'
+  spec.add_dependency 'aws-sdk-sqs', '~> 1.65.0'
+  spec.add_dependency 'aws-sdk-sns', '~> 1.68.0'
+  spec.add_dependency 'aws-sdk-core', '3.187.0'
   spec.add_dependency 'bunny'
   spec.add_dependency 'class_kit'
   spec.add_dependency 'concurrent-ruby'

@@ -72,7 +72,7 @@ class DataChangeAddressQueue < Queue
   def initialize
     @name = 'Data.Change.Address'
     @allow_retry = true
-    @retry_delay = 20000
+    @retry_delay = 20_000
     @max_retry_attempts = 3
   end
 end
@@ -109,10 +109,10 @@ This method is called to unsubscribe a queue.
 
 **Example**
 
-    #create an instant of the queue definition
+    #create an instance of the queue definition
 	queue = DateChangeAddressQueue.new
 
-    #subscribe the queue definition to an event type
+    #unsubscribe the queue definition
     subscription_manager.unsubscribe(queue)
 
 
