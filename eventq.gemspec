@@ -15,11 +15,11 @@ Gem::Specification.new do |spec|
   spec.files         = ["README.md"] + Dir.glob("{bin,lib}/**/**/**")
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency 'activesupport', '~> 4'
+  spec.add_development_dependency 'activesupport', '~> 6'
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'pry-byebug', '~> 3.9'
-  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'rake', '~> 13'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'shoulda-matchers'
   spec.add_development_dependency 'simplecov', '< 0.18.0'
