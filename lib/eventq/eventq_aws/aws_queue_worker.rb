@@ -122,11 +122,12 @@ module EventQ
           visibility_timeout = @calculate_visibility_timeout.call(
             retry_attempts:       retry_attempts,
             queue_settings: {
-              allow_retry_back_off:  queue.allow_retry_back_off,
-              max_retry_delay:       queue.max_retry_delay,
-              retry_back_off_grace:  queue.retry_back_off_grace,
-              retry_back_off_weight: queue.retry_back_off_weight,
-              retry_delay:           queue.retry_delay
+              allow_retry_back_off:       queue.allow_retry_back_off,
+              allow_exponential_back_off: queue.allow_exponential_back_off,
+              max_retry_delay:            queue.max_retry_delay,
+              retry_back_off_grace:       queue.retry_back_off_grace,
+              retry_back_off_weight:      queue.retry_back_off_weight,
+              retry_delay:                queue.retry_delay
             }
           )
 

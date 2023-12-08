@@ -5,7 +5,7 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
   let(:retry_delay) { 30_000 }        # 30s
   let(:max_retry_delay) { 100_000 }   # 100s
   let(:retry_back_off_grace) { 1000 } # iterations before the backoff grace quicks in
-  let(:retry_back_off_weight) { 1 }         # backoff multiplier
+  let(:retry_back_off_weight) { 1 }   # backoff multiplier
 
   subject { described_class.new(max_timeout: max_timeout) }
 
@@ -132,6 +132,47 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         )
 
         expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period * retry_back_off_weight)
+      end
+    end
+
+    context 'when exponential backoff is enabled' do
+      let(:max_retry_delay) { 40_000_000 }
+      let(:allow_exponential_back_off) { true }
+
+      it 'grow the delay by 2 to the power of retries past grace period' do
+        retries_past_grace_period = 10
+
+        result = subject.call(
+          retry_attempts:       retry_back_off_grace + retries_past_grace_period,
+          queue_settings: {
+            allow_retry_back_off:       allow_retry_back_off,
+            allow_exponential_back_off: allow_exponential_back_off,
+            max_retry_delay:            max_retry_delay,
+            retry_back_off_grace:       retry_back_off_grace,
+            retry_delay:                retry_delay,
+            retry_back_off_weight:      retry_back_off_weight
+          }
+        )
+
+        expect(result).to eq(ms_to_seconds(retry_delay) * 2 ** (retries_past_grace_period - 1))
+      end
+
+      it 'still caps at max delay' do
+        retries_past_grace_period = 20
+
+        result = subject.call(
+          retry_attempts:       retry_back_off_grace + retries_past_grace_period,
+          queue_settings: {
+            allow_retry_back_off:       allow_retry_back_off,
+            allow_exponential_back_off: allow_exponential_back_off,
+            max_retry_delay:            max_retry_delay,
+            retry_back_off_grace:       retry_back_off_grace,
+            retry_delay:                retry_delay,
+            retry_back_off_weight:      retry_back_off_weight
+          }
+        )
+
+        expect(result).to eq(ms_to_seconds(max_retry_delay))
       end
     end
   end

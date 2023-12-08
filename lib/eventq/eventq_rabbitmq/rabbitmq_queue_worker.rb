@@ -80,7 +80,12 @@ module EventQ
           retry_attempts = 1 if retry_attempts < 1
 
           if queue.allow_retry_back_off == true
-            message_ttl = retry_attempts * queue.retry_delay
+            message_ttl = if queue.allow_exponential_back_off
+              queue.retry_delay * 2 ** (retry_attempts - 1)
+            else
+              queue.retry_delay * retry_attempts
+            end
+
             if (retry_attempts * queue.retry_delay) > queue.max_retry_delay
               EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
               message_ttl = queue.max_retry_delay

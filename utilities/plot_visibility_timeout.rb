@@ -9,16 +9,17 @@ class PlotVisibilityTimeout
   def plot(settings)
     setup
 
-    @plot_seconds                = settings.fetch(:plot_seconds)
-    @plot_min_timeout            = settings.fetch(:plot_min_timeout)
-    @plot_file_name              = "#{PLOT_FOLDER}/plot_#{settings.values.join('__')}"
+    @plot_seconds                     = settings.fetch(:plot_seconds)
+    @plot_min_timeout                 = settings.fetch(:plot_min_timeout)
+    @plot_file_name                   = "#{PLOT_FOLDER}/plot_#{settings.values.join('__')}"
 
-    @queue_allow_retry_back_off  = settings.fetch(:queue_allow_retry_back_off)
-    @queue_retry_back_off_weight = settings.fetch(:queue_retry_back_off_weight)
-    @queue_max_retry_delay       = settings.fetch(:queue_max_retry_delay)
-    @queue_max_timeout           = settings.fetch(:queue_max_timeout)
-    @queue_retry_back_off_grace  = settings.fetch(:queue_retry_back_off_grace)
-    @queue_retry_delay           = settings.fetch(:queue_retry_delay)
+    @queue_allow_retry_back_off       = settings.fetch(:queue_allow_retry_back_off)
+    @queue_allow_exponential_back_off = settings.fetch(:queue_allow_exponential_back_off)
+    @queue_retry_back_off_weight      = settings.fetch(:queue_retry_back_off_weight)
+    @queue_max_retry_delay            = settings.fetch(:queue_max_retry_delay)
+    @queue_max_timeout                = settings.fetch(:queue_max_timeout)
+    @queue_retry_back_off_grace       = settings.fetch(:queue_retry_back_off_grace)
+    @queue_retry_delay                = settings.fetch(:queue_retry_delay)
 
     logger = Logger.new(STDOUT)
 
@@ -70,11 +71,12 @@ class PlotVisibilityTimeout
     calculator.call(
       retry_attempts:       retry_counter,
       queue_settings: {
-        allow_retry_back_off:  @queue_allow_retry_back_off,
-        max_retry_delay:       @queue_max_retry_delay,
-        retry_back_off_grace:  @queue_retry_back_off_grace,
-        retry_back_off_weight: @queue_retry_back_off_weight,
-        retry_delay:           @queue_retry_delay,
+        allow_retry_back_off:       @queue_allow_retry_back_off,
+        allow_exponential_back_off: @queue_allow_exponential_back_off,
+        max_retry_delay:            @queue_max_retry_delay,
+        retry_back_off_grace:       @queue_retry_back_off_grace,
+        retry_back_off_weight:      @queue_retry_back_off_weight,
+        retry_delay:                @queue_retry_delay,
       }
     )
   end
@@ -110,24 +112,25 @@ end
 settings = {
   # Sometimes the calculated timeout is zero so we must default to a value
   # since in real life the is no zero second connections.
-  plot_min_timeout:            0.03,       # 30ms which is the average connection time between worker and queue
+  plot_min_timeout:                 0.03,       # 30ms which is the average connection time between worker and queue
 
   # The amount of time we should plot for.
-  plot_seconds:                72*60*60,    # simulate 72h
-  queue_allow_retry_back_off:  true,       # enables backoff strategy
+  plot_seconds:                     72*60*60,   # simulate 72h
+  queue_allow_retry_back_off:       true,       # enables backoff strategy
+  queue_allow_exponential_back_off: false,      # disables exponential backoff strategy
 
   # The cap value for the queue retry
-  queue_max_retry_delay:       1_500_000,  # will wait max 1500s
-  queue_max_timeout:           43_200,     # 12h which AWS max message visibility timeout
+  queue_max_retry_delay:            1_500_000,  # will wait max 1500s
+  queue_max_timeout:                43_200,     # 12h which AWS max message visibility timeout
 
   # Waiting period before the backoff strategy kicks in.
   # Multiply with query_retry_delay and divide by 60 to see how many minutes it will wait.
-  queue_retry_back_off_grace:  30_000,     # wait 15min: (queue_retry_back_off_grace * queue_retry_delay)/60
+  queue_retry_back_off_grace:       30_000,     # wait 15min: (queue_retry_back_off_grace * queue_retry_delay)/60
 
   # Delay and retry for each queue iterations. The multiplier is necessary in case the calculated values
   # are insignificant between iterations.
-  queue_retry_back_off_weight: 100,        # Backoff multiplier
-  queue_retry_delay:           30          # 30ms
+  queue_retry_back_off_weight:      100,        # Backoff multiplier
+  queue_retry_delay:                30          # 30ms
 }
 
 PlotVisibilityTimeout.new.plot(settings)
