@@ -24,7 +24,7 @@ module EventQ
         @retry_attempts = retry_attempts
 
         @allow_retry_back_off       = queue_settings.fetch(:allow_retry_back_off)
-        @allow_exponential_back_off = queue_settings.fetch(:allow_exponential_back_off, false)
+        @allow_exponential_back_off = queue_settings.fetch(:allow_exponential_back_off)
         @max_retry_delay            = queue_settings.fetch(:max_retry_delay)
         @retry_back_off_grace       = queue_settings.fetch(:retry_back_off_grace)
         @retry_back_off_weight      = queue_settings.fetch(:retry_back_off_weight)
