@@ -78,21 +78,7 @@ module EventQ
           message.retry_attempts += 1
           retry_attempts = message.retry_attempts - queue.retry_back_off_grace
           retry_attempts = 1 if retry_attempts < 1
-
-          if queue.allow_retry_back_off == true
-            message_ttl = if queue.allow_exponential_back_off
-              queue.retry_delay * 2 ** (retry_attempts - 1)
-            else
-              queue.retry_delay * retry_attempts
-            end
-
-            if (retry_attempts * queue.retry_delay) > queue.max_retry_delay
-              EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
-              message_ttl = queue.max_retry_delay
-            end
-          else
-            message_ttl = queue.retry_delay
-          end
+          message_ttl = retry_delay(queue, retry_attempts)
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{message_ttl}" }
           retry_exchange.publish(serialize_message(message), :expiration => message_ttl)
@@ -132,6 +118,23 @@ module EventQ
           else
             raise "Unrecognized status: #{status}"
         end
+      end
+
+      def retry_delay(queue, retry_attempts)
+        return queue.retry_delay unless queue.allow_retry_back_off == true
+
+        message_ttl = if queue.allow_exponential_back_off
+          queue.retry_delay * 2 ** (retry_attempts - 1)
+        else
+          queue.retry_delay * retry_attempts
+        end
+
+        if message_ttl > queue.max_retry_delay
+          EventQ.logger.debug { "[#{self.class}] - Max message back off retry delay reached." }
+          message_ttl = queue.max_retry_delay
+        end
+
+        message_ttl
       end
     end
   end
