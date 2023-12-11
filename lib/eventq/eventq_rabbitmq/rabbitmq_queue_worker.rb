@@ -121,7 +121,7 @@ module EventQ
       end
 
       def retry_delay(queue, retry_attempts)
-        return queue.retry_delay unless queue.allow_retry_back_off == true
+        return queue.retry_delay unless queue.allow_retry_back_off
 
         message_ttl = if queue.allow_exponential_back_off
           queue.retry_delay * 2 ** (retry_attempts - 1)
