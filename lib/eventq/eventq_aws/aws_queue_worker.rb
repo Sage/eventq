@@ -127,6 +127,7 @@ module EventQ
               max_retry_delay:            queue.max_retry_delay,
               retry_back_off_grace:       queue.retry_back_off_grace,
               retry_back_off_weight:      queue.retry_back_off_weight,
+              retry_jitter_ratio:         queue.retry_jitter_ratio,
               retry_delay:                queue.retry_delay
             }
           )

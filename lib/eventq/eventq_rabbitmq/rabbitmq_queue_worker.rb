@@ -134,7 +134,15 @@ module EventQ
           message_ttl = queue.max_retry_delay
         end
 
-        message_ttl
+        apply_jitter(queue.retry_jitter_ratio, message_ttl)
+      end
+
+      def apply_jitter(retry_jitter_ratio, message_ttl)
+        return message_ttl if retry_jitter_ratio == 0
+
+        ratio = retry_jitter_ratio / 100.0
+        min_message_ttl = (message_ttl * (1 - ratio)).to_i
+        rand(min_message_ttl..message_ttl)
       end
     end
   end

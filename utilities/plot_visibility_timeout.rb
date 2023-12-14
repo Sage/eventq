@@ -16,6 +16,7 @@ class PlotVisibilityTimeout
     @queue_allow_retry_back_off       = settings.fetch(:queue_allow_retry_back_off)
     @queue_allow_exponential_back_off = settings.fetch(:queue_allow_exponential_back_off)
     @queue_retry_back_off_weight      = settings.fetch(:queue_retry_back_off_weight)
+    @queue_retry_jitter_ratio         = settings.fetch(:queue_retry_jitter_ratio)
     @queue_max_retry_delay            = settings.fetch(:queue_max_retry_delay)
     @queue_max_timeout                = settings.fetch(:queue_max_timeout)
     @queue_retry_back_off_grace       = settings.fetch(:queue_retry_back_off_grace)
@@ -76,7 +77,8 @@ class PlotVisibilityTimeout
         max_retry_delay:            @queue_max_retry_delay,
         retry_back_off_grace:       @queue_retry_back_off_grace,
         retry_back_off_weight:      @queue_retry_back_off_weight,
-        retry_delay:                @queue_retry_delay,
+        retry_jitter_ratio:         @queue_retry_jitter_ratio,
+        retry_delay:                @queue_retry_delay
       }
     )
   end
@@ -130,7 +132,10 @@ settings = {
   # Delay and retry for each queue iterations. The multiplier is necessary in case the calculated values
   # are insignificant between iterations.
   queue_retry_back_off_weight:      100,        # Backoff multiplier
-  queue_retry_delay:                30          # 30ms
+  queue_retry_delay:                30,         # 30ms
+
+  # Ratio of randomness allowed on retry delay to avoid a bulk of retries hitting again at the same time
+  queue_retry_jitter_ratio:         0           # ratio for randomness on retry delay
 }
 
 PlotVisibilityTimeout.new.plot(settings)

@@ -18,6 +18,7 @@ module EventQ
       # @option max_retry_delay [Integer] Maximum amount of time a retry will take in ms
       # @option retry_back_off_grace [Integer] Amount of retries to wait before starting to backoff
       # @option retry_back_off_weight [Integer] Multiplier for the backoff retry
+      # @option retry_jitter_ratio [Integer] Ratio of how much jitter to apply to the backoff retry
       # @option retry_delay [Integer] Amount of time to wait until retry in ms
       # @return [Integer] the calculated visibility timeout in seconds
       def call(retry_attempts:, queue_settings:)
@@ -28,6 +29,7 @@ module EventQ
         @max_retry_delay            = queue_settings.fetch(:max_retry_delay)
         @retry_back_off_grace       = queue_settings.fetch(:retry_back_off_grace)
         @retry_back_off_weight      = queue_settings.fetch(:retry_back_off_weight)
+        @retry_jitter_ratio         = queue_settings.fetch(:retry_jitter_ratio)
         @retry_delay                = queue_settings.fetch(:retry_delay)
 
         visibility_timeout = if @allow_retry_back_off && retry_past_grace_period?
@@ -35,6 +37,8 @@ module EventQ
         else
           timeout_without_back_off
         end
+
+        visibility_timeout = apply_jitter(visibility_timeout) if @retry_jitter_ratio > 0
 
         ms_to_seconds(visibility_timeout)
       end
@@ -63,6 +67,12 @@ module EventQ
 
         visibility_timeout = check_for_max_retry_delay(visibility_timeout)
         check_for_max_timeout(visibility_timeout)
+      end
+
+      def apply_jitter(visibility_timeout)
+        ratio = @retry_jitter_ratio / 100.0
+        min_visibility_timeout = (visibility_timeout * (1 - ratio)).to_i
+        rand(min_visibility_timeout..visibility_timeout)
       end
 
       def ms_to_seconds(value)
