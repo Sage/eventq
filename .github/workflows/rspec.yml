@@ -30,12 +30,10 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       localstack:
-        # changes to multi region support after this version break tests
-        image: localstack/localstack:0.12.16
+        image: localstack/localstack:latest
         env:
-          SERVICES: sqs,sns
-          HOSTNAME: localhost
-          HOSTNAME_EXTERNAL: localhost
+          SQS_ENDPOINT_STRATEGY: off
+          LOCALSTACK_HOST: localhost
         ports:
           - "8085:8080"
           - "4566:4566"

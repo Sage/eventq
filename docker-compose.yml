@@ -51,12 +51,11 @@ services:
 
   localstack:
     # changes to multi region support after this version break tests
-    image: localstack/localstack:0.12.16
+    image: localstack/localstack:latest
     container_name: localstack
     environment:
-      - SERVICES=sqs,sns
-      - HOSTNAME=localstack
-      - HOSTNAME_EXTERNAL=localstack
+      - SQS_ENDPOINT_STRATEGY=off
+      - LOCALSTACK_HOST=localstack
     ports:
       - "8085:8080"
       - "4566:4566"
