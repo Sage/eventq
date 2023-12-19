@@ -4,7 +4,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::QueueWorker do
   let(:queue_worker) { EventQ::QueueWorker.new }
 
-  let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' }) }
+  let(:client) { EventQ::RabbitMq::QueueClient.new({ endpoint: ENV.fetch('RABBITMQ_ENDPOINT', 'rabbitmq') }) }
 
   let(:connection) { client.get_connection }
 
@@ -109,7 +109,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       let(:queue_message) { EventQ::QueueMessage.new }
 
       before do
-        EventQ::NonceManager.configure(server: 'redis://redis:6379')
+        EventQ::NonceManager.configure(server: ENV.fetch('REDIS_ENDPOINT', 'redis://redis:6379'))
       end
 
       it 'should NOT process the message more than once' do
