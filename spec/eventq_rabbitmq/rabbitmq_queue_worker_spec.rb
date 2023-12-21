@@ -453,17 +453,19 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     let(:allow_retry_back_off) { true }
     let(:allow_exponential_back_off) { false }
 
+    let(:retry_delay) { 500 }
+    let(:max_retry_delay) { 5_000 }
+    let(:retry_jitter_ratio) { 0 }
+
     before do
       subscriber_queue.name = SecureRandom.uuid
       subscriber_queue.allow_retry = allow_retry
       subscriber_queue.allow_retry_back_off = allow_retry_back_off
       subscriber_queue.allow_exponential_back_off = allow_exponential_back_off
 
-      # set queue retry delay to 0.5 seconds
-      subscriber_queue.retry_delay = 500
-
-      # set to max retry delay to 5 seconds
-      subscriber_queue.max_retry_delay = 5000
+      subscriber_queue.retry_delay = retry_delay
+      subscriber_queue.max_retry_delay = max_retry_delay
+      subscriber_queue.retry_jitter_ratio = retry_jitter_ratio
 
       event_type = SecureRandom.uuid
 
@@ -539,6 +541,29 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         queue_worker.stop
 
         expect(queue_worker.running?).to eq(false)
+      end
+
+      context 'queue.retry_jitter_ratio = 50' do
+        let(:retry_delay) { 4_000 }
+        let(:max_retry_delay) { 10_000 }
+        let(:retry_jitter_ratio) { 50 }
+
+        before do
+          allow(subject).to receive(:rand).and_return(2_000)
+        end
+
+        it 'retries after half the retry delay has passed' do
+          retry_attempt_count = 0
+
+          queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+            retry_attempt_count = args.retry_attempts
+            raise 'Fail on purpose to send event to retry queue.'
+          end
+
+          sleep(3)
+
+          expect(retry_attempt_count).to eq(1)
+        end
       end
     end
 
@@ -666,4 +691,3 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
   end
 end
-

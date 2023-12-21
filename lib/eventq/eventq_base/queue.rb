@@ -12,6 +12,7 @@ module EventQ
     attr_accessor :retry_delay
     attr_accessor :retry_back_off_grace
     attr_accessor :retry_back_off_weight
+    attr_accessor :retry_jitter_ratio
     # Character delimiter between namespace and queue name.  Default = '-'
     attr_accessor :namespace_delimiter
     # Flag to control that the queue runs in isolation of auto creating the topic it belongs to
@@ -37,6 +38,8 @@ module EventQ
       @retry_back_off_grace = 0
       # Multiplier for the backoff retry in case retry_delay is too small
       @retry_back_off_weight = 1
+      # Ratio of how much jitter to apply to the retry delay
+      @retry_jitter_ratio = 0
       @isolated = false
     end
   end

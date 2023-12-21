@@ -64,6 +64,7 @@ A subscription queue should be defined to receive any events raised for the subs
  - **require_signature** [Bool] [Optional] [Default=false] This is used to specify if messages within this queue must be signed.
  - **retry_delay** [Int] [Optional] [Default=30000] This is used to specify the time delay in milliseconds before a failed message is re-added to the subscription queue.
  - **retry_back_off_weight** [Int] [Optional] [Default=1] Additional multiplier for the timeout backoff. Normally used when `retry_delay` is too small (eg: 30ms) in order to get meaningful backoff values.
+ - **retry_jitter_ratio** [Int] [Optional] [Default=0] Amount of randomness for retry delays in percent to avoid a bulk of retries hitting again at the same time. 0% means no randomness, while 100% means full randomness. With full randomness, a random number between 0 and the calculated retry delay will be chosen for the delay.
 
 **Example**
 

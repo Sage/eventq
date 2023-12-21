@@ -9,6 +9,7 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
   let(:retry_delay) { 30_000 }        # 30s
   let(:retry_back_off_grace) { 1000 } # iterations before the backoff grace quicks in
   let(:retry_back_off_weight) { 1 }   # backoff multiplier
+  let(:retry_jitter_ratio) { 0 }      # ratio for randomness on retry delay
 
   let(:queue_settings) do
     {
@@ -17,7 +18,8 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
       max_retry_delay:            max_retry_delay,
       retry_delay:                retry_delay,
       retry_back_off_grace:       retry_back_off_grace,
-      retry_back_off_weight:      retry_back_off_weight
+      retry_back_off_weight:      retry_back_off_weight,
+      retry_jitter_ratio:         retry_jitter_ratio
     }
   end
 
@@ -41,6 +43,27 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
       )
 
       expect(result).to eq(ms_to_seconds(retry_delay))
+    end
+
+    context 'when jitter is set to 30' do
+      let(:retry_jitter_ratio) { 30 }
+
+      it 'stays between 70-100% of the calculated visibility timeout' do
+        results = []
+        1000.times do |i|
+          result = subject.call(
+            retry_attempts: i,
+            queue_settings: queue_settings
+          )
+
+          expect(result).to be_between(ms_to_seconds(retry_delay * 0.7), ms_to_seconds(retry_delay))
+
+          results << result
+        end
+
+        average = results.sum.to_f / results.size
+        expect(average).to be_between(ms_to_seconds(retry_delay * 0.75), ms_to_seconds(retry_delay * 0.95))
+      end
     end
   end
 
@@ -108,6 +131,27 @@ RSpec.describe EventQ::Amazon::CalculateVisibilityTimeout do
         )
 
         expect(result).to eq(ms_to_seconds(retry_delay) * retries_past_grace_period * retry_back_off_weight)
+      end
+    end
+
+    context 'when jitter is set to 30' do
+      let(:retry_jitter_ratio) { 30 }
+
+      it 'stays between 70-100% of the calculated visibility timeout' do
+        results = []
+        1000.times do |i|
+          result = subject.call(
+            retry_attempts: i,
+            queue_settings: queue_settings
+          )
+
+          expect(result).to be_between(ms_to_seconds(retry_delay * 0.7), ms_to_seconds(retry_delay))
+
+          results << result
+        end
+
+        average = results.sum.to_f / results.size
+        expect(average).to be_between(ms_to_seconds(retry_delay * 0.75), ms_to_seconds(retry_delay * 0.95))
       end
     end
 

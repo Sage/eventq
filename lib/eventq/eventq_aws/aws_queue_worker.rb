@@ -119,23 +119,28 @@ module EventQ
 
           EventQ.logger.warn("[#{self.class}] - Message Id: #{args.id}. Rejected requesting retry. Attempts: #{retry_attempts}")
 
-          visibility_timeout = @calculate_visibility_timeout.call(
-            retry_attempts:       retry_attempts,
-            queue_settings: {
-              allow_retry_back_off:       queue.allow_retry_back_off,
-              allow_exponential_back_off: queue.allow_exponential_back_off,
-              max_retry_delay:            queue.max_retry_delay,
-              retry_back_off_grace:       queue.retry_back_off_grace,
-              retry_back_off_weight:      queue.retry_back_off_weight,
-              retry_delay:                queue.retry_delay
-            }
-          )
+          visibility_timeout = calculate_visibility_timeout(retry_attempts, queue)
 
           EventQ.logger.debug { "[#{self.class}] - Sending message for retry. Message TTL: #{visibility_timeout}" }
           poller.change_message_visibility_timeout(msg, visibility_timeout)
 
           context.call_on_retry_block(message)
         end
+      end
+
+      def calculate_visibility_timeout(retry_attempts, queue)
+        @calculate_visibility_timeout.call(
+          retry_attempts: retry_attempts,
+          queue_settings: {
+            allow_retry_back_off:       queue.allow_retry_back_off,
+            allow_exponential_back_off: queue.allow_exponential_back_off,
+            max_retry_delay:            queue.max_retry_delay,
+            retry_back_off_grace:       queue.retry_back_off_grace,
+            retry_back_off_weight:      queue.retry_back_off_weight,
+            retry_jitter_ratio:         queue.retry_jitter_ratio,
+            retry_delay:                queue.retry_delay
+          }
+        )
       end
     end
   end

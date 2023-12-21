@@ -314,6 +314,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   context 'queue.allow_retry_back_off = true' do
     let(:retry_delay) { 1_000 }
     let(:max_retry_delay) { 5_000 }
+    let(:retry_jitter_ratio) { 0 }
 
     let(:allow_retry) { true }
     let(:allow_retry_back_off) { true }
@@ -322,6 +323,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     before do
       subscriber_queue.retry_delay = retry_delay
       subscriber_queue.max_retry_delay = max_retry_delay
+      subscriber_queue.retry_jitter_ratio = retry_jitter_ratio
       subscriber_queue.allow_retry = allow_retry
       subscriber_queue.allow_retry_back_off = allow_retry_back_off
       subscriber_queue.allow_exponential_back_off = allow_exponential_back_off
@@ -396,6 +398,39 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         sleep(8)
 
         expect(retry_attempt_count).to eq(4)
+
+        queue_worker.stop
+
+        expect(queue_worker.is_running).to eq(false)
+      end
+    end
+
+    context 'queue.retry_jitter_ratio = 50' do
+      let(:retry_delay) { 4_000 }
+      let(:retry_jitter_ratio) { 50 }
+
+      before do
+        allow(
+          subject.instance_variable_get('@calculate_visibility_timeout')
+        ).to receive(:rand).and_return(2_000)
+      end
+
+      it 'retries after half the retry delay has passed' do
+        retry_attempt_count = 0
+
+        # wait 1 second to allow the message to be sent and broadcast to the queue
+        sleep(1)
+
+        queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 0.5, thread_count: 1, client: queue_client) do |event, args|
+          expect(event).to eq(message)
+          expect(args).to be_a(EventQ::MessageArgs)
+          retry_attempt_count = args.retry_attempts + 1
+          raise 'Fail on purpose to send event to retry queue.'
+        end
+
+        sleep(3)
+
+        expect(retry_attempt_count).to eq(2)
 
         queue_worker.stop
 
