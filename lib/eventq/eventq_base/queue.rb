@@ -2,6 +2,7 @@ module EventQ
   class Queue
     attr_accessor :allow_retry
     attr_accessor :allow_retry_back_off
+    attr_accessor :allow_exponential_back_off
     attr_accessor :dlq
     attr_accessor :max_retry_attempts
     attr_accessor :max_retry_delay
@@ -20,6 +21,8 @@ module EventQ
       @allow_retry = false
       # Default retry back off settings
       @allow_retry_back_off = false
+      # Default exponential back off settings
+      @allow_exponential_back_off = false
       # Default max receive count is 30
       @max_receive_count = 30
       # Default max retry attempts is 5

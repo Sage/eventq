@@ -448,17 +448,24 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
   end
 
   context 'queue.allow_retry_back_off = true' do
-    it 'should send messages that fail to process to the retry queue and then receive them again after the retry delay' do
+    let(:subscriber_queue) { EventQ::Queue.new }
+    let(:allow_retry) { true }
+    let(:allow_retry_back_off) { true }
+    let(:allow_exponential_back_off) { false }
+
+    before do
+      subscriber_queue.name = SecureRandom.uuid
+      subscriber_queue.allow_retry = allow_retry
+      subscriber_queue.allow_retry_back_off = allow_retry_back_off
+      subscriber_queue.allow_exponential_back_off = allow_exponential_back_off
+
+      # set queue retry delay to 0.5 seconds
+      subscriber_queue.retry_delay = 500
+
+      # set to max retry delay to 5 seconds
+      subscriber_queue.max_retry_delay = 5000
 
       event_type = SecureRandom.uuid
-      subscriber_queue = EventQ::Queue.new
-      subscriber_queue.name = SecureRandom.uuid
-      #set queue retry delay to 0.5 seconds
-      subscriber_queue.retry_delay = 500
-      subscriber_queue.allow_retry = true
-      subscriber_queue.allow_retry_back_off = true
-      #set to max retry delay to 5 seconds
-      subscriber_queue.max_retry_delay = 5000
 
       qm = EventQ::RabbitMq::QueueManager.new
       q = qm.get_queue(channel, subscriber_queue)
@@ -471,7 +478,9 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
 
       eqclient = EventQ::RabbitMq::EventQClient.new({client: client, subscription_manager: subscription_manager})
       eqclient.raise_event(event_type, message)
+    end
 
+    it 'should send messages that fail to process to the retry queue and then receive them again after the retry delay' do
       retry_attempt_count = 0
 
       queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
@@ -498,8 +507,41 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       queue_worker.stop
 
       expect(queue_worker.running?).to eq(false)
-
     end
+
+    context 'queue.allow_exponential_back_off = true' do
+      let(:allow_exponential_back_off) { true }
+
+      it 'retries by exponential waiting period' do
+        retry_attempt_count = 0
+
+        queue_worker.start(subscriber_queue, { worker_adapter: subject, wait: false, block_process: false, :thread_count => 1, :sleep => 0.5, client: client}) do |event, args|
+          retry_attempt_count = args.retry_attempts
+          raise 'Fail on purpose to send event to retry queue.'
+        end
+
+        sleep(0.6)
+
+        expect(retry_attempt_count).to eq(1)
+
+        sleep(1.1)
+
+        expect(retry_attempt_count).to eq(2)
+
+        sleep(2.1)
+
+        expect(retry_attempt_count).to eq(3)
+
+        sleep(4.1)
+
+        expect(retry_attempt_count).to eq(4)
+
+        queue_worker.stop
+
+        expect(queue_worker.running?).to eq(false)
+      end
+    end
+
   end
 
   context 'retry block execution' do

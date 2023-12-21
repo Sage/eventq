@@ -54,6 +54,7 @@ A subscription queue should be defined to receive any events raised for the subs
 
  - **allow_retry** [Bool] [Optional] [Default=false] This determines if the queue should allow processing failures to be retried.
  - **allow_retry_back_off** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should incrementally backoff.
+ - **allow_exponential_back_off** [Bool] [Optional] [Default=false] This is used to specify if failed messages that retry should expontentially backoff.
  - **retry_back_off_grace** [Int] [Optional] [Default=0] This is the number of times to allow retries without applying retry back off if enabled.
  - **dlq** [EventQ::Queue] [Optional] [Default=nil] A queue that will receive the messages which were not successfully processed after maximum number of receives by consumers. This is created at the same time as the parent queue.
  - **max_retry_attempts** [Int] [Optional] [Default=5] This is used to specify the max number of times an event should be allowed to retry before failing.
