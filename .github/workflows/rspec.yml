@@ -15,10 +15,20 @@ jobs:
         image: redis:alpine
         ports:
           - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       rabbitmq:
-        image: rabbitmq:3.6.5
+        image: rabbitmq:3.12.10
         ports:
           - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       localstack:
         # changes to multi region support after this version break tests
         image: localstack/localstack:0.12.16
@@ -29,6 +39,11 @@ jobs:
         ports:
           - "8085:8080"
           - "4566:4566"
+        options: >-
+          --health-cmd "curl http://localhost:4566/health?reload"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v4

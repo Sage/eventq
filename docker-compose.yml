@@ -9,9 +9,13 @@ services:
     container_name: testrunner
     command: bash -c "./script/container_loop.sh"
     depends_on:
-      - redis
-      - rabbitmq
-      - localstack
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
     volumes:
       - ./:/src
     environment:
@@ -26,14 +30,24 @@ services:
 #      - ../.aws.env
 
   rabbitmq:
-    image: rabbitmq:3.6.5
+    image: rabbitmq:3.12.10
     container_name: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:alpine
     container_name: eventq_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: redis-cli ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   localstack:
     # changes to multi region support after this version break tests
@@ -46,3 +60,8 @@ services:
     ports:
       - "8085:8080"
       - "4566:4566"
+    healthcheck:
+      test: if [ $$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/health?reload) -ne 200 ]; then exit 1; fi
+      interval: 10s
+      timeout: 5s
+      retries: 10
