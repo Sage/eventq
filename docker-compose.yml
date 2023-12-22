@@ -7,13 +7,12 @@ services:
       dockerfile: Dockerfile
     image: eventq
     container_name: testrunner
-    command: bash -c "./scripts/container_loop.sh"
+    command: bash -c "./script/container_loop.sh"
     depends_on:
       - redis
       - rabbitmq
       - localstack
     volumes:
-      - ./script/container_loop.sh:/scripts/container_loop.sh
       - ./:/src
     environment:
       - AWS_ACCESS_KEY_ID=mock_id
