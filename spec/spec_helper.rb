@@ -20,6 +20,8 @@ require_relative '../lib/eventq'
 require_relative '../lib/eventq/rabbitmq'
 require_relative '../lib/eventq/aws'
 
+require_relative 'support'
+
 RSpec.configure do |config|
 
   config.before(:each) do
