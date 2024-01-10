@@ -3,4 +3,4 @@
 echo start rspec tests
 docker-compose up -d
 
-docker exec -it testrunner bash -c "cd src && bundle install && bundle exec rspec $*"
+docker exec -it testrunner bash -c "bundle install && bundle exec rspec $*"

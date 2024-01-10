@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::QueueClient do
 
   let(:client) do
-    return EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
+    return EventQ::RabbitMq::QueueClient.new({ endpoint: ENV.fetch('RABBITMQ_ENDPOINT', 'rabbitmq') })
   end
 
   let(:connection) { client.get_connection }

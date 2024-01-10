@@ -359,7 +359,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
   context 'NonceManager' do
     context 'when a message has already been processed' do
       before do
-        EventQ::NonceManager.configure(server: 'redis://redis:6379')
+        EventQ::NonceManager.configure(server: ENV.fetch('REDIS_ENDPOINT', 'redis://redis:6379'))
       end
       let(:queue_message) { EventQ::QueueMessage.new }
       let(:event_type) { "queue_worker_event_noncemanager_#{SecureRandom.hex(2)}" }

@@ -332,8 +332,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 Run the setup script of eventq to build the environment. This will create the `eventq` image.
 
-    $ cd script
-    $ ./setup.sh
+    $ ./script/setup.sh
 
 ### Running the tests
 
@@ -347,13 +346,11 @@ You will also need to comment out the AWS_* environment variables in the `docker
 
 Run the whole test suite:
 
-    $ cd script
-    $ ./test.sh
+    $ ./script/test.sh
 
 You can run the specs that don't depend on an AWS account with:
 
-    $ cd script
-    $ ./test.sh --tag ~integration
+    $ ./script/test.sh --tag ~integration
 
 ## Contributing
 

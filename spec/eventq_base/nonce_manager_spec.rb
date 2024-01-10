@@ -36,7 +36,7 @@ RSpec.describe EventQ::NonceManager do
 
     context 'when NonceManager has been configured' do
       before do
-        described_class.configure(server: 'redis://redis:6379')
+        described_class.configure(server: ENV.fetch('REDIS_ENDPOINT', 'redis://redis:6379'))
       end
       context 'when a nonce has NOT been used' do
         it 'should return true' do
@@ -77,7 +77,7 @@ RSpec.describe EventQ::NonceManager do
     let(:nonce) { SecureRandom.uuid }
     context 'when NonceManager has been configured' do
       before do
-        described_class.configure(server: 'redis://redis:6379')
+        described_class.configure(server: ENV.fetch('REDIS_ENDPOINT', 'redis://redis:6379'))
         described_class.is_allowed?(nonce)
       end
       it 'should extend the expiry of the nonce key' do
@@ -102,7 +102,7 @@ RSpec.describe EventQ::NonceManager do
     let(:nonce) { SecureRandom.uuid }
     context 'when NonceManager has been configured' do
       before do
-        described_class.configure(server: 'redis://redis:6379')
+        described_class.configure(server: ENV.fetch('REDIS_ENDPOINT', 'redis://redis:6379'))
         described_class.is_allowed?(nonce)
       end
       it 'should extend the expiry of the nonce key' do

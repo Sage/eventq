@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe EventQ::RabbitMq::StatusChecker do
 
   let(:client) do
-    EventQ::RabbitMq::QueueClient.new({ endpoint: 'rabbitmq' })
+    EventQ::RabbitMq::QueueClient.new({ endpoint: ENV.fetch('RABBITMQ_ENDPOINT', 'rabbitmq') })
   end
 
   subject do

@@ -7,32 +7,47 @@ services:
       dockerfile: Dockerfile
     image: eventq
     container_name: testrunner
-    command: bash -c "./scripts/container_loop.sh"
+    command: bash -c "./script/container_loop.sh"
     depends_on:
-      - redis
-      - rabbitmq
-      - localstack
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
     volumes:
-      - ./container_loop.sh:/scripts/container_loop.sh
-      - ../:/src
+      - ./:/src
     environment:
       - AWS_ACCESS_KEY_ID=mock_id
       - AWS_SECRET_ACCESS_KEY=mock_password
       - AWS_REGION=eu-west-1
       - AWS_SQS_ENDPOINT=http://localstack:4566
       - AWS_SNS_ENDPOINT=http://localstack:4566
+      - RABBITMQ_ENDPOINT=rabbitmq
+      - REDIS_ENDPOINT=redis://redis:6379
 #    env_file:
 #      - ../.aws.env
 
   rabbitmq:
-    image: rabbitmq:3.6.5
+    image: rabbitmq:3.12.10
     container_name: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:alpine
     container_name: eventq_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: redis-cli ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   localstack:
     # changes to multi region support after this version break tests
@@ -45,3 +60,8 @@ services:
     ports:
       - "8085:8080"
       - "4566:4566"
+    healthcheck:
+      test: if [ $$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/health?reload) -ne 200 ]; then exit 1; fi
+      interval: 10s
+      timeout: 5s
+      retries: 10
