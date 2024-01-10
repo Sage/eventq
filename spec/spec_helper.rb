@@ -20,10 +20,13 @@ require_relative '../lib/eventq'
 require_relative '../lib/eventq/rabbitmq'
 require_relative '../lib/eventq/aws'
 
+require_relative 'support'
+
 RSpec.configure do |config|
 
-  config.before(:each) do
-
+  config.before(:all) do
+    # Set logging level to FATAL to prevent showing retry ERROR logs etc during test runs
+    EventQ.logger.level = Logger::FATAL
   end
 
   config.expect_with :rspec do |expectations|

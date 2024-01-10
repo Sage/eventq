@@ -1,6 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
+  include_context 'mock_aws_visibility_timeout'
+  include_context 'aws_wait_for_message_processed_helper'
+
   let(:queue_worker) { EventQ::QueueWorker.new }
 
   let(:queue_client) do
@@ -116,9 +119,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     received = false
     context = nil
 
-    # wait 1 second to allow the message to be sent and broadcast to the queue
-    sleep(1)
-
     queue_worker.start(subscriber_queue, worker_adapter: subject, thread_count: 1, block_process: false, client: queue_client, wait: false) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
@@ -127,12 +127,12 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       EventQ.logger.debug { "Message Received: #{event}" }
     end
 
-    sleep(2)
+    wait_for_message_processed
 
-    queue_worker.stop
     expect(received).to eq(true)
     expect(context).to eq message_context
 
+    queue_worker.stop
     expect(queue_worker.is_running).to eq(false)
   end
 
@@ -142,9 +142,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
     received = false
     context = nil
-
-    # wait 1 second to allow the message to be sent and broadcast to the queue
-    sleep(1)
 
     queue_worker.start(
       subscriber_queue,
@@ -161,12 +158,12 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       EventQ.logger.debug { "Message Received: #{event}" }
     end
 
-    sleep(2)
+    wait_for_message_processed
 
-    queue_worker.stop
     expect(received).to eq(true)
     expect(context).to eq message_context
 
+    queue_worker.stop
     expect(queue_worker.is_running).to eq(false)
   end
 
@@ -185,9 +182,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
         received = false
 
-        # wait 1 second to allow the message to be sent and broadcast to the queue
-        sleep(1)
-
         queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 1, thread_count: 1, client: queue_client) do |event, args|
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
@@ -195,12 +189,11 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
           EventQ.logger.debug { "Message Received: #{event}" }
         end
 
-        sleep(2)
-
-        queue_worker.stop
+        wait_for_message_processed
 
         expect(received).to eq(true)
 
+        queue_worker.stop
         expect(queue_worker.is_running).to eq(false)
       end
     end
@@ -216,9 +209,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
 
         received = false
 
-        # wait 1 second to allow the message to be sent and broadcast to the queue
-        sleep(1)
-
         queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 1, thread_count: 1, client: queue_client) do |event, args|
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
@@ -226,12 +216,11 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
           EventQ.logger.debug { "Message Received: #{event}" }
         end
 
-        sleep(2)
-
-        queue_worker.stop
+        wait_for_message_processed
 
         expect(received).to eq(true)
 
+        queue_worker.stop
         expect(queue_worker.is_running).to eq(false)
       end
     end
@@ -248,9 +237,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     received_count = 0
     received_attribute = 0
 
-    # wait 1 second to allow the message to be sent and broadcast to the queue
-    sleep(1)
-
     queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 1, thread_count: 1, client: queue_client) do |event, args|
       expect(event).to eq(message)
       expect(args).to be_a(EventQ::MessageArgs)
@@ -261,13 +247,13 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       args.abort = true if received_count != 2
     end
 
-    sleep(4)
-
-    queue_worker.stop
+    2.times { wait_for_message_processed }
 
     expect(received).to eq(true)
     expect(received_count).to eq(2)
     expect(received_attribute).to eq(1)
+
+    queue_worker.stop
     expect(queue_worker.is_running).to eq(false)
   end
 
@@ -296,7 +282,7 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       end
     end
 
-    sleep(5)
+    10.times { wait_for_message_processed }
 
     expect(message_count).to eq(10)
     expect(received_messages.length).to eq(5)
@@ -307,7 +293,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     expect(received_messages[4][:events]).to be >= 1
 
     queue_worker.stop
-
     expect(queue_worker.is_running).to eq(false)
   end
 
@@ -333,11 +318,6 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     end
 
     it 'should receive an event from the subscriber queue and retry it' do
-      retry_attempt_count = 0
-
-      # wait 1 second to allow the message to be sent and broadcast to the queue
-      sleep(1)
-
       queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 1, thread_count: 1, client: queue_client) do |event, args|
         expect(event).to eq(message)
         expect(args).to be_a(EventQ::MessageArgs)
@@ -345,21 +325,11 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
         raise 'Fail on purpose to send event to retry queue.'
       end
 
-      sleep(1)
-
-      expect(retry_attempt_count).to eq(1)
-
-      sleep(2)
-
-      expect(retry_attempt_count).to eq(2)
-
-      sleep(3)
-
-      expect(retry_attempt_count).to eq(3)
-
-      sleep(4)
-
-      expect(retry_attempt_count).to eq(4)
+      expect(aws_visibility_timeout_queue.pop).to eq(call: 1, visibility_timeout: 1)
+      expect(aws_visibility_timeout_queue.pop).to eq(call: 2, visibility_timeout: 2)
+      expect(aws_visibility_timeout_queue.pop).to eq(call: 3, visibility_timeout: 3)
+      expect(aws_visibility_timeout_queue.pop).to eq(call: 4, visibility_timeout: 4)
+      expect(aws_visibility_timeout_queue.pop).to eq(call: 5, visibility_timeout: 5)
 
       queue_worker.stop
 
@@ -367,37 +337,21 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
     end
 
     context 'queue.allow_exponential_back_off = true' do
-      let(:max_retry_delay) { 10_000 }
+      let(:max_retry_delay) { 20_000 }
       let(:allow_exponential_back_off) { true }
 
       it 'retries received event with an exponential waiting period' do
-        retry_attempt_count = 0
-
-        # wait 1 second to allow the message to be sent and broadcast to the queue
-        sleep(1)
-
         queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 1, thread_count: 1, client: queue_client) do |event, args|
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
-          retry_attempt_count = args.retry_attempts + 1
           raise 'Fail on purpose to send event to retry queue.'
         end
 
-        sleep(1)
-
-        expect(retry_attempt_count).to eq(1)
-
-        sleep(2)
-
-        expect(retry_attempt_count).to eq(2)
-
-        sleep(4)
-
-        expect(retry_attempt_count).to eq(3)
-
-        sleep(8)
-
-        expect(retry_attempt_count).to eq(4)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 1, visibility_timeout: 1)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 2, visibility_timeout: 2)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 3, visibility_timeout: 4)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 4, visibility_timeout: 8)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 5, visibility_timeout: 16)
 
         queue_worker.stop
 
@@ -416,21 +370,13 @@ RSpec.describe EventQ::Amazon::QueueWorker, integration: true do
       end
 
       it 'retries after half the retry delay has passed' do
-        retry_attempt_count = 0
-
-        # wait 1 second to allow the message to be sent and broadcast to the queue
-        sleep(1)
-
         queue_worker.start(subscriber_queue, worker_adapter: subject, wait: false, block_process: false, sleep: 0.5, thread_count: 1, client: queue_client) do |event, args|
           expect(event).to eq(message)
           expect(args).to be_a(EventQ::MessageArgs)
-          retry_attempt_count = args.retry_attempts + 1
           raise 'Fail on purpose to send event to retry queue.'
         end
 
-        sleep(3)
-
-        expect(retry_attempt_count).to eq(2)
+        expect(aws_visibility_timeout_queue.pop).to eq(call: 1, visibility_timeout: 2)
 
         queue_worker.stop
 
