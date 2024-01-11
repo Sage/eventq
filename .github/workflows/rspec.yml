@@ -38,7 +38,7 @@ jobs:
           - "8085:8080"
           - "4566:4566"
         options: >-
-          --health-cmd "curl http://localhost:4566/health?reload"
+          --health-cmd "curl http://localhost:4566/_localstack/health?reload"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
