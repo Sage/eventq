@@ -323,10 +323,11 @@ This method is called to verify connection to an event_type (topic/exchange).
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+### Setup
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in  the file, `EVENTQ_VERSION`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
+After checking out the repo, run `bin/setup` to install dependencies.
+You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+To install this gem onto your local machine, run `bundle exec rake install`.
 
 ### Preparing the Docker images
 
@@ -351,6 +352,14 @@ Run the whole test suite:
 You can run the specs that don't depend on an AWS account with:
 
     $ ./script/test.sh --tag ~integration
+
+### Release new version
+
+To release a new version, first update the version number in  the file [`EVENTQ_VERSION`](https://github.com/Sage/eventq/blob/master/EVENTQ_VERSION).
+With that change merged to `master`, just [draft a new release](https://github.com/Sage/eventq/releases/new) with the same version you specified in `EVENTQ_VERSION`.
+Use "Generate Release Notes" to generate details for this release.
+
+This will create a git tag for the version and triggers the GitHub [Workflow to publish the new gem](https://github.com/Sage/eventq/actions/workflows/publish.yml) (defined in [publish.yml](https://github.com/Sage/eventq/blob/master/.github/workflows/publish.yml)) to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
