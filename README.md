@@ -69,16 +69,71 @@ A subscription queue should be defined to receive any events raised for the subs
 **Example**
 
 ```ruby
-# Create a queue that allows retries and accepts a maximum of 3 retries with a 20 second delay between retries.
+# Create a queue that allows retries and accepts a maximum of 5 retries with a 20 second delay between retries.
 class DataChangeAddressQueue < Queue
   def initialize
     @name = 'Data.Change.Address'
     @allow_retry = true
     @retry_delay = 20_000
-    @max_retry_attempts = 3
+    @max_retry_attempts = 5
   end
 end
 ```
+
+**Retry Strategies**
+
+In distributed systems, it is expected for some events to fail.
+Thankfully, those events can be put "on hold" and will be processed again after a given waiting time.
+The attributes affecting your retry strategy the most are:
+* `retry_delay` (base duration that events are waiting before being reprocessed)
+* `max_receive_count` and `max_retry_attempts` (limiting how often an event can be seen / processed)
+* `allow_retry`, `allow_retry_back_off` and `allow_exponential_back_off` (defining if retries are allowed and how duration between retries should be calculated)
+
+If only `retry_delay` is set to `true`, while `allow_retry_back_off` and `allow_exponential_back_off` remain `false`, the duration between retries will be `retry_delay` each time ("fixed back off").
+So there is a fixed duration between events, like in the example for `DataChangeAddressQueue` above.
+With the configuration of that class, the event will be retried 5 times, with at least 20 seconds between retries.
+Therefore we can calculate that the final retry will have happened after `retry_duration * max_retry_attempts`, which results in 100 seconds here.
+
+If also `allow_retry_back_off` is set to `true`, the duration between retries will scale with the number of retries ("incremental back off").
+So the first retry will happen after `retry_duration`, the second after `2 * retry_duration`, the third after `3 * retry_duration` and so on.
+So the retries will be spread out further apart each time.
+The last retry will be processed after `(max_retry_attempts * (max_retry_attempts + 1))/2 * retry_duration`.
+So in the example above, it would result in 300 seconds until the last retry.
+
+If also `allow_exponential_back_off` is set to `true`, the duration between retries will double each time ("exponential back off").
+So the first retry will happen after `retry_duration`, the second after `2 * retry_duration`, the third after `4 * retry_duration` and so on.
+The last retry will be processed after `(2^max_retry_attempts - 1) * retry_duration`.
+So in the example above, it would result in 620 seconds until the last retry.
+
+You can run experiments on your retry configuration using [plot_visibility_timeout.rb](https://github.com/Sage/eventq/blob/master/utilities/plot_visibility_timeout.rb), which will output the retry duration on each retry given your settings.
+
+
+![Graph comparing back off strategies](images/back-off-strategy.png)
+
+**Randomness**
+
+By default, there will be no randomness in your retry strategy.
+However, that means that with a fixed 20 second back off, many events overloading your service will all come back after exactly 20 seconds, overloading it again.
+Therefore it can be useful to introduce randomness to your retry duration, so the events that initially hit the queue at the same time, are spread out when scheduling them for retry.
+
+The attribute `retry_jitter_ratio` allows you to configure how much randomness ("jitter") is allowed for the retry duration.
+Let's assume we have a `retry_duration = 20_000` (20 seconds).
+Then the `retry_jitter_ratio` would have the following effect:
+* 0 means no randomness, so retry duration of 20 seconds is used every time
+* 20 means 20% randomness, so the duration will be randomly chosen between 80% to 100% of the value, i.e. between 16 to 20 seconds
+* 50 means 50% randomness, i.e. between 10 to 20 seconds
+* 80 means 80% randomness, i.e. between 4 to 20 seconds
+* 100 means 100% randomness, i.e. between 0 to 20 seconds
+
+In the graphs below you can see how adding 50% randomness can help avoid overloading the service.
+In the first graph ("Fixed Retry Duration"), all failures are hitting the queue again after exactly 20 seconds.
+This leads to only a couple of events to succeed, as the others fail due to too many concurrent requests running into locks etc.
+However, in the second graph ("Randomised Retry Duration"), the events are randomnly spread out over the next 10 to 20 seconds.
+This means less events hit the service concurrently, allowing it to succesfully process more events and processing all of the events in a shorter duration, reducing the overall load on the service.
+
+![Graph showing that events overload the service repeatedly with fixed retry duration](images/fixed-retry-duration.png)
+
+![Graph showing that events are spread out on retries when randomising retry duration](images/randomised-retry-duration.png)
 
 ### SubscriptionManager
 
