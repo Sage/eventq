@@ -34,5 +34,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'oj'
   spec.add_dependency 'openssl'
   spec.add_dependency 'connection_pool'
-  spec.add_dependency 'redis'
 end
