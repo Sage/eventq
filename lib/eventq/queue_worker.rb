@@ -127,7 +127,7 @@ module EventQ
 
       EventQ.logger.debug("[#{self.class}] - Message received. Id: #{message.id}. Retry Attempts: #{retry_attempts}")
 
-      if (!EventQ::NonceManager.is_allowed?(message.id))
+      if (!EventQ::NonceManager.lock(message.id))
         EventQ.logger.warn("[#{self.class}] - Duplicate Message received. Id: #{message.id}. Ignoring message.")
         status = :duplicate
         return status, message_args

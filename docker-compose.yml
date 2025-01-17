@@ -51,7 +51,7 @@ services:
 
   localstack:
     # changes to multi region support after this version break tests
-    image: localstack/localstack:latest
+    image: localstack/localstack:stable
     container_name: localstack
     environment:
       - SQS_ENDPOINT_STRATEGY=off
@@ -60,7 +60,7 @@ services:
       - "8085:8080"
       - "4566:4566"
     healthcheck:
-      test: if [ $$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/health?reload) -ne 200 ]; then exit 1; fi
+      test: if [ $$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/_localstack/health?reload) -ne 200 ]; then exit 1; fi
       interval: 10s
       timeout: 5s
       retries: 10

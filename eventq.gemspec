@@ -23,6 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'shoulda-matchers'
   spec.add_development_dependency 'simplecov', '< 0.18.0'
+  spec.add_development_dependency 'debug'
 
   spec.add_dependency 'aws-sdk-core'
   spec.add_dependency 'aws-sdk-sns'
@@ -33,4 +34,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'oj'
   spec.add_dependency 'openssl'
   spec.add_dependency 'redlock'
+  spec.add_dependency 'connection_pool'
 end
