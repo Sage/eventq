@@ -72,6 +72,8 @@ module EventQ
       @server_url = nil
       @timeout = nil
       @lifespan = nil
+      @pool_size = nil
+      @pool_timeout = nil
     end
 
     private
