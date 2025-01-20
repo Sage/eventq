@@ -1,4 +1,6 @@
 module EventQ
+  class NonceManagerNotConfiguredError < StandardError; end
+
   class NonceManager
 
     def self.configure(server:,timeout:10000,lifespan:3600, pool_size: 5, pool_timeout: 5)
@@ -7,6 +9,16 @@ module EventQ
       @lifespan = lifespan
       @pool_size = pool_size
       @pool_timeout = pool_timeout
+
+      @redis_pool = begin
+        require 'connection_pool'
+        require 'redis'
+
+        ConnectionPool.new(size: @pool_size, timeout: @pool_timeout) do
+          Redis.new(url: @server_url)
+        end
+      end
+      @configured = true
     end
 
     def self.server_url
@@ -31,7 +43,7 @@ module EventQ
 
     def self.lock(nonce)
       # act as if successfully locked if not nonce manager configured - makes it a no-op
-      return true if not_configured?
+      return true if !configured?
 
       successfully_locked = false
       with_redis_connection do |conn|
@@ -48,7 +60,7 @@ module EventQ
     # if the message was successfully procesed, lock for another lifespan length
     # so it isn't reprocessed
     def self.complete(nonce)
-      return true if not_configured?
+      return true if !configured?
 
       with_redis_connection do |conn|
         conn.expire(nonce, lifespan)
@@ -59,7 +71,7 @@ module EventQ
 
     # if it failed, unlock immediately so that retries can kick in
     def self.failed(nonce)
-      return true if not_configured?
+      return true if !configured?
 
       with_redis_connection do |conn|
         conn.del(nonce)
@@ -74,29 +86,24 @@ module EventQ
       @lifespan = nil
       @pool_size = nil
       @pool_timeout = nil
+      @configured = false
+      @redis_pool.reload(&:close)
+    end
+
+    def self.configured?
+      @configured == true
     end
 
     private
 
     def self.with_redis_connection
-      redis_pool.with do |conn|
+      if !configured?
+        raise NonceManagerNotConfiguredError, 'Unable to checkout redis connection from pool, nonce manager has not been configured. Call .configure on NonceManager.'
+      end
+
+      @redis_pool.with do |conn|
         yield conn
       end
-    end
-
-    def self.redis_pool
-      @redis_pool ||= begin
-        require 'connection_pool'
-        require 'redis'
-
-        ConnectionPool.new(size: @pool_size, timeout: @pool_timeout) do
-          Redis.new(url: @server_url)
-        end
-      end
-    end
-
-    def self.not_configured?
-      @server_url.nil? || @server_url.empty?
     end
   end
 end

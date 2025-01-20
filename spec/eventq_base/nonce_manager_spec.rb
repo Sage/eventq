@@ -134,4 +134,17 @@ RSpec.describe EventQ::NonceManager do
     end
   end
 
+  # this is a private method, but we want to make sure we correctly raise an error if a consumer tries to use
+  # it directly to access the underlying connection pool without configuring the nonce manager first
+  describe '.with_redis_connection' do
+    context 'when the nonce manager has not been configured' do
+      before do
+        described_class.reset
+      end
+
+      it 'raises error' do
+        expect { described_class.with_redis_connection { } }.to raise_error(EventQ::NonceManagerNotConfiguredError)
+      end
+    end
+  end
 end
