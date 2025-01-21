@@ -6,7 +6,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'json', '~> 2'
-gem 'redlock', '~> 1'
+gem 'redis'
 
 platforms :ruby do
   gem 'bunny'

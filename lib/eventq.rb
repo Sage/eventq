@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'securerandom'
-require 'redlock'
 require 'class_kit'
 require 'hash_kit'
 require 'oj'
