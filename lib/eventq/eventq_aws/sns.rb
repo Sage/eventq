@@ -17,8 +17,8 @@ module EventQ
       # Create a TopicArn. if one already exists, it will return a pre-existing ARN from the cache.
       # Even in the event of multiple threads trying to create one with AWS, AWS is idempotent and won't create
       # duplicates
-      def create_topic_arn(event_type, region = nil)
-        _event_type = EventQ.create_event_type(event_type)
+      def create_topic_arn(event_type, region = nil, namespace = nil)
+        _event_type = EventQ.create_event_type(event_type, namespace)
         topic_key = "#{region}:#{_event_type}"
 
         arn = @@topic_arns[topic_key]
@@ -34,8 +34,8 @@ module EventQ
       # Check if a TopicArn exists.  This will check with AWS if necessary and cache the results if one is found
       #
       # @return TopicArn [String]
-      def get_topic_arn(event_type, region = nil)
-        _event_type = EventQ.create_event_type(event_type)
+      def get_topic_arn(event_type, region = nil, namespace = nil)
+        _event_type = EventQ.create_event_type(event_type, namespace)
         topic_key = "#{region}:#{_event_type}"
 
         arn = @@topic_arns[topic_key]
@@ -48,11 +48,11 @@ module EventQ
         arn
       end
 
-      def drop_topic(event_type, region = nil)
+      def drop_topic(event_type, region = nil, namespace = nil)
         topic_arn = get_topic_arn(event_type, region)
         sns.delete_topic(topic_arn: topic_arn)
 
-        _event_type = EventQ.create_event_type(event_type)
+        _event_type = EventQ.create_event_type(event_type, namespace)
         topic_key = "#{region}:#{_event_type}"
         @@topic_arns.delete(topic_key)
 

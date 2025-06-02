@@ -19,7 +19,7 @@ module EventQ
           method = :create_topic_arn
         end
 
-        topic_arn = @client.sns_helper(topic_region).public_send(method, event_type, topic_region)
+        topic_arn = @client.sns_helper(topic_region).public_send(method, event_type, topic_region, topic_namespaces[0])
         raise Exceptions::EventTypeNotFound, "SNS topic not found, unable to subscribe to #{event_type}" unless topic_arn
 
         queue_arn = configure_queue(queue, queue_region)
@@ -29,7 +29,7 @@ module EventQ
           namespaced_topic_arn = topic_arn.gsub(":#{EventQ.namespace}-", ":#{namespace}-")
 
           # create the sns topic - this method is idempotent & returns the topic arn if it already exists
-          @client.sns_helper.create_topic_arn("#{namespace}-#{event_type}".delete('.')) unless queue.isolated
+          @client.sns_helper.create_topic_arn(event_type.delete('.'), nil, namespace) unless queue.isolated
 
           # skip subscribe if subscription for given queue/topic already exists
           # this is a workaround for a localstack issue: https://github.com/localstack/localstack/issues/933

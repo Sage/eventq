@@ -81,6 +81,20 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
         allow_any_instance_of(Aws::SNS::Client).to receive(:list_subscriptions).and_return(subscriptions)
       end
 
+      it 'creates the topic for each namespace provided' do
+        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).with(
+          name: "foo-#{event_type}"
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).with(
+          name: "bar-#{event_type}"
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:create_topic).with(
+          name: "baz-#{event_type}"
+        )
+        expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).exactly(3).times
+        subject.subscribe(event_type, subscriber_queue, nil, nil, namespaces)
+      end
+
       it 'subscribes the queue to the topics for each namespace provided' do
         expect_any_instance_of(Aws::SNS::Client).to receive(:subscribe).with(
           topic_arn: topic_arn,

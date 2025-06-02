@@ -7,17 +7,25 @@ module EventQ
     @namespace = value
   end
 
-  def self.create_event_type(event_type)
-    if EventQ.namespace == nil
-      return event_type
-    end
-    return "#{EventQ.namespace}-#{event_type}"
+  def self.create_event_type(event_type, namespace = nil)
+    # if namespace is empty string, suppress EventQ.namespace
+    return event_type if namespace == '' || (EventQ.namespace.nil? && namespace.nil?)
+
+    # if namespace is not nil prefer it to EventQ.namespace
+    return "#{namespace}-#{event_type}" if namespace
+
+    "#{EventQ.namespace}-#{event_type}"
   end
 
-  def self.create_queue_name(queue)
-    return queue.name if EventQ.namespace == nil
+  def self.create_queue_name(queue, namespace = nil)
+    # if namespace is empty string, suppress EventQ.namespace
+    return queue.name if namespace == '' || (EventQ.namespace.nil? && namespace.nil?)
 
     delimiter = queue.namespace_delimiter || '-'
-    return "#{EventQ.namespace}#{delimiter}#{queue.name}"
+
+    # if namespace is not nil prefer it to EventQ.namespace
+    return "#{namespace}#{delimiter}#{queue.name}" if namespace
+
+    "#{EventQ.namespace}#{delimiter}#{queue.name}"
   end
 end
