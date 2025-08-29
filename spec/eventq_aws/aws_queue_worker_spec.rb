@@ -79,7 +79,3 @@ RSpec.describe EventQ::Amazon::QueueWorker do
     end
   end
 end
-
-class A
-  attr_accessor :text
-end

@@ -29,7 +29,7 @@ RSpec.describe EventQ::Amazon::SubscriptionManager do
     context 'when Queue.isolated is true' do
       it 'raises an error if topic does not exist' do
         subscriber_queue.isolated = true
-        expect { subject.subscribe(event_type, subscriber_queue) }.to raise_error
+        expect { subject.subscribe(event_type, subscriber_queue) }.to raise_error(EventQ::Exceptions::EventTypeNotFound)
       end
     end
 

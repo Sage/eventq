@@ -35,6 +35,7 @@ RSpec.configure do |config|
 
   config.mock_with :rspec do |mocks|
     mocks.verify_partial_doubles = true
+    mocks.allow_message_expectations_on_nil = true
   end
 
   config.example_status_persistence_file_path = 'spec_run.txt'
@@ -55,4 +56,9 @@ RSpec.configure do |config|
   config.order = :defined
 
   Kernel.srand config.seed
+end
+
+# Serdes test class
+class A
+  attr_accessor :text
 end

@@ -1,2 +1,2 @@
 echo stop containers
-docker-compose stop
+docker compose stop

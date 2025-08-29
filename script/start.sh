@@ -1,4 +1,4 @@
 echo start containers
 
-docker-compose up -d
+docker compose up -d
 

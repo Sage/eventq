@@ -10,7 +10,7 @@ gem 'redis'
 
 platforms :ruby do
   gem 'bunny'
-  gem 'oj', '3.12.3' # 3.13.0 breaks the specs
+  gem 'oj', '3.16.11'
   gem 'openssl'
   gem 'rexml'
 end
