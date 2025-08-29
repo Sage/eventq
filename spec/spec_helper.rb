@@ -57,3 +57,8 @@ RSpec.configure do |config|
 
   Kernel.srand config.seed
 end
+
+# Serdes test class
+class A
+  attr_accessor :text
+end

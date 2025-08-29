@@ -45,7 +45,7 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
         end
         let(:payload) do
           string = Oj.dump(a)
-          JSON.load(string.sub('"^o":"A"', '"^o":"B"'))
+          JSON.parse(string.sub('"^o":"A"', '"^o":"D"'))
         end
         let(:message) do
           EventQ::QueueMessage.new.tap do |m|
@@ -669,16 +669,10 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
       expect(failed_message.type).to eq(event_type)
 
       expect(queue_worker.running?).to eq(false)
-
     end
   end
 
-  class A
-    attr_accessor :text
-  end
-
   def add_to_received_list(received_messages)
-
     thread_name = Thread.current.object_id
     EventQ.logger.debug { "[THREAD] #{thread_name}" }
     thread = received_messages.select { |i| i[:thread] == thread_name }
@@ -688,6 +682,5 @@ RSpec.describe EventQ::RabbitMq::QueueWorker do
     else
       received_messages.push({ :events => 1, :thread => thread_name })
     end
-
   end
 end
