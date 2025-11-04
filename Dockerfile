@@ -1,6 +1,6 @@
 FROM ruby:3.2-alpine3.18
 
-ENV APP_HOME /src
+ENV APP_HOME=/src
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
