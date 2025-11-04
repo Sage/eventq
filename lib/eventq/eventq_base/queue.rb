@@ -42,5 +42,26 @@ module EventQ
       @retry_jitter_ratio = 0
       @isolated = false
     end
+
+    def log_settings
+      EventQ.logger.info do
+        <<~LOG.chomp
+          [#{self.class}] - Settings: \
+          name='#{@name}', \
+          allow_retry='#{@allow_retry}', \
+          allow_retry_back_off='#{@allow_retry_back_off}', \
+          allow_exponential_back_off='#{@allow_exponential_back_off}', \
+          dlq='#{@dlq}', \
+          max_receive_count='#{@max_receive_count}', \
+          max_retry_attempts='#{@max_retry_attempts}', \
+          max_retry_delay='#{@max_retry_delay}', \
+          retry_delay='#{@retry_delay}', \
+          retry_back_off_grace='#{@retry_back_off_grace}', \
+          retry_back_off_weight='#{@retry_back_off_weight}', \
+          retry_jitter_ratio='#{@retry_jitter_ratio}', \
+          require_signature='#{@require_signature}'
+        LOG
+      end
+    end
   end
 end
