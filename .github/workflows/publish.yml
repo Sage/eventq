@@ -4,6 +4,10 @@ on:
   release:
     types:
       - "created"
+  push:
+    branches:
+      - build-fix-rake-release
+
 
 jobs:
   publish:
@@ -23,6 +27,13 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Show Bundler version
+        run: bundle --version
+
 
       - name: Release Gem
         uses: rubygems/release-gem@v1
