@@ -19,14 +19,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.0'
-          bundler-cache: true
+          ruby-version: '3.2'
+          bundler-cache: false
 
-      - name: Release Gem
-        uses: rubygems/release-gem@v1
+      - name: Install dependencies without strict version resolution
+        run: bundle install
+
+      - name: Configure trusted publishing credentials
+        uses: rubygems/configure-rubygems-credentials@v1.0.0
+
+      - name: Build and push gem
+        run: |
+          gem build eventq.gemspec
+          gem push eventq-*.gem
