@@ -4,10 +4,6 @@ on:
   release:
     types:
       - "created"
-  push:
-    branches:
-      - build-fix-rake-release
-
 
 jobs:
   publish:
@@ -20,19 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: false
-
-      - name: Install dependencies without strict version resolution
-        run: bundle install
-
       - name: Configure trusted publishing credentials
         uses: rubygems/configure-rubygems-credentials@v1.0.0
 
-      - name: Build and push gem
+      - name: Publish to RubyGems
         run: |
           gem build eventq.gemspec
           gem push eventq-*.gem
