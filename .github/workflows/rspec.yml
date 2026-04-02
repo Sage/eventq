@@ -30,7 +30,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:community-archive
         env:
           SQS_ENDPOINT_STRATEGY: off
           LOCALSTACK_HOST: localhost

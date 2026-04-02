@@ -49,7 +49,7 @@ services:
 
   localstack:
     # changes to multi region support after this version break tests
-    image: localstack/localstack:stable
+    image: localstack/localstack:community-archive
     container_name: localstack
     environment:
       - SQS_ENDPOINT_STRATEGY=off
