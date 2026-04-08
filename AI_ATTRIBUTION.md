@@ -501,7 +501,7 @@ quoted. Null values are empty between delimiters.
 
 **AI (GitHub Copilot, GPT-5.3-Codex):** Implemented `publish_batch` and `raise_events_batch` in the AWS client, added batching/chunking behavior for SNS limits, refactored message preparation helpers for reuse, and added/updated unit tests for serialization, chunking, context overrides, and delegation.
 
-**Commits:** `["pending"]`
+**Commits:** `["72da51d7045be553f5bced7571ec1215bafdac8c"]`
 
 **Iterations:** iterative
 
