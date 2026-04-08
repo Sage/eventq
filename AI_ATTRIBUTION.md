@@ -495,4 +495,14 @@ quoted. Null values are empty between delimiters.
 
 ## Log
 
-*No entries yet.*
+### 2026-04-07-1 — Added SNS publish_batch support for AWS EventQ client [🟠 ASSISTED — code, test]
+
+**Human:** Requested support for publishing events to SNS in batches for the same topic.
+
+**AI (GitHub Copilot, GPT-5.3-Codex):** Implemented `publish_batch` and `raise_events_batch` in the AWS client, added batching/chunking behavior for SNS limits, refactored message preparation helpers for reuse, and added/updated unit tests for serialization, chunking, context overrides, and delegation.
+
+**Commits:** `["pending"]`
+
+**Iterations:** iterative
+
+**Notes:** Main files: `lib/eventq/eventq_aws/aws_eventq_client.rb`, `spec/eventq_aws/aws_eventq_client_spec.rb`.
