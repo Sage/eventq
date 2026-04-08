@@ -5,7 +5,7 @@ RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
 RUN apk add --update ca-certificates bash && update-ca-certificates && rm -rf /var/cache/apk/*
-RUN apk update && apk add --no-cache build-base libressl-dev
+RUN apk update && apk add --no-cache build-base openssl-dev
 
 RUN set -ex \
 	&& apk add --no-cache --virtual .gem-builddeps \
