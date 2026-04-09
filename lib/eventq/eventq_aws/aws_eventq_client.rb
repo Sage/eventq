@@ -73,9 +73,10 @@ module EventQ
 
       def raise_events_batch(event_type, events, context = {}, region = nil)
         topic_arn = register_event(event_type, region)
-        publish_entries = publish_batch_entries(event_type, events, context)
+        publish_entries = prepare_batch_entries(event_type, events, context)
 
         message_ids = []
+        # AWS SNS PublishBatch API allows a maximum of 10 messages per batch
         publish_entries.each_slice(10) do |batch_entries|
           response = @client.sns(region).publish_batch(
             topic_arn: topic_arn,
@@ -117,7 +118,7 @@ module EventQ
 
       private
 
-      def publish_batch_entries(event_type, events, default_context)
+      def prepare_batch_entries(event_type, events, default_context)
         events.each_with_index.map do |entry, index|
           event, context = batch_entry_values(entry, default_context)
 
