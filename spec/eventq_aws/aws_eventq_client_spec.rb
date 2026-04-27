@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe EventQ::Amazon::EventQClient do
-
   let(:event_type) { 'test_queue1_event1' }
   let(:event) { 'Hello World' }
 
@@ -82,6 +81,92 @@ RSpec.describe EventQ::Amazon::EventQClient do
 
         expect(subject.raise_event(event_type, event, message_context)).to eql message_id
       end
+    end
+  end
+
+  describe '#raise_events_batch' do
+    let(:message_context) { { 'foo' => 'bar' } }
+    let(:successful_entries) do
+      [
+        double('PublishBatchResultEntry', message_id: 'batch-1'),
+        double('PublishBatchResultEntry', message_id: 'batch-2')
+      ]
+    end
+    let(:publish_batch_response) { double('PublishBatchResponse', successful: successful_entries) }
+
+    it 'publishes events in a single SNS batch with serialized payloads' do
+      expect(queue_client.sns).to receive(:publish_batch) do |options|
+        expect(options[:topic_arn]).to_not be_nil
+        entries = options[:publish_batch_request_entries]
+        expect(entries.length).to eq(2)
+
+        first_message = JSON.parse(entries[0][:message])
+        second_message = JSON.parse(entries[1][:message])
+
+        expect(first_message['content']).to eql('Hello')
+        expect(second_message['content']).to eql('World')
+        expect(first_message['type']).to eql(event_type)
+        expect(second_message['type']).to eql(event_type)
+        expect(first_message['context']).to eql(message_context)
+        expect(second_message['context']).to eql(message_context)
+
+        expect(entries[0][:subject]).to eql(event_type)
+        expect(entries[1][:subject]).to eql(event_type)
+      end.and_return(publish_batch_response)
+
+      result = subject.raise_events_batch(event_type, %w[Hello World], message_context)
+      expect(result).to eql(%w[batch-1 batch-2])
+    end
+
+    it 'splits requests into SNS-sized chunks of 10 entries' do
+      publish_calls = 0
+
+      expect(queue_client.sns).to receive(:publish_batch).twice do |options|
+        publish_calls += 1
+        batch_size = options[:publish_batch_request_entries].length
+
+        if publish_calls == 1
+          expect(batch_size).to eq(10)
+        else
+          expect(batch_size).to eq(2)
+        end
+
+        publish_batch_response
+      end
+
+      events = (1..12).map { |i| "event-#{i}" }
+      result = subject.raise_events_batch(event_type, events, message_context)
+      expect(result.length).to eq(4)
+    end
+
+    it 'supports per-event context overrides in batch entries' do
+      expect(queue_client.sns).to receive(:publish_batch) do |options|
+        entries = options[:publish_batch_request_entries]
+
+        default_context_message = JSON.parse(entries[0][:message])
+        custom_context_message = JSON.parse(entries[1][:message])
+
+        expect(default_context_message['context']).to eql(message_context)
+        expect(custom_context_message['context']).to eql({ 'batch' => 'custom' })
+      end.and_return(publish_batch_response)
+
+      events = [
+        'Hello',
+        { event: 'World', context: { 'batch' => 'custom' } }
+      ]
+
+      subject.raise_events_batch(event_type, events, message_context)
+    end
+  end
+
+  describe '#publish_batch' do
+    let(:events) { %w[Hello World] }
+    let(:message_context) { { 'foo' => 'bar' } }
+
+    it 'delegates to #raise_events_batch' do
+      expect(subject).to receive(:raise_events_batch).with(event_type, events, message_context, nil)
+
+      subject.publish_batch(topic: event_type, events: events, context: message_context)
     end
   end
 
