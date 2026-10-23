@@ -113,7 +113,7 @@ end
 
 settings = {
   # Sometimes the calculated timeout is zero so we must default to a value
-  # since in real life the is no zero second connections.
+  # since in real life there are no zero second connections.
   plot_min_timeout:                 0.03,       # 30ms which is the average connection time between worker and queue
 
   # The amount of time we should plot for.

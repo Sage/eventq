@@ -57,7 +57,7 @@ module EventQ
       successfully_locked
     end
 
-    # if the message was successfully procesed, lock for another lifespan length
+    # if the message was successfully processed, lock for another lifespan length
     # so it isn't reprocessed
     def self.complete(nonce)
       return true if !configured?

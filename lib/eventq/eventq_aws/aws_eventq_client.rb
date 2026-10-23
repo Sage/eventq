@@ -17,7 +17,7 @@ module EventQ
         @known_event_types = {}
       end
 
-      # Returns true if the event has already been registerd, or false
+      # Returns true if the event has already been registered, or false
       # otherwise.
       #
       # @param [String] event_type
